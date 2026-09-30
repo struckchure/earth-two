@@ -1,0 +1,23 @@
+man.glb, woman.glb
+
+Bodies, skins, eyes and eyebrows: MakeHuman (https://static.makehumancommunity.org),
+the makehuman_system_assets pack, built with MPFB for Blender. Both are
+public domain (CC0 1.0).
+
+Underwear, MakeHuman community assets:
+  man: "Boxer Shorts" by WojackOWL, CC-BY 4.0,
+       http://www.makehumancommunity.org/clothes/boxer_shorts.html
+       (its material trimmed to the base colour texture)
+  woman: panties and top by wolgade (underwear01 pack), public domain (CC0 1.0)
+
+Animations: Universal Animation Library (Standard) by Quaternius,
+https://quaternius.itch.io/universal-animation-library, public domain (CC0 1.0).
+
+Idle, walk, run, jumps, punch and pick up: Mixamo animations
+(https://www.mixamo.com), retargeted onto the bodies. Free to use in games
+under Adobe's terms, but not to redistribute as standalone files; the raw
+downloads stay out of the repo (build/mixamo is ignored).
+
+Built by tools/makehuman/people.py (make people); see the README.
+https://creativecommons.org/publicdomain/zero/1.0/
+https://creativecommons.org/licenses/by/4.0/
