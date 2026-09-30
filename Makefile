@@ -9,7 +9,7 @@ PORT ?= 8080
 # replaces it. Its web/build.sh does the browser build.
 ILLUSION = $(shell go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
-.PHONY: run build web serve test characters people clean
+.PHONY: run build web serve test characters people wardrobe clean
 
 run:
 	go run ./cmd/desktop
@@ -42,6 +42,11 @@ UAL ?= build/makehuman/dl/ual/Universal Animation Library[Standard]/Unreal-Godot
 MIXAMO ?= build/mixamo
 people:
 	BLENDER_USER_RESOURCES="$(CURDIR)/build/makehuman/blender" "$(BLENDER)" -b --python tools/makehuman/people.py -- "$(UAL)" assets/characters "$(MIXAMO)"
+
+# Builds the wardrobe (clothes, hair, glasses, skins and wardrobe.json) for
+# the people in assets/characters; run it after make people.
+wardrobe:
+	BLENDER_USER_RESOURCES="$(CURDIR)/build/makehuman/blender" "$(BLENDER)" -b --python tools/makehuman/wardrobe.py -- assets/characters
 
 clean:
 	rm -rf build

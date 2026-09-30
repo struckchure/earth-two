@@ -1,8 +1,8 @@
 # Earth Two
 
-A free-roam role game set in a low-poly Lagos. You take contracts and
-jobs, legal and illegal, earn money and rise through the ranks. It isn't a
-racing game: the danfos, okadas and crowds are there to live among.
+A free-roam role game set in a science-fiction world. You take contracts
+and jobs, legal and illegal, earn money and rise through the ranks. It
+isn't a racing game.
 
 It's built with [illusion](https://github.com/struckchure/illusion), with Jolt
 physics, and the same code runs on the desktop and in the browser.
@@ -33,6 +33,10 @@ later builds take seconds.
 
 ## Controls
 
+The game opens on the title screen: Play, Wardrobe, Controls and (on the
+desktop) Quit. Up/Down and Enter, or the mouse, pick from the menus, and
+Esc goes back. In play:
+
 | Key | Does |
 |---|---|
 | WASD / arrows | Walk |
@@ -41,7 +45,14 @@ later builds take seconds.
 | E | Interact |
 | F | Punch |
 | Q | Pick up |
-| Tab | Switch between the man and the woman |
+| C | Open or close the wardrobe |
+| Esc | Pause: Resume, Wardrobe, Controls, Main menu, Quit |
+
+The menus (`game/menu.go`, drawn by `game/screens.go`) stack, so Esc or
+Back returns to whichever screen opened the one in front. The HUD is just
+the frame rate and the menu keys. Text is Inter (`game/fonts`, SIL Open Font
+License), embedded in the binary and rasterised at each size it's drawn
+at, so it stays sharp at any window size and pixel ratio.
 
 ## Characters
 
@@ -57,8 +68,20 @@ job and contract AI will write everyone else's.
 - `Plugin{Models: ...}` loads the models. A model's `Scale` sizes it; 0 fits
   it to about 1.75 m, for models made in other units.
 - The state machine picks Idle, Walk, Run, Jump or RunJump from the
-  controller, and plays one-shots (Interact, Punch, PickUp) on request. Moving
-  cuts a one-shot short, and a skin without a clip ignores the request.
+  controller, and plays one-shots (Interact, Punch, PickUp) on request,
+  standing or on the move; a skin without a clip ignores the request. A
+  moving character pulls up for the action (braking at twice its `Accel`)
+  and can't move, turn or jump while it plays, and requests for another
+  action are dropped, not queued. Only a fall cuts one short. Still holding
+  a direction, it moves on at 70% of the clip, skipping the recovery, into a
+  walk that builds back up to a run.
+- The body turns at a capped speed, easing in and out (`TurnSpeed`,
+  `TurnAccel`), slower the faster it's going, and steps along where it
+  faces. It slows the more it has to turn: turning about, it all but stops,
+  steps round and sets off again. It speeds up at `Accel` and brakes twice
+  as hard.
+- In the air, a character keeps to the way it jumped: it can veer 10° at
+  most, going or facing, and can't speed up. Letting go keeps it going.
 - Walk and run playback speed follows ground speed, so feet don't slide.
 - Jump clips start at take-off (`Clip.Start`) and are stretched so
   take-off to touchdown (`Clip.Land`) lasts as long as the physics jump. A
@@ -76,6 +99,46 @@ sprint, crouch, roll, interact, punches, push, sit, drive, fixing, pistol,
 hit and death. Everything is CC0 except the man's boxer shorts (CC-BY,
 credited) and the Mixamo clips (Adobe's terms: fine in a game, not as raw
 files); see `assets/characters/CREDITS.txt`.
+
+### The wardrobe
+
+C opens the wardrobe (`game/wardrobe.go`), as does Wardrobe on the title
+screen and the pause menu: the player stops and turns to the camera, which swings round to their front, and its rows change the body
+(man or woman), the skin tone, hair, glasses, top, bottom, outfit (a
+one-piece: suits, overalls, dresses) and shoes. Up/Down (W/S) pick a row
+and Left/Right (A/D) change it, or click its arrows; changes show at once.
+
+What a character wears is its `character.Outfit`: a body, a tone and an
+item per slot (`Outfit.Put` keeps a one-piece and a top or bottom from
+being worn together). The `dress` system puts it on: it swaps the body,
+retextures the skin with the tone, and adds each item as a `Garment` child
+of the body, posed like it by `mirrorPose`. Clothes are layered: each sits
+just over the skin and underwear (and a top over any bottom), so nothing
+underneath pokes through. Where the body bends, skin could still show
+through as clothes move, so an item that covers nearly all of a body
+region (head, torso, hips, upper arms, forearms, hands, thighs, calves,
+feet) hides that region's skin, bringing back the little it doesn't cover
+as skin patches of its own, drawn in the body's tone. Underwear hides only
+under an item that covers it, and fills any opening one has. It all runs
+on illusion's `render.ModelParts`, which hides or retextures single meshes
+of a model for one entity.
+
+Hair and loose clothes move with physics (`character/cloth.go`, on
+illusion's `render.Cloth`): they trail and swing as the character moves,
+hang under gravity, and are pushed out of capsules fitted to the body.
+What touches the skin stays where the animation puts it; the further along
+a garment from there, the further a part can stray. Glasses and shoes are
+rigid.
+
+`tools/makehuman/wardrobe.py` (`make wardrobe`, after `make people`) builds
+it: it fits every item in its `CATALOGUE` to each body, layers it over
+what it's worn over, measures which regions and underwear it covers
+(casting rays outward), exports each
+item with its skin patches to `assets/characters/<body>/<slot>/`, writes the
+skins to `assets/characters/skins/`, and lists it all in
+`assets/characters/wardrobe.json`, which the game loads. The items are the
+MakeHuman system hair, shoes and suits, and the shirts01, pants01 and
+glasses01 packs, all CC0: install those three packs like the others below.
 
 ### Building the people
 
@@ -121,13 +184,17 @@ Blender runs with its own user folder there, so your Blender is untouched:
    and the [Universal Animation Library](https://quaternius.itch.io/universal-animation-library)
    (Standard) unzipped into `build/makehuman/dl/ual/`, plus the
    [underwear01](https://static.makehumancommunity.org/assets/assetpacks/underwear01.html)
-   pack (CC0) as `underwear01.zip`.
+   pack (CC0) as `underwear01.zip`, and for the wardrobe the
+   [shirts01](https://static.makehumancommunity.org/assets/assetpacks/shirts01.html),
+   [pants01](https://static.makehumancommunity.org/assets/assetpacks/pants01.html) and
+   [glasses01](https://static.makehumancommunity.org/assets/assetpacks/glasses01.html)
+   packs (CC0) as `shirts01.zip`, `pants01.zip` and `glasses01.zip`.
 2. Install MPFB and the assets:
 
    ```sh
    export BLENDER_USER_RESOURCES=$PWD/build/makehuman/blender
    blender --factory-startup --command extension install-file --repo user_default --enable build/makehuman/dl/mpfb.zip
-   for pack in system_assets underwear01; do
+   for pack in system_assets underwear01 shirts01 pants01 glasses01; do
      blender -b --python-expr "import bpy; bpy.ops.mpfb.load_pack(filepath='$PWD/build/makehuman/dl/$pack.zip')"
    done
    ```

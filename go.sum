@@ -6,7 +6,5 @@ github.com/jupiterrider/ffi v0.7.0 h1:RKsl6Ascal+3kyAqR5Qcbp83LceQMLc1VZbPfHWoNz
 github.com/jupiterrider/ffi v0.7.0/go.mod h1:9dauhpOfNqrqk28fxuu0kkdeFtT9Qr4vbfigiuIXN7c=
 github.com/mlange-42/ark v0.8.3 h1:vgmV4EiwqYbW9adiO576zapzW/O0BhkuUT2IXlqJ43s=
 github.com/mlange-42/ark v0.8.3/go.mod h1:gkS9cuklENPTmSjL2z4DcJgJsIVqF1yNwFlx48Hz/Sw=
-github.com/struckchure/illusion v0.0.0-20260930123758-766af8135189 h1:l86SS9iwuDZbGTD5OwitZu1Dr92hHQvps9XEzYr9yV4=
-github.com/struckchure/illusion v0.0.0-20260930123758-766af8135189/go.mod h1:YXrdCdA43ncCi4WP6p1bL9SwxDVj9KkkLJmeHof5EWI=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 h1:vr/HnozRka3pE4EsMEg1lgkXJkTFJCVUX+S/ZT6wYzM=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=

@@ -22,7 +22,8 @@ const (
 	Jump    // airborne after standing still (or falling off something)
 	RunJump // airborne after moving
 
-	// One-shots: they play once, and moving cuts them short.
+	// One-shots: they play once, the character pulling up for them. Only a
+	// fall cuts one short; wanting to move skips its recovery.
 	Interact
 	Punch
 	PickUp
@@ -60,26 +61,39 @@ func (a Anim) String() string {
 type Character struct {
 	WalkSpeed, RunSpeed float32 // units per second
 	JumpSpeed           float32 // upward speed at take-off
-	TurnSpeed           float32 // how fast the body turns to face where it's going
+	// Accel is how fast it speeds up and slows down, in units per second
+	// per second.
+	Accel float32
+	// TurnSpeed is the fastest the body turns to face where it's going, in
+	// radians per second, standing (the faster it goes, the slower it
+	// turns), and TurnAccel how fast it gets up to that speed and back
+	// down.
+	TurnSpeed, TurnAccel float32
 }
 
 // Default is an ordinary person. The speeds are the Mixamo walk and run's
-// own, measured from how fast a planted foot slides under the body.
+// own, measured from how fast a planted foot slides under the body. A walk
+// turns about in two thirds of a second.
 func Default() Character {
-	return Character{WalkSpeed: 1.6, RunSpeed: 4.6, JumpSpeed: 4, TurnSpeed: 12}
+	return Character{WalkSpeed: 1.6, RunSpeed: 4.6, JumpSpeed: 4, Accel: 8, TurnSpeed: 7, TurnAccel: 30}
 }
 
 // Intent is what a character wants to do. playerInput writes the player's;
 // the character systems carry it out.
 type Intent struct {
 	// Move is the direction to go on the XZ plane, at most 1 long; zero
-	// stands still.
+	// stands still. In the air it can only veer a character a little.
 	Move rl.Vector3
 	Run  bool
-	// Jump asks for a jump; it's cleared at the next physics step.
+	// Jump asks for a jump; it's cleared at the next physics step, and
+	// ignored while an action plays.
 	Jump bool
-	// Act asks for a one-shot action; it's cleared once started. Idle means
-	// none. Moving characters, and skins without the clip, ignore it.
+	// Act asks for a one-shot action; Idle means none. It's cleared as soon
+	// as it's read, so an ignored request isn't kept for later. Airborne
+	// characters, characters already acting, and skins without the clip
+	// ignore it. A moving character pulls up for an action, and plays it to
+	// its end before another can start; Move waits until then, or until the
+	// action is far enough along to skip its recovery and move on.
 	Act Anim
 }
 
@@ -91,6 +105,15 @@ type State struct {
 	Current Anim
 	skin    int     // index into Roster.Skins
 	air     float32 // seconds off the ground
+	turn    float32 // how fast the body is turning, in radians per second
+	resume  float32 // seconds left counting as moving on after an action
+
+	// Off the ground (as the physics step last saw it), and the way it was
+	// going and facing when it left: in the air it can only veer a little
+	// from those (see airborne).
+	aloft     bool
+	launch    rl.Vector3
+	launchYaw float32
 }
 
 // Player marks the character the keyboard controls.

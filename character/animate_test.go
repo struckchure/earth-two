@@ -28,7 +28,14 @@ func TestPickAnim(t *testing.T) {
 		{"landing on the move", motion{Grounded: true, Speed: 5}, RunJump, false, Run},
 		{"acting", motion{Grounded: true}, Punch, true, Punch},
 		{"action done", motion{Grounded: true}, Punch, false, Idle},
-		{"moving cuts an action short", motion{Grounded: true, Speed: 2}, Interact, true, Walk},
+		{"a shove doesn't cut an action short", motion{Grounded: true, Speed: 2}, Interact, true, Interact},
+		{"moving once it's done", motion{Grounded: true, Speed: 2}, Interact, false, Walk},
+		{"walking on out of an action", motion{Grounded: true, Resuming: true}, Punch, false, Walk},
+		{"running on out of an action starts with a walk", motion{Grounded: true, Resuming: true}, PickUp, false, Walk},
+		{"still walking while speeding up", motion{Grounded: true, Speed: 0.1, Resuming: true}, Walk, false, Walk},
+		{"a finished action with nowhere to go", motion{Grounded: true}, Punch, false, Idle},
+		{"stepping round turning about", motion{Grounded: true, Speed: 0.1, Pivoting: true}, Walk, false, Walk},
+		{"stepping round from standing", motion{Grounded: true, Pivoting: true}, Idle, false, Walk},
 		{"falling cuts an action short", motion{}, PickUp, true, Jump},
 	}
 	for _, tt := range tests {

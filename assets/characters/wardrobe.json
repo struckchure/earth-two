@@ -1,0 +1,683 @@
+{
+ "bodies": [
+  {
+   "name": "man",
+   "model": "characters/man.glb",
+   "skinMeshes": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11
+   ],
+   "regions": {
+    "calves": [
+     2
+    ],
+    "feet": [
+     3
+    ],
+    "forearms": [
+     4
+    ],
+    "hands": [
+     5
+    ],
+    "head": [
+     6
+    ],
+    "hips": [
+     7
+    ],
+    "thighs": [
+     9
+    ],
+    "torso": [
+     10
+    ],
+    "upperarms": [
+     11
+    ]
+   },
+   "underwear": {
+    "hips": [
+     8
+    ]
+   },
+   "skins": [
+    {
+     "name": "Dark",
+     "path": "characters/skins/young_african_male.jpg"
+    },
+    {
+     "name": "Dark, older",
+     "path": "characters/skins/middleage_african_male.jpg"
+    },
+    {
+     "name": "Light brown",
+     "path": "characters/skins/young_asian_male.jpg"
+    },
+    {
+     "name": "Light brown, older",
+     "path": "characters/skins/middleage_asian_male.jpg"
+    },
+    {
+     "name": "Fair",
+     "path": "characters/skins/young_caucasian_male.jpg"
+    },
+    {
+     "name": "Fair, older",
+     "path": "characters/skins/middleage_caucasian_male.jpg"
+    }
+   ],
+   "slots": {
+    "hair": [
+     {
+      "name": "Short",
+      "path": "characters/man/hair/short02.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Crop",
+      "path": "characters/man/hair/short04.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Side part",
+      "path": "characters/man/hair/short01.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Afro",
+      "path": "characters/man/hair/afro01.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Braids",
+      "path": "characters/man/hair/braid01.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     }
+    ],
+    "glasses": [
+     {
+      "name": "Library",
+      "path": "characters/man/glasses/frankyaye_glasses_library_male.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Optical",
+      "path": "characters/man/glasses/kwnet_at_optical_glasses.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Round",
+      "path": "characters/man/glasses/toigo_round_glasses_leopard.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     }
+    ],
+    "top": [
+     {
+      "name": "T-shirt",
+      "path": "characters/man/top/joepal_crude_t-shirt_female.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Polo",
+      "path": "characters/man/top/namuhekam_male_polo_shirt.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Sweater",
+      "path": "characters/man/top/toigo_fisherman_sweater.glb",
+      "hides": [
+       "torso",
+       "upperarms"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2
+      ]
+     }
+    ],
+    "bottom": [
+     {
+      "name": "Cargo pants",
+      "path": "characters/man/bottom/cortu_cargo_pants.glb",
+      "hides": [
+       "calves",
+       "thighs"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Trousers",
+      "path": "characters/man/bottom/toigo_wool_pants.glb",
+      "hides": [
+       "calves"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Jeans shorts",
+      "path": "characters/man/bottom/cortu_jeans_shorts.glb",
+      "hides": [
+       "hips"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     }
+    ],
+    "outfit": [
+     {
+      "name": "Denim shirt & jeans",
+      "path": "characters/man/outfit/male_casualsuit01.glb",
+      "hides": [
+       "calves",
+       "forearms",
+       "thighs",
+       "upperarms"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2,
+       3,
+       4
+      ]
+     },
+     {
+      "name": "Striped shirt & jeans",
+      "path": "characters/man/outfit/male_casualsuit03.glb",
+      "hides": [
+       "calves",
+       "thighs",
+       "torso",
+       "upperarms"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2,
+       3
+      ]
+     },
+     {
+      "name": "Jacket & jeans",
+      "path": "characters/man/outfit/male_casualsuit05.glb",
+      "hides": [
+       "calves",
+       "forearms",
+       "thighs",
+       "torso"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2
+      ]
+     },
+     {
+      "name": "White tee & jeans",
+      "path": "characters/man/outfit/male_casualsuit06.glb",
+      "hides": [
+       "calves",
+       "thighs",
+       "torso"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2
+      ]
+     },
+     {
+      "name": "Overalls",
+      "path": "characters/man/outfit/male_worksuit01.glb",
+      "hides": [
+       "calves",
+       "thighs",
+       "torso"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2
+      ]
+     },
+     {
+      "name": "Suit & tie",
+      "path": "characters/man/outfit/male_elegantsuit01.glb",
+      "hides": [
+       "calves",
+       "forearms",
+       "thighs",
+       "torso",
+       "upperarms"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2,
+       3,
+       4,
+       5
+      ]
+     }
+    ],
+    "shoes": [
+     {
+      "name": "White trainers",
+      "path": "characters/man/shoes/shoes05.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Blue trainers",
+      "path": "characters/man/shoes/shoes06.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Grey sneakers",
+      "path": "characters/man/shoes/shoes02.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Brown brogues",
+      "path": "characters/man/shoes/shoes01.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Black shoes",
+      "path": "characters/man/shoes/shoes04.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Boots",
+      "path": "characters/man/shoes/shoes03.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "name": "woman",
+   "model": "characters/woman.glb",
+   "skinMeshes": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    9,
+    10,
+    12
+   ],
+   "regions": {
+    "calves": [
+     2
+    ],
+    "feet": [
+     3
+    ],
+    "forearms": [
+     4
+    ],
+    "hands": [
+     5
+    ],
+    "head": [
+     6
+    ],
+    "hips": [
+     7
+    ],
+    "thighs": [
+     9
+    ],
+    "torso": [
+     10
+    ],
+    "upperarms": [
+     12
+    ]
+   },
+   "underwear": {
+    "hips": [
+     8
+    ],
+    "torso": [
+     11
+    ]
+   },
+   "skins": [
+    {
+     "name": "Dark",
+     "path": "characters/skins/young_african_female.jpg"
+    },
+    {
+     "name": "Dark, older",
+     "path": "characters/skins/middleage_african_female.jpg"
+    },
+    {
+     "name": "Light brown",
+     "path": "characters/skins/young_asian_female.jpg"
+    },
+    {
+     "name": "Light brown, older",
+     "path": "characters/skins/middleage_asian_female.jpg"
+    },
+    {
+     "name": "Fair",
+     "path": "characters/skins/young_caucasian_female.jpg"
+    },
+    {
+     "name": "Fair, older",
+     "path": "characters/skins/middleage_caucasian_female.jpg"
+    }
+   ],
+   "slots": {
+    "hair": [
+     {
+      "name": "Bob",
+      "path": "characters/woman/hair/bob02.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Ponytail",
+      "path": "characters/woman/hair/ponytail01.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Long",
+      "path": "characters/woman/hair/long01.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Afro",
+      "path": "characters/woman/hair/afro01.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Braids",
+      "path": "characters/woman/hair/braid01.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Pixie",
+      "path": "characters/woman/hair/short03.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     }
+    ],
+    "glasses": [
+     {
+      "name": "Optical",
+      "path": "characters/woman/glasses/kwnet_at_optical_glasses.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Round",
+      "path": "characters/woman/glasses/toigo_round_glasses_leopard.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Frames",
+      "path": "characters/woman/glasses/spamrakuen_sagerfrogs_glasses_02.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     }
+    ],
+    "top": [
+     {
+      "name": "T-shirt",
+      "path": "characters/woman/top/joepal_crude_t-shirt_female.glb",
+      "hides": [],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": []
+     },
+     {
+      "name": "Tank top",
+      "path": "characters/woman/top/toigo_keyhole_tank_top.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Camisole",
+      "path": "characters/woman/top/toigo_camisole_top.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Sweater",
+      "path": "characters/woman/top/toigo_fisherman_sweater.glb",
+      "hides": [
+       "torso",
+       "upperarms"
+      ],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": [
+       1
+      ]
+     }
+    ],
+    "bottom": [
+     {
+      "name": "Cargo pants",
+      "path": "characters/woman/bottom/cortu_cargo_pants.glb",
+      "hides": [
+       "calves",
+       "thighs"
+      ],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Harem pants",
+      "path": "characters/woman/bottom/toigo_harem_pants.glb",
+      "hides": [
+       "thighs"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Jeans shorts",
+      "path": "characters/woman/bottom/cortu_jeans_shorts.glb",
+      "hides": [
+       "hips"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     }
+    ],
+    "outfit": [
+     {
+      "name": "Tee & jeans",
+      "path": "characters/woman/outfit/female_casualsuit01.glb",
+      "hides": [
+       "hips",
+       "thighs"
+      ],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": [
+       1,
+       2
+      ]
+     },
+     {
+      "name": "Tee & shorts",
+      "path": "characters/woman/outfit/female_casualsuit02.glb",
+      "hides": [],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": []
+     },
+     {
+      "name": "Sportswear",
+      "path": "characters/woman/outfit/female_sportsuit01.glb",
+      "hides": [
+       "thighs"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Blouse & skirt",
+      "path": "characters/woman/outfit/female_elegantsuit01.glb",
+      "hides": [
+       "upperarms"
+      ],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": [
+       1
+      ]
+     }
+    ],
+    "shoes": [
+     {
+      "name": "White trainers",
+      "path": "characters/woman/shoes/shoes05.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Blue trainers",
+      "path": "characters/woman/shoes/shoes06.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     },
+     {
+      "name": "Black shoes",
+      "path": "characters/woman/shoes/shoes04.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Boots",
+      "path": "characters/woman/shoes/shoes03.glb",
+      "hides": [
+       "feet"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}

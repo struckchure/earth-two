@@ -5,10 +5,11 @@ loaded (see the README):
 
     blender -b --python tools/makehuman/people.py -- UAL.glb OUT_DIR MIXAMO_DIR
 
-Each person is a bare-skinned MakeHuman base mesh with eyes and eyebrows,
-rigged with MPFB's game engine rig, animated with clips from Quaternius's
-Universal Animation Library (UAL.glb, the in-place version) and Mixamo
-(MIXAMO_DIR, see MIXAMO_CLIPS), and exported to OUT_DIR as a .glb.
+Each person is a bare-skinned MakeHuman base mesh with eyes, eyebrows and
+underwear, rigged with MPFB's game engine rig, animated with clips from
+Quaternius's Universal Animation Library (UAL.glb, the in-place version) and
+Mixamo (MIXAMO_DIR, see MIXAMO_CLIPS), split into body regions (see
+REGIONS), and exported to OUT_DIR as a .glb.
 
 The library's skeleton has the same Unreal-mannequin bone names as the game
 engine rig, and Mixamo's maps onto it by MIXAMO_BONES, so clips transfer
@@ -77,6 +78,31 @@ PEOPLE = {
     "man": (1.0, "young_african_male", ["wojackowl_boxer_shorts"]),
     "woman": (0.0, "young_african_female", ["wolgade_female_panties_01", "wolgade_female_top_01"]),
 }
+
+# The region each underwear piece sits on (see split_body): it's hidden with
+# the region, so it can't poke through the clothes worn over it.
+UNDERWEAR_REGION = {
+    "wojackowl_boxer_shorts": "hips",
+    "wolgade_female_panties_01": "hips",
+    "wolgade_female_top_01": "torso",
+}
+
+# Body regions. The body is split into one mesh per region, each vertex going
+# with the bone that moves it most, so the game can hide what clothes cover
+# (tools/makehuman/wardrobe.py works out which regions each garment covers).
+REGIONS = {
+    "head": ["head", "neck_01"],
+    "torso": ["spine_01", "spine_02", "spine_03", "clavicle_l", "clavicle_r"],
+    "hips": ["Root", "pelvis"],
+    "upperarms": ["upperarm_l", "upperarm_r"],
+    "forearms": ["lowerarm_l", "lowerarm_r"],
+    "hands": ["hand_l", "hand_r"],  # and the fingers, see bone_region
+    "thighs": ["thigh_l", "thigh_r"],
+    "calves": ["calf_l", "calf_r"],
+    "feet": ["foot_l", "foot_r", "ball_l", "ball_r"],
+}
+# Objects in a region are named REGION_PREFIX + region (+ "." + piece).
+REGION_PREFIX = "region."
 
 # Clothes textures are shrunk to this many pixels a side: MakeHuman's are up
 # to 4096, far more than a game body needs, and the web build downloads them.
@@ -152,7 +178,77 @@ def make_person(gender, skin, clothes):
     for item in clothes:
         worn = HumanService.add_mhclo_asset(asset("clothes", item, ".mhclo"), basemesh, asset_type="Clothes", material_type="GAMEENGINE")
         shrink_textures(worn, CLOTHES_TEXTURE_SIZE)
+        if item in UNDERWEAR_REGION:
+            worn.name = REGION_PREFIX + UNDERWEAR_REGION[item] + "." + item
     return basemesh, rig
+
+
+def bone_region(bone):
+    for region, bones in REGIONS.items():
+        if bone in bones:
+            return region
+    if bone.split("_")[0] in ("thumb", "index", "middle", "ring", "pinky"):
+        return "hands"
+    return None
+
+
+def vertex_regions(obj):
+    """Each vertex's region: that of the bone weighing on it most."""
+    group_region = {g.index: bone_region(g.name) for g in obj.vertex_groups}
+    regions = []
+    for v in obj.data.vertices:
+        best, region = 0.0, "torso"
+        for g in v.groups:
+            r = group_region.get(g.group)
+            if r and g.weight > best:
+                best, region = g.weight, r
+        regions.append(region)
+    return regions
+
+
+def face_regions(obj):
+    """Each face's region: the one most of its vertices are in."""
+    regions = vertex_regions(obj)
+    out = []
+    for poly in obj.data.polygons:
+        votes = {}
+        for v in poly.vertices:
+            votes[regions[v]] = votes.get(regions[v], 0) + 1
+        out.append(max(votes, key=votes.get))
+    return out
+
+
+def prepare_body(basemesh):
+    """Bakes the body's shape (MPFB keeps its targets as shape keys) so the
+    mesh can be cut, and freezes its normals so cuts don't show as seams.
+    Leaves basemesh active and selected."""
+    bpy.ops.object.select_all(action="DESELECT")
+    bpy.context.view_layer.objects.active = basemesh
+    basemesh.select_set(True)
+    if basemesh.data.shape_keys:
+        bpy.ops.object.shape_key_remove(all=True, apply_mix=True)
+    mesh = basemesh.data
+    mesh.normals_split_custom_set_from_vertices([v.normal[:] for v in mesh.vertices])
+
+
+def split_body(basemesh):
+    """Splits the body into one object per region, named REGION_PREFIX +
+    region, so each exports as its own mesh."""
+    prepare_body(basemesh)
+    mesh = basemesh.data
+    first, *rest = REGIONS
+    for region in rest:
+        faces = face_regions(basemesh)
+        for poly, r in zip(mesh.polygons, faces):
+            poly.select = r == region
+        before = set(bpy.data.objects)
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.separate(type="SELECTED")
+        bpy.ops.object.mode_set(mode="OBJECT")
+        for obj in set(bpy.data.objects) - before:
+            obj.name = REGION_PREFIX + region
+            obj.select_set(False)
+    basemesh.name = REGION_PREFIX + first
 
 
 def load_library(path):
@@ -578,6 +674,7 @@ def main():
         for action in bpy.data.actions:
             action.name = action.name.removesuffix(BAKED)
         print("PERSON", name, len(pairs), "library and", len(mix_pairs), "Mixamo bones matched,", len(bpy.data.actions), "clips")
+        split_body(basemesh)
         export(os.path.join(out, name + ".glb"))
 
 

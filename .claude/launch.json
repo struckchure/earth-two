@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/web", "-addr", ":8080", "-dir", "build/web"],
+      "port": 8080
+    }
+  ]
+}

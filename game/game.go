@@ -1,14 +1,13 @@
-// Package game is Earth Two: a free-roam role game in low-poly Lagos, built
-// with illusion. cmd/desktop runs it in a window, and cmd/web builds it for
-// the browser.
+// Package game is Earth Two: a free-roam role game in a science-fiction
+// world, built with illusion. cmd/desktop runs it in a window, and cmd/web
+// builds it for the browser.
 //
-// WASD or the arrow keys walk, Shift runs, Space jumps, E interacts, F
-// punches, Q picks up and Tab switches between the man and the woman.
+// It opens on the title screen (see menu.go). In play, WASD or the arrow
+// keys walk, Shift runs, Space jumps, E interacts, F punches, Q picks up, C
+// opens the wardrobe (see wardrobe.go) and Esc pauses.
 package game
 
 import (
-	"fmt"
-
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/earth-two/character"
@@ -58,19 +57,24 @@ func Run() {
 	illusion.New().
 		AddPlugins(
 			defaults.Plugins(defaults.Config{
-				Window:    window.Config{Title: "Earth Two", Resizable: true, HighDPI: true, MSAA: true},
+				Window:    window.Config{Title: "Earth Two", Resizable: true, HighDPI: true, MSAA: true, KeepEscape: true},
 				AssetRoot: "assets",
 			}),
 			physics.Plugin{},
-			character.Plugin{Models: people},
+			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json"},
 		).
 		InsertResource(
 			illusion.R(&render.ClearColor{Color: rl.NewColor(250, 196, 120, 255)}),
 			illusion.R(&render.AmbientLight{Color: rl.NewColor(255, 214, 170, 255), Brightness: 0.45}),
+			illusion.R(newMenu()),
+			illusion.R(&uiFonts{}),
 		).
-		AddSystems(illusion.Startup, illusion.Fn5(setup)).
-		AddSystems(illusion.Update, illusion.Fn3(follow), illusion.Fn1(respawn)).
-		AddSystems(illusion.Render, illusion.Fn1(hud).InSet(render.Draw2D)).
+		AddSystems(illusion.Startup, illusion.Fn6(setup)).
+		AddSystems(illusion.Update,
+			illusion.Chain(illusion.Fn3(lockControls), illusion.Fn8(menuInput), illusion.Fn5(faceCamera), illusion.Fn6(follow)),
+			illusion.Fn1(respawn),
+		).
+		AddSystems(illusion.Render, illusion.Chain(illusion.Fn3(hud), illusion.Fn5(drawMenus)).InSet(render.Draw2D)).
 		Run()
 }
 
@@ -80,6 +84,7 @@ func setup(
 	materials *illusion.Res[asset.Assets[render.StandardMaterial]],
 	textures *asset.Loader[render.Texture],
 	roster *illusion.Res[character.Roster],
+	wardrobe *illusion.Res[character.Wardrobe],
 ) {
 	m, mat := meshes.Get(), materials.Get()
 	cmd.Spawn(
@@ -100,25 +105,24 @@ func setup(
 		illusion.C(physics.Cuboid(groundSize, 1, groundSize).WithOffset(rl.Vector3{Y: -0.5})),
 	)
 
-	roster.Get().Spawn(cmd, 0, rl.Vector3{}, illusion.C(character.Player{}))
+	roster.Get().Spawn(cmd, 0, rl.Vector3{}, illusion.C(character.Player{}), illusion.C(startingOutfit(wardrobe.Get())))
 }
 
-// follow eases the camera along behind the player.
-func follow(
-	players *illusion.Query1Where[transform.Transform, illusion.With[character.Player]],
-	cameras *illusion.Query1Where[transform.Transform, illusion.With[render.Camera3d]],
-	t *illusion.Res[illusion.Time],
-) {
-	_, player, ok := players.Single()
-	if !ok {
-		return
+// startingOutfit is what the player first wears: whichever of these the
+// first body's wardrobe has.
+func startingOutfit(w *character.Wardrobe) character.Outfit {
+	var o character.Outfit
+	if len(w.Bodies) == 0 {
+		return o
 	}
-	target := player.Translation
-	k := min(1, cameraLag*t.Get().DeltaSecs())
-	cameras.Each(func(_ ecs.Entity, tr *transform.Transform) {
-		tr.Translation = rl.Vector3Lerp(tr.Translation, rl.Vector3Add(target, cameraOffset), k)
-		tr.LookAt(rl.Vector3Add(target, rl.Vector3{Y: 1}), transform.Up)
-	})
+	for slot, name := range map[character.Slot]string{
+		character.Hair: "Short", character.Top: "T-shirt", character.Bottom: "Cargo pants", character.Shoes: "White trainers",
+	} {
+		if i, ok := w.Find(0, slot, name); ok {
+			o.Put(slot, i)
+		}
+	}
+	return o
 }
 
 // respawn puts characters that fell off the edge of the world back in the
@@ -130,12 +134,4 @@ func respawn(q *illusion.Query2Where[transform.Transform, physics.CharacterContr
 			cc.Velocity = rl.Vector3{}
 		}
 	})
-}
-
-// hud draws the frame rate and the controls, scaled for the screen.
-func hud(win *illusion.Res[window.Window]) {
-	s := win.Get().Scale
-	px := func(v float32) int32 { return int32(v * s) }
-	rl.DrawText(fmt.Sprintf("%d FPS", rl.GetFPS()), px(10), px(10), px(20), rl.Lime)
-	rl.DrawText("WASD / arrows: walk   shift: run   space: jump   E: interact   F: punch   Q: pick up   tab: switch character", px(10), px(36), px(20), rl.RayWhite)
 }

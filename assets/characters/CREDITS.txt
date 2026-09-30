@@ -18,6 +18,13 @@ Idle, walk, run, jumps, punch and pick up: Mixamo animations
 under Adobe's terms, but not to redistribute as standalone files; the raw
 downloads stay out of the repo (build/mixamo is ignored).
 
-Built by tools/makehuman/people.py (make people); see the README.
+Wardrobe (man/, woman/, skins/, wardrobe.json): MakeHuman assets, all public
+domain (CC0 1.0): the system assets' hair, shoes, suits and skins, and the
+shirts01, pants01 and glasses01 packs
+(https://static.makehumancommunity.org/assets/assetpacks.html), fitted to
+the bodies with MPFB.
+
+Built by tools/makehuman/people.py (make people) and
+tools/makehuman/wardrobe.py (make wardrobe); see the README.
 https://creativecommons.org/publicdomain/zero/1.0/
 https://creativecommons.org/licenses/by/4.0/
