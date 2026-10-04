@@ -66,8 +66,10 @@ type fontKey struct {
 	px int32
 }
 
-// uiFonts is a resource: the fonts, each loaded at every pixel size it's
-// drawn at, the first time, so text is sharp at any scale.
+// uiFonts is a resource: the fonts, each loaded the first time it's drawn
+// at a size, at that size in the display's own pixels (rounded up a little,
+// so resizing the window loads a few sizes, not one for every pixel), so text
+// is sharp at any scale.
 type uiFonts struct {
 	loaded map[fontKey]rl.Font
 }
@@ -90,17 +92,42 @@ func (f *uiFonts) get(w weight, px int32) rl.Font {
 	return font
 }
 
+// rasterSize is the size to load a font at to draw it px display pixels
+// high: px rounded up to a step that grows with it.
+func rasterSize(px float32) int32 {
+	n := int32(math.Ceil(float64(px)))
+	step := int32(1)
+	switch {
+	case n > 64:
+		step = 8
+	case n > 32:
+		step = 4
+	case n > 16:
+		step = 2
+	}
+	return (n + step - 1) / step * step
+}
+
 // painter draws the UI at a scale.
 type painter struct {
 	fonts *uiFonts
 	s     float32
+	// dpi is how many display pixels raylib draws each of ours with: on a
+	// HighDPI desktop screen it scales all 2D drawing itself.
+	dpi float32
+}
+
+func newPainter(fonts *uiFonts, w *window.Window) painter {
+	return painter{fonts: fonts, s: uiScale(w), dpi: drawScale()}
 }
 
 func (p painter) px(pt float32) float32 { return pt * p.s }
 
+// font is the font to draw text size points high with, and its size in our
+// pixels.
 func (p painter) font(size float32, w weight) (rl.Font, float32) {
 	px := float32(math.Round(float64(size * p.s)))
-	return p.fonts.get(w, int32(px)), px
+	return p.fonts.get(w, rasterSize(px*max(p.dpi, 1))), px
 }
 
 // measure is text's size in pixels.
@@ -125,10 +152,15 @@ const (
 
 // textIn draws text centred vertically in r, shrinking it to fit r's width.
 func (p painter) textIn(text string, r rl.Rectangle, size float32, w weight, c rl.Color, a align) {
-	for size > 9 && p.measure(text, size, w).X > r.Width {
-		size--
-	}
 	m := p.measure(text, size, w)
+	if m.X > r.Width && size > 9 {
+		// Text's width goes with its size: one step to about the right
+		// size, then nudge it down for the rounding.
+		size = max(9, size*r.Width/m.X)
+		for m = p.measure(text, size, w); size > 9 && m.X > r.Width; m = p.measure(text, size, w) {
+			size = max(9, size-0.5)
+		}
+	}
 	x := r.X
 	switch a {
 	case centre:

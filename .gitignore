@@ -1,1 +1,7 @@
 build/
+
+# A local checkout of illusion to build against (go work init . ../illusion).
+go.work
+go.work.sum
+
+__pycache__/

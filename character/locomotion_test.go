@@ -133,3 +133,64 @@ func TestAirborneKeepsToTheJump(t *testing.T) {
 		t.Errorf("a standing jump drifted: %v", got)
 	}
 }
+
+// speedUp eases from speed from to to at Default's rates (braking twice as
+// quick), 60 times a second, returning how long it takes to get within 5%
+// of the change, and the hardest push in any one step.
+func speedUp(t *testing.T, from, to float32) (secs, hardest float32) {
+	c := Default()
+	const dt = 1.0 / 60
+	k := float32(1)
+	if to < from {
+		k = brake
+	}
+	v := rl.Vector3{X: from}
+	for i := 1; i <= 600; i++ {
+		next := ease(v, rl.Vector3{X: to}, k*c.Ease, k*c.Accel, dt)
+		hardest = max(hardest, abs(next.X-v.X)/dt)
+		v = next
+		if abs(to-v.X) <= 0.05*abs(to-from) {
+			return float32(i) * dt, hardest
+		}
+	}
+	t.Fatalf("never got from %.1f to %.1f: at %.2f", from, to, v.X)
+	return 0, 0
+}
+
+func TestEaseWalkToRunAndBack(t *testing.T) {
+	c := Default()
+	up, push := speedUp(t, c.WalkSpeed, c.RunSpeed)
+	if up < 0.4 || up > 1 {
+		t.Errorf("walk to run took %.2fs, want 0.4-1s", up)
+	}
+	if push > c.Accel+1e-3 {
+		t.Errorf("sped up at %.1f, over Accel", push)
+	}
+	down, _ := speedUp(t, c.RunSpeed, c.WalkSpeed)
+	if down >= up {
+		t.Errorf("run to walk took %.2fs, no quicker than walk to run's %.2fs", down, up)
+	}
+	start, _ := speedUp(t, 0, c.WalkSpeed)
+	if start < 0.3 || start > 0.9 {
+		t.Errorf("setting off took %.2fs, want 0.3-0.9s", start)
+	}
+}
+
+func TestEaseEasesIn(t *testing.T) {
+	// Well within the push cap, each step closes the same share of what's
+	// left: the steps shrink as it gets close.
+	v, want := rl.Vector3{}, rl.Vector3{X: 1}
+	last := float32(math.MaxFloat32)
+	for range 10 {
+		next := ease(v, want, 5, 100, 1.0/60)
+		if step := next.X - v.X; step >= last || step <= 0 {
+			t.Fatalf("step %.4f after %.4f: want shrinking steps toward the target", step, last)
+		} else {
+			last = step
+		}
+		v = next
+	}
+	if got := ease(rl.Vector3{X: 0.99}, want, 5, 100, 1.0/60); got != want {
+		t.Errorf("within snap: %v, want there", got)
+	}
+}

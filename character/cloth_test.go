@@ -2,6 +2,7 @@ package character
 
 import (
 	"math"
+	"slices"
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -65,5 +66,77 @@ func TestSplitSides(t *testing.T) {
 	got := splitSides([]rl.Vector3{{X: -0.1}, {X: 0.2}, {X: 0.05}, {X: -0.3}}, 0.02)
 	if len(got) != 2 || len(got[0]) != 2 || len(got[1]) != 2 || got[0][1].X != -0.3 || got[1][1].X != 0.05 {
 		t.Errorf("split = %v", got)
+	}
+}
+
+func TestFitPiecesFollowsTheTaper(t *testing.T) {
+	// A thigh: radius 0.08 at the hip (y = 0) narrowing to 0.05 at the
+	// knee (y = -0.4).
+	var pts []rl.Vector3
+	for i := range 9 {
+		y := -0.05 * float32(i)
+		pts = append(pts, ring(rl.Vector3{}, 0.08-0.03*(-y/0.4), y, 32)...)
+	}
+	a, b := rl.Vector3{}, rl.Vector3{Y: -0.4}
+	got := fitPieces(a, b, pts, 4, 1, 2)
+	if len(got) != 4 {
+		t.Fatalf("%d pieces, want 4", len(got))
+	}
+	whole, _ := fitCapsule(a, b, pts)
+	if knee := got[3].Radius; knee >= whole.Radius || knee > 0.056 {
+		t.Errorf("knee piece radius %.3f, want it near the knee's 0.05 (one capsule: %.3f)", knee, whole.Radius)
+	}
+	if hip := got[0].Radius; hip < 0.07 {
+		t.Errorf("hip piece radius %.3f, want it near the hip's 0.08", hip)
+	}
+	for i, k := range got {
+		wantB := 1
+		if i == 3 {
+			wantB = 2
+		}
+		if k.BoneA != 1 || k.BoneB != wantB {
+			t.Errorf("piece %d carried by %d-%d, want 1-%d", i, k.BoneA, k.BoneB, wantB)
+		}
+	}
+	if math.Abs(float64(got[0].A.Y)) > 1e-4 || math.Abs(float64(got[3].B.Y+0.4)) > 1e-4 {
+		t.Errorf("pieces run %v to %v, want the whole segment", got[0].A, got[3].B)
+	}
+}
+
+func TestBodyShapeNearTriangleInterior(t *testing.T) {
+	s := &bodyShape{cell: 0.03, surface: map[[3]int32][][3]rl.Vector3{}}
+	s.addSurface([3]rl.Vector3{{X: -0.12}, {X: 0.12}, {Y: 0.18}})
+	for _, tc := range []struct {
+		p    rl.Vector3
+		want bool
+	}{
+		{rl.Vector3{Y: 0.06, Z: 0.01}, true}, // far from all three vertices
+		{rl.Vector3{Y: 0.06, Z: -0.01}, true},
+		{rl.Vector3{Y: 0.06, Z: 0.03}, false},
+		{rl.Vector3{X: 0.2, Y: 0.06}, false}, // outside the face
+		{rl.Vector3{Y: -0.01}, true},         // near an edge across a grid cell
+	} {
+		if got := s.near(tc.p, 0.02); got != tc.want {
+			t.Errorf("near(%v) = %v, want %v", tc.p, got, tc.want)
+		}
+	}
+}
+
+func TestPointTriangleDistanceDegenerate(t *testing.T) {
+	face := [3]rl.Vector3{{}, {X: 0.1}, {X: 0.2}}
+	if got := pointTriangleDistance(rl.Vector3{X: 0.05, Y: 0.01}, face); math.Abs(float64(got-0.01)) > 1e-5 {
+		t.Errorf("distance to degenerate triangle = %v, want 0.01", got)
+	}
+}
+
+func TestClothPinsShoulderSupports(t *testing.T) {
+	body := &bodyShape{cell: 0.03} // all test points stand away from skin
+	vertices := []rl.Vector3{{Y: 1.5}, {X: 0.2, Y: 1.46}, {Y: 1.39}, {Y: 1.0}}
+	got := clothPins(vertices, body, clothKinds[Top])
+	if !got[0] || !got[1] || got[2] || got[3] {
+		t.Fatalf("shoulder supports = %v, want only the top band pinned", got)
+	}
+	if pins := clothPins(vertices, body, clothKinds[Bottom]); slices.Contains(pins, true) {
+		t.Fatalf("shoulder rule applied to trousers: %v", pins)
 	}
 }

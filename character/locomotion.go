@@ -53,6 +53,8 @@ func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *i
 	}
 	q.Each(func(_ ecs.Entity, in *Intent) {
 		in.Move = dir
+		in.Slide = in.Slide || k.JustPressed(rl.KeyLeftControl) || k.JustPressed(rl.KeyRightControl)
+		in.Roll = in.Roll || k.JustPressed(rl.KeyR)
 		in.Run = k.AnyPressed(rl.KeyLeftShift, rl.KeyRightShift)
 		if k.JustPressed(rl.KeySpace) {
 			in.Jump = true
@@ -72,38 +74,45 @@ const (
 	// the way it faces: turning about, it slows and walks round in an arc.
 	slip  = 50 * math.Pi / 180
 	crawl = 0.08
-	// brake is how many times harder than its Accel a character slows down
-	// than it speeds up: feet plant and stop it quicker than they push off.
+	// brake is how many times quicker than it speeds up a character slows
+	// down: feet plant and stop it quicker than they push off.
 	brake = 2
 	// airSteer is the furthest a character can veer, going or facing, from
 	// how it left the ground, and airAccel how fast it can change speed up
 	// there (never faster than it took off).
 	airSteer = 10 * math.Pi / 180
 	airAccel = 2
-	// pullUp is how many times harder than its Accel a character brakes for
-	// an action: from a run, in about a third of a second.
+	// pullUp is how many times quicker than it speeds up a character brakes
+	// for an action: from a run to below a walk in about a third of a
+	// second.
 	pullUp = 2
 )
 
 // locomote runs in FixedUpdate, feeding each Intent to its character
 // controller. Characters step along where their bodies face (see stride),
-// speed up and slow down at their Accel, pull up (and can't jump) for an
+// ease their speed up and down (see ease), pull up (and can't jump) for an
 // action, and in the air keep to the way they jumped (see airborne).
 func locomote(
-	q *illusion.Query3[Character, Intent, physics.CharacterController],
+	q *illusion.Query4[Character, Intent, physics.CharacterController, Traversal],
 	bodies *illusion.Query2Where[State, transform.Transform, illusion.With[Body]],
 	hier *illusion.Hierarchy,
 	t *illusion.Res[illusion.Time],
 ) {
 	dt := t.Get().DeltaSecs()
-	q.Each(func(root ecs.Entity, c *Character, in *Intent, cc *physics.CharacterController) {
+	q.Each(func(root ecs.Entity, c *Character, in *Intent, cc *physics.CharacterController, traversal *Traversal) {
+		if traversal.active() || traversal.impulse {
+			in.Jump = false
+			return
+		}
 		move := in.Move
 		move.Y = 0
 		if l := rl.Vector3Length(move); l > 1 {
 			move = rl.Vector3Scale(move, 1/l)
 		}
 		speed := c.WalkSpeed
-		if in.Run {
+		if in.Run || !cc.Grounded {
+			// In the air, letting go of Run doesn't slow it: airborne keeps
+			// the speed it jumped at.
 			speed = c.RunSpeed
 		}
 		acting := false
@@ -125,17 +134,22 @@ func locomote(
 			}
 		})
 		want := rl.Vector3Scale(move, speed)
+		if traversal.Land > 0 {
+			want = rl.Vector3{} // taking the landing from a wall kick
+		}
 		switch {
+		case traversal.Bounced:
+			// Off a wall kick it flies the way it bounced until it lands.
 		case body != nil && body.aloft:
 			cc.Walk = approach(cc.Walk, airborne(body.launch, want), airAccel*dt)
 		case acting:
-			cc.Walk = approach(cc.Walk, rl.Vector3{}, pullUp*accel(c.Accel)*dt)
+			cc.Walk = ease(cc.Walk, rl.Vector3{}, pullUp*c.Ease, pullUp*accel(c.Accel), dt)
 		default:
-			a := accel(c.Accel)
+			k := float32(1)
 			if rl.Vector3Length(want) < rl.Vector3Length(cc.Walk) {
-				a *= brake
+				k = brake
 			}
-			cc.Walk = approach(cc.Walk, want, a*dt)
+			cc.Walk = ease(cc.Walk, want, k*c.Ease, k*accel(c.Accel), dt)
 		}
 		if in.Jump && cc.Grounded && !acting {
 			cc.Velocity.Y = c.JumpSpeed
@@ -175,6 +189,25 @@ func accel(a float32) float32 {
 	return a
 }
 
+// ease moves v toward want over dt: it closes the share 1 - e^(-rate·dt) of
+// the gap (so it slows as it closes in), no faster than most per second,
+// and snaps there once within snap. With no rate, it goes at most.
+func ease(v, want rl.Vector3, rate, most, dt float32) rl.Vector3 {
+	d := rl.Vector3Subtract(want, v)
+	l := rl.Vector3Length(d)
+	if l <= snap {
+		return want
+	}
+	step := most * dt
+	if rate > 0 {
+		step = min(step, l*float32(1-math.Exp(float64(-rate*dt))))
+	}
+	return rl.Vector3Add(v, rl.Vector3Scale(d, min(step, l)/l))
+}
+
+// snap is how close (units per second) ease gets before it's there.
+const snap = 0.02
+
 // approach moves v toward want by at most step.
 func approach(v, want rl.Vector3, step float32) rl.Vector3 {
 	d := rl.Vector3Subtract(want, v)
@@ -203,9 +236,10 @@ func stride(yaw float32, move rl.Vector3) (dir rl.Vector3, share float32) {
 // or while an action plays, a turn under way winds down. The models face +Z.
 func face(
 	bodies *illusion.Query2Where[transform.Transform, State, illusion.With[Body]],
-	roots *illusion.Query3[Character, Intent, physics.CharacterController],
+	roots *illusion.Query4[Character, Intent, physics.CharacterController, Traversal],
 	hier *illusion.Hierarchy,
 	t *illusion.Res[illusion.Time],
+	controls *illusion.Res[Controls],
 ) {
 	dt := t.Get().DeltaSecs()
 	bodies.Each(func(e ecs.Entity, tr *transform.Transform, st *State) {
@@ -213,8 +247,25 @@ func face(
 		if !ok {
 			return
 		}
-		c, in, cc, ok := roots.Get(parent)
+		c, in, cc, traversal, ok := roots.Get(parent)
 		if !ok {
+			return
+		}
+		if traversal.active() {
+			st.turn = 0
+			return
+		}
+		if traversal.Kick > 0 {
+			st.turn = 0
+			if controls.Get().Enabled {
+				// Off the wall it faces the way it bounced, from the start.
+				target := rl.QuaternionFromAxisAngle(transform.Up, st.launchYaw)
+				tr.Rotation = rl.QuaternionSlerp(tr.Rotation, target, min(1, dt*28))
+			}
+			return
+		}
+		if traversal.Bounced {
+			st.turn = 0
 			return
 		}
 		yaw := yawOf(tr.Rotation)

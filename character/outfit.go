@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/illusion"
@@ -17,7 +18,9 @@ import (
 type Slot uint8
 
 const (
-	Hair Slot = iota
+	// Face is a head with other features, worn in place of the body's own.
+	Face Slot = iota
+	Hair
 	Glasses
 	Top
 	Bottom
@@ -29,10 +32,12 @@ const (
 )
 
 // slotKeys are the slots' names in wardrobe.json.
-var slotKeys = [SlotCount]string{"hair", "glasses", "top", "bottom", "outfit", "shoes"}
+var slotKeys = [SlotCount]string{"face", "hair", "glasses", "top", "bottom", "outfit", "shoes"}
 
 func (s Slot) String() string {
 	switch s {
+	case Face:
+		return "Face"
 	case Hair:
 		return "Hair"
 	case Glasses:
@@ -88,6 +93,8 @@ type Item struct {
 	Hides      []string
 	Covers     []string
 	SkinMeshes []int
+
+	unlined map[int]bool // the meshes that get no outline
 }
 
 // Tone is a skin: the texture that replaces the body's.
@@ -106,14 +113,43 @@ type BodyWardrobe struct {
 	// underwear on each region.
 	Regions   map[string][]int
 	Underwear map[string][]int
-	Tones     []Tone
-	Items     [SlotCount][]Item
+	// FaceMeshes are the body's eyes and eyebrows, which go with its head
+	// when a Face is worn.
+	FaceMeshes []int
+	Tones      []Tone
+	Items      [SlotCount][]Item
 }
 
 // Wardrobe is a resource: what each body in the roster can wear, by the
 // same index as Roster.Skins.
 type Wardrobe struct {
 	Bodies []BodyWardrobe
+
+	outline func(skip map[int]bool) render.Pass // see Plugin.Outline
+}
+
+// unlined are the body's meshes that get no outline: all but its skin and
+// underwear, which leaves the eyes and eyebrows.
+func (b *BodyWardrobe) unlined() map[int]bool {
+	lined := map[int]bool{}
+	last := -1
+	mark := func(meshes []int) {
+		for _, i := range meshes {
+			lined[i] = true
+			last = max(last, i)
+		}
+	}
+	mark(b.SkinMeshes)
+	for _, meshes := range b.Underwear {
+		mark(meshes)
+	}
+	skip := map[int]bool{}
+	for i := 0; i < last; i++ {
+		if !lined[i] {
+			skip[i] = true
+		}
+	}
+	return skip
 }
 
 // Find returns the index of body's item called name in slot.
@@ -132,7 +168,7 @@ func (w *Wardrobe) Rebody(o Outfit, body int) Outfit {
 	next := Outfit{Body: body, Tone: min(o.Tone, max(len(w.Bodies[body].Tones)-1, 0))}
 	for s := range SlotCount {
 		i, ok := o.Item(s)
-		if !ok {
+		if !ok || i >= len(w.Bodies[o.Body].Items[s]) {
 			continue
 		}
 		if j, ok := w.Find(body, s, w.Bodies[o.Body].Items[s][i].Name); ok {
@@ -147,6 +183,18 @@ func (w *Wardrobe) Rebody(o Outfit, body int) Outfit {
 func (b *BodyWardrobe) hidden(o Outfit) map[int]bool {
 	out := map[int]bool{}
 	for _, worn := range b.worn(o) {
+		// Tops replace torso underwear, including its straps: partial
+		// coverage tests otherwise keep the entire bra over open necklines.
+		if worn.slot == Top || worn.slot == OnePiece {
+			for _, mesh := range b.Underwear["torso"] {
+				out[mesh] = true
+			}
+		}
+		if worn.slot == Face {
+			for _, mesh := range b.FaceMeshes {
+				out[mesh] = true
+			}
+		}
 		for _, region := range worn.item.Hides {
 			for _, mesh := range b.Regions[region] {
 				out[mesh] = true
@@ -184,6 +232,7 @@ type wardrobeFile struct {
 		Model      string           `json:"model"`
 		SkinMeshes []int            `json:"skinMeshes"`
 		Regions    map[string][]int `json:"regions"`
+		FaceMeshes []int            `json:"faceMeshes"`
 		Underwear  map[string][]int `json:"underwear"`
 		Skins      []struct {
 			Name string `json:"name"`
@@ -228,15 +277,27 @@ func loadWardrobe(
 			}
 			bw := &w.Bodies[i]
 			bw.Name, bw.SkinMeshes, bw.Regions, bw.Underwear = b.Name, b.SkinMeshes, b.Regions, b.Underwear
+			bw.FaceMeshes = b.FaceMeshes
 			for _, s := range b.Skins {
 				bw.Tones = append(bw.Tones, Tone{Name: s.Name, Texture: textures.MustLoad(s.Path)})
 			}
 			for s, key := range slotKeys {
 				for _, it := range b.Slots[key] {
-					bw.Items[s] = append(bw.Items[s], Item{
+					item := Item{
 						Name: it.Name, Model: modelLoader.MustLoad(it.Path),
 						Hides: it.Hides, Covers: it.Covers, SkinMeshes: it.SkinMeshes,
-					})
+					}
+					if Slot(s) == Face {
+						// Only a face's skin is outlined, not its eyes and
+						// eyebrows.
+						item.unlined = map[int]bool{}
+						if m := modelLoader.Get(item.Model); m != nil {
+							for mesh := range int(m.MeshCount) {
+								item.unlined[mesh] = !slices.Contains(it.SkinMeshes, mesh)
+							}
+						}
+					}
+					bw.Items[s] = append(bw.Items[s], item)
 				}
 			}
 		}
@@ -248,8 +309,9 @@ func loadWardrobe(
 // child of the character's Body, posed like it (see mirrorPose), and moves
 // with physics where it hangs loose (see clothe).
 type Garment struct {
-	Slot Slot
-	skin []int // its skin patches, by mesh index
+	Slot     Slot
+	skin     []int                      // its skin patches, by mesh index
+	footwear asset.Handle[render.Model] // shoes underneath trouser cuffs
 }
 
 // dress puts each character's Outfit on it when the outfit changes: the
@@ -271,7 +333,9 @@ func dress(
 	if *done == nil {
 		*done = map[ecs.Entity]Outfit{}
 	}
+	n := 0
 	outfits.Each(func(root ecs.Entity, o *Outfit) {
+		n++
 		if last, ok := (*done)[root]; ok && last == *o {
 			return
 		}
@@ -293,15 +357,33 @@ func dress(
 				tone = bw.Tones[o.Tone].Texture
 			}
 			cmd.Entity(body).Insert(illusion.C(render.ModelParts{Hidden: bw.hidden(*o), Texture: skinned(bw.SkinMeshes, tone)}))
+			if w.outline != nil {
+				cmd.Entity(body).Insert(illusion.C(render.Passes{w.outline(bw.unlined())}))
+			}
 
 			hier.EachChild(body, func(child ecs.Entity) {
 				if garments.Contains(child) {
 					cmd.Despawn(child)
 				}
 			})
+			var footwear asset.Handle[render.Model]
+			if i, ok := o.Item(Shoes); ok && i < len(bw.Items[Shoes]) {
+				footwear = bw.Items[Shoes][i].Model
+			}
 			for _, worn := range bw.worn(*o) {
+				var underfoot asset.Handle[render.Model]
+				if worn.slot == Bottom || worn.slot == OnePiece {
+					underfoot = footwear
+				}
+				// Hair and glasses go without an outline: one around hair cards
+				// or thin frames is a blob.
+				var passes render.Passes
+				if w.outline != nil && worn.slot != Hair && worn.slot != Glasses {
+					passes = render.Passes{w.outline(worn.item.unlined)}
+				}
 				cmd.Spawn(
-					illusion.C(Garment{Slot: worn.slot, skin: worn.item.SkinMeshes}),
+					illusion.C(passes),
+					illusion.C(Garment{Slot: worn.slot, skin: worn.item.SkinMeshes, footwear: underfoot}),
 					illusion.C(render.Model3d{Model: worn.item.Model}),
 					// Its skin patches in the body's tone.
 					illusion.C(render.ModelParts{Texture: skinned(worn.item.SkinMeshes, tone)}),
@@ -311,6 +393,16 @@ func dress(
 			}
 		})
 	})
+	if len(*done) > n {
+		// Some have gone, or taken their Outfit off: forget them.
+		kept := make(map[ecs.Entity]Outfit, n)
+		outfits.Each(func(root ecs.Entity, _ *Outfit) {
+			if o, ok := (*done)[root]; ok {
+				kept[root] = o
+			}
+		})
+		*done = kept
+	}
 }
 
 // skinned gives meshes the skin tone texture.

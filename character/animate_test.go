@@ -2,8 +2,15 @@ package character
 
 import (
 	"testing"
+	"time"
 
+	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/mlange-42/ark/ecs"
+	"github.com/struckchure/illusion"
+	"github.com/struckchure/illusion/asset"
+	"github.com/struckchure/illusion/physics"
 	"github.com/struckchure/illusion/render"
+	"github.com/struckchure/illusion/transform"
 )
 
 func TestPickAnim(t *testing.T) {
@@ -99,5 +106,65 @@ func TestPlayStartsAtStart(t *testing.T) {
 	play(&p, Clip{Name: "run", Start: 0.3, Hold: true}, true)
 	if p.Clip() != "run" || p.Paused || p.Time() != 0.3 {
 		t.Fatalf("clip %q paused %v at %v, want run playing from 0.3", p.Clip(), p.Paused, p.Time())
+	}
+}
+
+func TestWallKickAnimationSelectionAndRecovery(t *testing.T) {
+	store := asset.New[render.Animations](nil)
+	clips := []rl.ModelAnimation{{KeyframeCount: 37}, {KeyframeCount: 61}, {KeyframeCount: 61}, {KeyframeCount: 37}, {KeyframeCount: 28}}
+	for i, name := range []string{"Traversal_WallKick", "idle", "jump", "Traversal_WallKickFall", "Traversal_WallLand"} {
+		copy(clips[i].Name[:], name)
+	}
+	handle := store.Add(render.Animations{Clips: clips})
+	controls := &Controls{Enabled: true}
+	app := illusion.New().AddPlugins(transform.Plugin{}).InsertResource(illusion.R(store), illusion.R(controls), illusion.R(&physics.Settings{}), illusion.R(&Roster{Skins: []Skin{{Anims: handle, Clips: map[Anim]Clip{Idle: {Name: "idle"}, Jump: {Name: "jump"}, WallKick: {Name: "Traversal_WallKick"}, WallFall: {Name: "Traversal_WallKickFall"}, WallLand: {Name: "Traversal_WallLand"}}}}}))
+	defer app.Cleanup()
+	app.AddSystems(illusion.Startup, illusion.Fn1(func(cmd *illusion.Commands) {
+		cmd.Spawn(illusion.C(Default()), illusion.C(Intent{}), illusion.C(physics.CharacterController{}), illusion.C(Traversal{Kick: wallKickTime, WallNormal: rl.Vector3{Z: 1}}), illusion.C(MotionSamples{}), illusion.C(transform.Identity())).WithChild(illusion.C(Body{}), illusion.C(State{Current: Jump}), illusion.C(render.AnimationPlayer{Animations: handle}), illusion.C(transform.Identity()))
+	}))
+	app.AddSystems(illusion.Update, illusion.Chain(illusion.Fn5(face), illusion.Fn8(animate)))
+	app.Tick(time.Second / 60)
+	q := ecs.NewFilter3[State, render.AnimationPlayer, transform.Transform](app.World).Query()
+	var state *State
+	var player *render.AnimationPlayer
+	var body *transform.Transform
+	for q.Next() {
+		state, player, body = q.Get()
+	}
+	roots := ecs.NewFilter2[Traversal, physics.CharacterController](app.World).Query()
+	var traversal *Traversal
+	var cc *physics.CharacterController
+	for roots.Next() {
+		traversal, cc = roots.Get()
+	}
+	if state.Current != WallKick || player.Clip() != "Traversal_WallKick" || !player.ManualTime {
+		t.Fatalf("kick did not select dedicated clip: %+v", state)
+	}
+	traversal.Kick = wallKickTime / 2
+	app.Tick(time.Second / 60)
+	if player.Time() < .25 || player.Time() > .31 {
+		t.Fatalf("kick progress=%v", player.Time())
+	}
+	controls.Enabled = false
+	stamp, rotation := player.Time(), body.Rotation
+	app.Tick(time.Second / 30)
+	if player.Time() != stamp || body.Rotation != rotation || !player.Paused {
+		t.Fatal("pause advanced kick pose/facing")
+	}
+	controls.Enabled = true
+	traversal.Kick = wallKickTime // another wall in the same airtime
+	app.Tick(time.Second / 60)
+	if player.Time() > .03 || player.Paused {
+		t.Fatal("chained bounce did not restart pose")
+	}
+	traversal.Kick = 0 // the kick is over, still in the air
+	app.Tick(time.Second / 60)
+	if state.Current != WallFall || player.Clip() != "Traversal_WallKickFall" || player.ManualTime || player.Paused {
+		t.Fatalf("kick did not go on into its fall: %v %q", state.Current, player.Clip())
+	}
+	cc.Grounded = true
+	app.Tick(time.Second / 60)
+	if state.Current != WallLand || player.Clip() != "Traversal_WallLand" || player.ManualTime {
+		t.Fatalf("landing did not play: %v %q", state.Current, player.Clip())
 	}
 }

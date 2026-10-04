@@ -43,6 +43,10 @@
      11
     ]
    },
+   "faceMeshes": [
+    0,
+    1
+   ],
    "underwear": {
     "hips": [
      8
@@ -184,20 +188,14 @@
        "calves"
       ],
       "covers": [],
-      "skinMeshes": [
-       1
-      ]
+      "skinMeshes": []
      },
      {
       "name": "Jeans shorts",
       "path": "characters/man/bottom/cortu_jeans_shorts.glb",
-      "hides": [
-       "hips"
-      ],
+      "hides": [],
       "covers": [],
-      "skinMeshes": [
-       1
-      ]
+      "skinMeshes": []
      }
     ],
     "outfit": [
@@ -207,15 +205,12 @@
       "hides": [
        "calves",
        "forearms",
-       "thighs",
-       "upperarms"
+       "thighs"
       ],
       "covers": [],
       "skinMeshes": [
        1,
-       2,
-       3,
-       4
+       2
       ]
      },
      {
@@ -223,6 +218,7 @@
       "path": "characters/man/outfit/male_casualsuit03.glb",
       "hides": [
        "calves",
+       "forearms",
        "thighs",
        "torso",
        "upperarms"
@@ -231,7 +227,8 @@
       "skinMeshes": [
        1,
        2,
-       3
+       3,
+       4
       ]
      },
      {
@@ -364,6 +361,41 @@
        1
       ]
      }
+    ],
+    "face": [
+     {
+      "name": "Soft",
+      "path": "characters/man/face/soft.glb",
+      "hides": [
+       "head"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       2
+      ]
+     },
+     {
+      "name": "Sharp",
+      "path": "characters/man/face/sharp.glb",
+      "hides": [
+       "head"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       2
+      ]
+     },
+     {
+      "name": "Strong",
+      "path": "characters/man/face/strong.glb",
+      "hides": [
+       "head"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       2
+      ]
+     }
     ]
    }
   },
@@ -410,6 +442,10 @@
      12
     ]
    },
+   "faceMeshes": [
+    0,
+    1
+   ],
    "underwear": {
     "hips": [
      8
@@ -526,14 +562,18 @@
       "name": "Tank top",
       "path": "characters/woman/top/toigo_keyhole_tank_top.glb",
       "hides": [],
-      "covers": [],
+      "covers": [
+       "torso"
+      ],
       "skinMeshes": []
      },
      {
       "name": "Camisole",
       "path": "characters/woman/top/toigo_camisole_top.glb",
       "hides": [],
-      "covers": [],
+      "covers": [
+       "torso"
+      ],
       "skinMeshes": []
      },
      {
@@ -547,7 +587,8 @@
        "torso"
       ],
       "skinMeshes": [
-       1
+       1,
+       2
       ]
      }
     ],
@@ -576,13 +617,9 @@
      {
       "name": "Jeans shorts",
       "path": "characters/woman/bottom/cortu_jeans_shorts.glb",
-      "hides": [
-       "hips"
-      ],
+      "hides": [],
       "covers": [],
-      "skinMeshes": [
-       1
-      ]
+      "skinMeshes": []
      }
     ],
     "outfit": [
@@ -590,15 +627,13 @@
       "name": "Tee & jeans",
       "path": "characters/woman/outfit/female_casualsuit01.glb",
       "hides": [
-       "hips",
        "thighs"
       ],
       "covers": [
        "torso"
       ],
       "skinMeshes": [
-       1,
-       2
+       1
       ]
      },
      {
@@ -616,7 +651,9 @@
       "hides": [
        "thighs"
       ],
-      "covers": [],
+      "covers": [
+       "torso"
+      ],
       "skinMeshes": [
        1
       ]
@@ -624,15 +661,11 @@
      {
       "name": "Blouse & skirt",
       "path": "characters/woman/outfit/female_elegantsuit01.glb",
-      "hides": [
-       "upperarms"
-      ],
+      "hides": [],
       "covers": [
        "torso"
       ],
-      "skinMeshes": [
-       1
-      ]
+      "skinMeshes": []
      }
     ],
     "shoes": [
@@ -674,6 +707,41 @@
       "covers": [],
       "skinMeshes": [
        1
+      ]
+     }
+    ],
+    "face": [
+     {
+      "name": "Soft",
+      "path": "characters/woman/face/soft.glb",
+      "hides": [
+       "head"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       2
+      ]
+     },
+     {
+      "name": "Sharp",
+      "path": "characters/woman/face/sharp.glb",
+      "hides": [
+       "head"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       2
+      ]
+     },
+     {
+      "name": "Strong",
+      "path": "characters/woman/face/strong.glb",
+      "hides": [
+       "head"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       2
       ]
      }
     ]

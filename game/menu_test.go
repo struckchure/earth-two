@@ -79,11 +79,9 @@ func TestMenuWardrobeKeys(t *testing.T) {
 	if _, got := rowText(w, *o, top); got != "Polo" {
 		t.Errorf("Enter on Top: %q, want Polo", got)
 	}
-	m.navigate(nav{up: true}, w, o)
-	m.navigate(nav{up: true}, w, o)
-	m.navigate(nav{up: true}, w, o)
-	m.navigate(nav{up: true}, w, o)
-	m.navigate(nav{up: true}, w, o) // past Body, to Done
+	for range top + 1 {
+		m.navigate(nav{up: true}, w, o) // past Body, to Done
+	}
 	if m.top().focus != rowCount {
 		t.Fatalf("focus %d, want Done (%d)", m.top().focus, rowCount)
 	}

@@ -74,6 +74,10 @@ func rowText(w *character.Wardrobe, o character.Outfit, row int) (label, value s
 	if i, ok := o.Item(slot); ok && i < len(body.Items[slot]) {
 		return slot.String(), body.Items[slot][i].Name
 	}
+	if slot == character.Face {
+		// The face the body comes with.
+		return slot.String(), "Standard"
+	}
 	return slot.String(), "None"
 }
 

@@ -69,6 +69,14 @@ func (s *Skin) clip(a Anim) Clip {
 	if a == RunJump {
 		return s.clip(Jump)
 	}
+	switch a {
+	case WallKickRight:
+		return s.clip(WallKick)
+	case WallFallRight:
+		return s.clip(WallFall)
+	case WallFall:
+		return s.clip(Jump)
+	}
 	return s.Clips[Idle]
 }
 
@@ -81,7 +89,8 @@ type Roster struct {
 // standing with its feet at feet. extra components go on the root, next to
 // Default's Character; insert your own Character afterwards to change it.
 func (r *Roster) Spawn(cmd *illusion.Commands, skin int, feet rl.Vector3, extra ...illusion.Component) illusion.EntityCommands {
-	skin %= len(r.Skins)
+	n := len(r.Skins)
+	skin = (skin%n + n) % n
 	s := &r.Skins[skin]
 	player := render.AnimationPlayer{Animations: s.Anims}
 	player.Play(s.clip(Idle).Name)
@@ -90,7 +99,10 @@ func (r *Roster) Spawn(cmd *illusion.Commands, skin int, feet rl.Vector3, extra 
 	center := rl.Vector3Add(feet, rl.Vector3{Y: capsuleHeight / 2})
 	root := append([]illusion.Component{
 		illusion.C(Default()),
+		illusion.C(MotionSamples{previous: center, current: center, height: capsuleHeight}),
 		illusion.C(Intent{}),
+		illusion.C(Traversal{}),
+		illusion.C(DefaultTraversal()),
 		illusion.C(physics.CharacterController{Radius: capsuleRadius, Height: capsuleHeight, StepHeight: 0.3}),
 		illusion.C(transform.FromTranslation(center)),
 	}, extra...)

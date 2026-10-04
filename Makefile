@@ -9,7 +9,7 @@ PORT ?= 8080
 # replaces it. Its web/build.sh does the browser build.
 ILLUSION = $(shell go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
-.PHONY: run build web serve test characters people wardrobe clean
+.PHONY: run build web serve test characters people wardrobe traversal-animations paint bindpose clean
 
 run:
 	go run ./cmd/desktop
@@ -27,26 +27,53 @@ serve: web
 test:
 	go test ./...
 
-# Prepares skinned glTF characters for raylib (see tools/bindpose) and puts
-# them in assets/characters: make characters SRC="man.glb woman.glb"
-SRC ?=
-characters:
-	@test -n "$(SRC)" || { echo 'set SRC to the .glb files to prepare'; exit 1; }
-	go run ./tools/bindpose -o assets/characters $(SRC)
-
-# Builds the people in assets/characters from MakeHuman bodies, Quaternius's
-# animation library and Mixamo clips, in Blender with MPFB installed in
-# build/makehuman/blender (see the README).
+# The characters. Who they are and what they can look like is in
+# tools/makehuman/cast.py; make characters builds all of assets/characters
+# from it: the people, then their wardrobe and faces, then the painted look
+# on all of it. It needs Blender with MPFB installed in
+# build/makehuman/blender, Quaternius's animation library and the Mixamo
+# clips (see the README).
+#
+# Its steps run on their own too:
+#   make people                the bodies and their clips
+#   make wardrobe              clothes, hair, glasses, faces, skins and wardrobe.json
+#   make traversal-animations  the traversal clips, on the bodies as they are
+#   make paint                 the painted look, on what isn't painted yet
 BLENDER ?= /Applications/Blender.app/Contents/MacOS/Blender
 UAL ?= build/makehuman/dl/ual/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb
 MIXAMO ?= build/mixamo
-people:
-	BLENDER_USER_RESOURCES="$(CURDIR)/build/makehuman/blender" "$(BLENDER)" -b --python tools/makehuman/people.py -- "$(UAL)" assets/characters "$(MIXAMO)"
+MAKEHUMAN = BLENDER_USER_RESOURCES="$(CURDIR)/build/makehuman/blender" "$(BLENDER)" -b --python-exit-code 1 --python
+# people and wardrobe paint what they build, unless PAINT=0.
+PAINT ?= 1
+PAINT_CHARACTERS = $(if $(filter 0,$(PAINT)),@true,go run ./tools/paint assets/characters)
 
-# Builds the wardrobe (clothes, hair, glasses, skins and wardrobe.json) for
-# the people in assets/characters; run it after make people.
+characters:
+	$(MAKE) people PAINT=0
+	$(MAKE) wardrobe
+
+people:
+	$(MAKEHUMAN) tools/makehuman/people.py -- "$(UAL)" assets/characters "$(MIXAMO)"
+	$(PAINT_CHARACTERS)
+
 wardrobe:
-	BLENDER_USER_RESOURCES="$(CURDIR)/build/makehuman/blender" "$(BLENDER)" -b --python tools/makehuman/wardrobe.py -- assets/characters
+	$(MAKEHUMAN) tools/makehuman/wardrobe.py -- assets/characters
+	$(PAINT_CHARACTERS)
+
+traversal-animations:
+	"$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/makehuman/traversal.py -- assets/characters "$(MIXAMO)"
+	python3 tools/makehuman/merge_animations.py assets/characters build/traversal
+	"$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/makehuman/check_traversal.py -- assets/characters
+
+paint:
+	go run ./tools/paint assets/characters
+
+# Prepares a skinned glTF model from elsewhere for raylib (see
+# tools/bindpose) and puts it in assets/characters:
+# make bindpose SRC="model.glb"
+SRC ?=
+bindpose:
+	@test -n "$(SRC)" || { echo 'set SRC to the .glb files to prepare'; exit 1; }
+	go run ./tools/bindpose -o assets/characters $(SRC)
 
 clean:
 	rm -rf build

@@ -27,13 +27,28 @@ const (
 	Interact
 	Punch
 	PickUp
+
+	Slide
+	Roll
+	LadderClimb
+	Vault
+	Mantle
+	WallKick
+	WallKickRight // its mirror image, for a wall on the right
+	WallFall      // falling after a wall kick, until landing
+	WallFallRight
+	WallLand // touching down after a wall kick
+	Crouch
+	StandUp
+	LadderExit
+	LadderEnter
 )
 
 // Airborne reports whether a is a jump.
 func (a Anim) Airborne() bool { return a == Jump || a == RunJump }
 
 // OneShot reports whether a is an action that plays once.
-func (a Anim) OneShot() bool { return a >= Interact }
+func (a Anim) OneShot() bool { return a >= Interact && a <= PickUp }
 
 func (a Anim) String() string {
 	switch a {
@@ -53,6 +68,30 @@ func (a Anim) String() string {
 		return "punch"
 	case PickUp:
 		return "pick up"
+	case Slide:
+		return "slide"
+	case Roll:
+		return "roll"
+	case LadderClimb:
+		return "ladder climb"
+	case Vault:
+		return "vault"
+	case Mantle:
+		return "mantle"
+	case WallKick, WallKickRight:
+		return "wall kick"
+	case WallLand:
+		return "wall kick landing"
+	case WallFall, WallFallRight:
+		return "wall kick fall"
+	case StandUp:
+		return "stand up"
+	case LadderExit:
+		return "ladder exit"
+	case LadderEnter:
+		return "ladder entry"
+	case Crouch:
+		return "crouch"
 	}
 	return "unknown"
 }
@@ -61,9 +100,12 @@ func (a Anim) String() string {
 type Character struct {
 	WalkSpeed, RunSpeed float32 // units per second
 	JumpSpeed           float32 // upward speed at take-off
-	// Accel is how fast it speeds up and slows down, in units per second
-	// per second.
-	Accel float32
+	// Ease is how quickly its speed follows a change, walking to running
+	// and back, starting and stopping: each second it closes the gap by
+	// the share 1 - e^-Ease, so it eases in as it gets close. Accel caps
+	// how hard that pushes, in units per second per second, so a start isn't
+	// a jolt. It slows down twice as quickly as it speeds up.
+	Ease, Accel float32
 	// TurnSpeed is the fastest the body turns to face where it's going, in
 	// radians per second, standing (the faster it goes, the slower it
 	// turns), and TurnAccel how fast it gets up to that speed and back
@@ -75,7 +117,7 @@ type Character struct {
 // own, measured from how fast a planted foot slides under the body. A walk
 // turns about in two thirds of a second.
 func Default() Character {
-	return Character{WalkSpeed: 1.6, RunSpeed: 4.6, JumpSpeed: 4, Accel: 8, TurnSpeed: 7, TurnAccel: 30}
+	return Character{WalkSpeed: 1.6, RunSpeed: 4.6, JumpSpeed: 4, Ease: 5, Accel: 8, TurnSpeed: 7, TurnAccel: 30}
 }
 
 // Intent is what a character wants to do. playerInput writes the player's;
@@ -88,6 +130,8 @@ type Intent struct {
 	// Jump asks for a jump; it's cleared at the next physics step, and
 	// ignored while an action plays.
 	Jump bool
+	// Slide/Roll are edge-triggered requests consumed by traversal.
+	Slide, Roll bool
 	// Act asks for a one-shot action; Idle means none. It's cleared as soon
 	// as it's read, so an ignored request isn't kept for later. Airborne
 	// characters, characters already acting, and skins without the clip

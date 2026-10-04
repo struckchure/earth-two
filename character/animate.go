@@ -99,11 +99,13 @@ func (s *skins) released(skin *Skin, p *render.AnimationPlayer) bool {
 // its state. It runs in Update, before render.Animate advances the players.
 func animate(
 	bodies *illusion.Query2Where[State, render.AnimationPlayer, illusion.With[Body]],
-	roots *illusion.Query3[Character, Intent, physics.CharacterController],
+	roots *illusion.Query5[Character, Intent, physics.CharacterController, Traversal, MotionSamples],
 	hier *illusion.Hierarchy,
 	sk *skins,
 	settings *illusion.Res[physics.Settings],
 	t *illusion.Res[illusion.Time],
+	controls *illusion.Res[Controls],
+	fixed *illusion.Res[illusion.FixedTime],
 ) {
 	skins := sk.roster.Get().Skins
 	gravity := -settings.Get().Gravity.Y
@@ -113,11 +115,103 @@ func animate(
 		if !ok {
 			return
 		}
-		c, in, cc, ok := roots.Get(parent)
+		c, in, cc, traversal, samples, ok := roots.Get(parent)
 		if !ok {
 			return
 		}
 		skin := &skins[st.skin]
+		p.ManualTime = false
+		if !traversal.active() && traversal.Kick == 0 && !cc.Grounded && st.Current >= WallKick && st.Current <= WallFallRight {
+			// After a wall kick it falls as the kick left it, loosely, until
+			// it lands.
+			p.Paused = !controls.Get().Enabled || settings.Get().Paused
+			if p.Paused {
+				return
+			}
+			next := WallFall
+			if st.Current == WallKickRight || st.Current == WallFallRight {
+				next = WallFallRight
+			}
+			if next != st.Current {
+				st.Current = next
+				play(p, skin.clip(next), false)
+				p.FadeIn(.2)
+			}
+			in.Act = Idle
+			p.Speed = 1
+			return
+		}
+		if traversal.active() || traversal.Kick > 0 {
+			if !controls.Get().Enabled || settings.Get().Paused {
+				p.Paused = true
+				return
+			}
+			p.Paused = false
+			p.ManualTime = true
+			next := traversal.Mode
+			if !traversal.active() {
+				next = WallKick
+				if traversal.KickRight {
+					next = WallKickRight
+				}
+			}
+			if next != st.Current {
+				st.Current = next
+				play(p, skin.clip(next), next != LadderClimb && next != LadderEnter && next != Crouch)
+				p.FadeIn(.22)
+				if next == Slide || next == Roll {
+					p.FadeIn(.09)
+				}
+				if next == WallKick || next == WallKickRight {
+					p.FadeIn(.07)
+				}
+				if next == StandUp {
+					p.FadeIn(.08)
+				}
+				if next == LadderExit && !traversal.ExitTop {
+					p.FadeIn(.12)
+				}
+				if next == LadderClimb {
+					p.FadeIn(.12)
+				}
+			}
+			in.Act = Idle
+			st.turn = 0
+			p.Speed = 1
+			a := sk.anims.Get().Get(skin.Anims)
+			if a != nil {
+				if i, ok := a.Clip(skin.clip(next).Name); ok {
+					duration := a.Duration(i)
+					switch next {
+					case WallKick, WallKickRight:
+						elapsed := wallKickTime - traversal.Kick + (fixed.Get().Overstep()-1)*float32(fixed.Get().Timestep.Seconds())
+						p.Seek(clamp(elapsed/wallKickTime, 0, 1) * duration)
+					case LadderClimb:
+						spacing := max(.01, traversal.RungSpacing)
+						phase := traversal.Phase + cc.Walk.Y*fixed.Get().Overstep()*float32(fixed.Get().Timestep.Seconds())/(2*spacing)
+						phase -= float32(math.Floor(float64(phase)))
+						p.Seek(phase * duration)
+					case LadderEnter:
+						phase := traversal.Phase - float32(math.Floor(float64(traversal.Phase)))
+						p.Seek(phase * duration)
+					case Crouch:
+						p.Seek(0)
+					case LadderExit:
+						if !traversal.ExitTop {
+							p.Seek(duration)
+						} else {
+							p.Seek(traversalTime(traversal, fixed.Get()) / traversal.Duration * duration)
+						}
+					default:
+						if traversal.Duration > 0 && next != WallKick {
+							p.Seek(traversalTime(traversal, fixed.Get()) / traversal.Duration * duration)
+						}
+					}
+				}
+			}
+			return
+		}
+
 		if cc.Grounded {
 			st.air = 0
 		} else {
@@ -125,17 +219,37 @@ func animate(
 		}
 		m := motion{
 			// A jump shows at once; a step down only after a moment.
-			Grounded: cc.Grounded || st.air < coyote && cc.Velocity.Y <= 0,
+			Grounded: !controls.Get().Enabled || cc.Grounded || st.air < coyote && cc.Velocity.Y <= 0,
 			Speed:    float32(math.Hypot(float64(cc.Velocity.X), float64(cc.Velocity.Z))),
 		}
+		// Against a wall it wants to go but doesn't: it stands, rather than
+		// walking on the spot. (The lesser of the two, as a teleport is no
+		// speed at all.)
+		m.Speed = min(m.Speed, samples.Speed(float32(fixed.Get().Timestep.Seconds())))
 
 		heading := in.Move.X != 0 || in.Move.Z != 0
+		// Landing from a wall kick it sinks into its knees, unless it's
+		// still sprinting: then it runs straight on.
+		if st.Current >= WallKick && st.Current <= WallFallRight && cc.Grounded && skin.Has(WallLand) && !(in.Run && heading) {
+			st.Current = WallLand
+			play(p, skin.clip(WallLand), true)
+			p.FadeIn(.08)
+		}
+		if st.Current == WallLand && m.Grounded && !p.Finished() && (!heading || traversal.Land > 0) {
+			// Taking the landing from a wall kick; wanting to move cuts it
+			// short, once it's free to (see TraversalConfig.LandDelay).
+			p.Speed = 1
+			return
+		}
 		acting := st.Current.OneShot() && !p.Finished()
 		if acting && heading && sk.released(skin, p) {
 			acting = false // wants to move on: skip the recovery
 		}
 		if in.Act != Idle {
-			if canAct(m, acting) && skin.Has(in.Act) {
+			// Moving on, a released action is still on screen this frame:
+			// starting one now would jump its clip back to the start.
+			showing := st.Current.OneShot() && !p.Finished()
+			if canAct(m, showing) && skin.Has(in.Act) {
 				st.Current, acting = in.Act, true
 				play(p, skin.clip(in.Act), true)
 				if m.Speed > moving {
@@ -152,9 +266,13 @@ func animate(
 		m.Pivoting = heading && abs(st.turn) > pivot
 
 		if next := pickAnim(m, *c, st.Current, acting); next != st.Current {
+			landing := st.Current.Airborne() && m.Grounded
 			st.Current = next
 			clip := skin.clip(next)
 			play(p, clip, next.Airborne() && !clip.Loop)
+			if landing {
+				p.FadeIn(.12)
+			}
 		}
 
 		// Match the stride to the ground speed, so feet don't slide, and a
@@ -183,6 +301,11 @@ func animate(
 			p.Speed = 1
 		}
 	})
+}
+
+// Match the same previous/current interval used by the interpolated body.
+func traversalTime(s *Traversal, fixed *illusion.FixedTime) float32 {
+	return clamp(s.Elapsed+(fixed.Overstep()-1)*float32(fixed.Timestep.Seconds()), 0, s.Duration)
 }
 
 // play starts clip, crossfading from whatever was playing. Once-clips hold

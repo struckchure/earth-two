@@ -7,6 +7,7 @@ import (
 	"github.com/struckchure/earth-two/character"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/input"
+	"github.com/struckchure/illusion/physics"
 	"github.com/struckchure/illusion/window"
 )
 
@@ -366,12 +367,14 @@ func menuInput(
 	}
 }
 
-// lockControls stops the player while a menu is up. It runs before
-// menuInput, so the key that starts play (Enter or Space) doesn't also
-// reach the player.
-func lockControls(m *illusion.Res[menu], controls *illusion.Res[character.Controls], t *illusion.Res[illusion.Time]) {
+// lockControls stops the player while a menu is up. It runs after
+// menuInput, which runs after the player's input: a menu that opens stops
+// the player from the next frame, and the key that starts play (Enter or
+// Space) has been and gone by the time the player's input reads it.
+func lockControls(m *illusion.Res[menu], controls *illusion.Res[character.Controls], t *illusion.Res[illusion.Time], settings *illusion.Res[physics.Settings]) {
 	mu := m.Get()
 	controls.Get().Enabled = mu.screen() == playing
+	settings.Get().Paused = !controls.Get().Enabled
 	dt := t.Get().DeltaSecs()
 	mu.since += dt
 	if mu.onTitle() {

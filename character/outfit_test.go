@@ -119,3 +119,24 @@ func TestSkinned(t *testing.T) {
 		t.Errorf("skinned = %v, want meshes 1 and 2 in the tone", got)
 	}
 }
+
+func TestTopReplacesTorsoUnderwear(t *testing.T) {
+	b := BodyWardrobe{Regions: map[string][]int{"torso": {0}}, Underwear: map[string][]int{"torso": {1}, "hips": {2}}}
+	b.Items[Top] = []Item{{Name: "Tank top"}} // opening means no full coverage
+	b.Items[OnePiece] = []Item{{Name: "Dress"}}
+	b.Items[Bottom] = []Item{{Name: "Shorts"}}
+	var o Outfit
+	o.Put(Top, 0)
+	if got := b.hidden(o); !reflect.DeepEqual(got, map[int]bool{1: true}) {
+		t.Fatalf("tank: hidden = %v, want only torso underwear (keep skin in openings)", got)
+	}
+	o.Remove(Top)
+	o.Put(Bottom, 0)
+	if got := b.hidden(o); len(got) != 0 {
+		t.Fatalf("removing top should restore bra; shorts leave uncovered underwear: %v", got)
+	}
+	o.Put(OnePiece, 0)
+	if got := b.hidden(o); !reflect.DeepEqual(got, map[int]bool{1: true}) {
+		t.Fatalf("dress: hidden = %v, want torso underwear", got)
+	}
+}

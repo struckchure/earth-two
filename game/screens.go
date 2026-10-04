@@ -20,7 +20,10 @@ var bindings = []struct {
 }{
 	{[]string{"WASD", "Arrows"}, "Walk"},
 	{[]string{"Shift"}, "Run"},
-	{[]string{"Space"}, "Jump"},
+	{[]string{"Space"}, "Jump / vault / mantle / wall kick"},
+	{[]string{"Ctrl"}, "Slide while running"},
+	{[]string{"R"}, "Roll"},
+	{[]string{"W / S"}, "Climb ladder (move toward to attach)"},
 	{[]string{"E"}, "Interact"},
 	{[]string{"F"}, "Punch"},
 	{[]string{"Q"}, "Pick up"},
@@ -42,7 +45,7 @@ func drawMenus(
 		return
 	}
 	width, height := float32(ww.Width), float32(ww.Height)
-	p := painter{fonts: fonts.Get(), s: uiScale(ww)}
+	p := newPainter(fonts.Get(), ww)
 	l := layoutFor(s, width, height, p.s)
 	focus := mu.top().focus
 
@@ -99,9 +102,9 @@ func menuButtons(p painter, l layout, s screen, focus int) {
 }
 
 // hud draws the frame rate, and in play the keys for the menus.
-func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illusion.Res[menu]) {
+func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illusion.Res[menu], players *illusion.Query1Where[character.Traversal, illusion.With[character.Player]]) {
 	ww := win.Get()
-	p := painter{fonts: fonts.Get(), s: uiScale(ww)}
+	p := newPainter(fonts.Get(), ww)
 	width, height := float32(ww.Width), float32(ww.Height)
 
 	fps := fmt.Sprintf("%d fps", rl.GetFPS())
@@ -113,6 +116,11 @@ func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illu
 	if m.Get().screen() != playing {
 		return
 	}
+	players.Each(func(_ ecs.Entity, s *character.Traversal) {
+		if s.Hint != "" {
+			p.text(s.Hint, rl.Vector2{X: p.px(20), Y: height - p.px(80)}, 15, semibold, colOnLight)
+		}
+	})
 	x, y := p.px(20), height-p.px(48)
 	for _, h := range []struct{ key, does string }{{"Esc", "Menu"}, {"C", "Wardrobe"}} {
 		x += p.keycap(h.key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
@@ -161,14 +169,15 @@ func frame(eye, target rl.Vector3, x, fovy, aspect float32) (rl.Vector3, rl.Vect
 // player in play, and round to their front on the title screen and in the
 // wardrobe, with the player to the right of the menu.
 func follow(
-	players *illusion.Query1Where[transform.Transform, illusion.With[character.Player]],
+	players *illusion.Query2Where[transform.Transform, character.MotionSamples, illusion.With[character.Player]],
 	cameras *illusion.Query2[transform.Transform, render.Camera3d],
 	m *illusion.Res[menu],
 	t *illusion.Res[illusion.Time],
 	win *illusion.Res[window.Window],
 	aim *illusion.Local[aiming],
+	fixed *illusion.Res[illusion.FixedTime],
 ) {
-	_, player, ok := players.Single()
+	_, player, samples, ok := players.Single()
 	if !ok {
 		return
 	}
@@ -186,14 +195,15 @@ func follow(
 		l := layoutFor(s, float32(ww.Width), float32(ww.Height), uiScale(ww))
 		x = min((l.panel.X+l.panel.Width)/float32(ww.Width), 0.6)
 	}
-	k := min(1, cameraLag*t.Get().DeltaSecs())
+	k := float32(1 - math.Exp(float64(-cameraLag*t.Get().DeltaSecs())))
+	position := samples.Position(player.Translation, fixed.Get().Overstep())
 	cameras.Each(func(_ ecs.Entity, tr *transform.Transform, cam *render.Camera3d) {
 		fovy := cam.Fovy
 		if fovy == 0 {
 			fovy = 45
 		}
 		aspect := float32(ww.Width) / max(float32(ww.Height), 1)
-		eye, target := frame(rl.Vector3Add(player.Translation, sh.offset), rl.Vector3Add(player.Translation, sh.look), x, fovy, aspect)
+		eye, target := frame(rl.Vector3Add(position, sh.offset), rl.Vector3Add(position, sh.look), x, fovy, aspect)
 		// Ease what it looks at too, so it turns smoothly between shots.
 		a := aim.Get()
 		if !a.set {

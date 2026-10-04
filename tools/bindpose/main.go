@@ -169,7 +169,7 @@ func (g *gltf) skeleton() (*skeleton, error) {
 	}
 	skin := skins[0].(obj)
 	joints := ints(skin["joints"])
-	ibms, err := g.readMat4s(num(skin["inverseBindMatrices"]))
+	ibms, err := g.inverseBinds(skin)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (g *gltf) skeleton() (*skeleton, error) {
 	// Every other skin must be the same skeleton bound the same way, so its
 	// meshes can use the first skin.
 	for k, sk := range skins[1:] {
-		other, err := g.readMat4s(num(sk.(obj)["inverseBindMatrices"]))
+		other, err := g.inverseBinds(sk.(obj))
 		if err != nil {
 			return nil, err
 		}
@@ -295,6 +295,20 @@ func (g *gltf) placeMesh(s *skeleton) {
 	}
 	g.doc["skins"] = g.list("skins")[:1]
 	s.bindFrom(at)
+}
+
+// inverseBinds is skin's inverse bind matrices: identities, glTF's default,
+// if it hasn't any.
+func (g *gltf) inverseBinds(skin obj) ([]mat4, error) {
+	i, ok := skin["inverseBindMatrices"]
+	if !ok {
+		out := make([]mat4, len(ints(skin["joints"])))
+		for k := range out {
+			out[k] = identity()
+		}
+		return out, nil
+	}
+	return g.readMat4s(num(i))
 }
 
 func (g *gltf) readMat4s(i int) ([]mat4, error) {

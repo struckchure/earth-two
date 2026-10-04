@@ -22,31 +22,16 @@ import math
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(__file__))
+from cast import CLIPS, FACE, MIXAMO_CLIPS, PEOPLE
+from traversal import author as author_traversal
+
 import bpy
 from mathutils import Matrix, Quaternion, Vector
 
 from bl_ext.user_default.mpfb.services import HumanService, LocationService, TargetService
 
 DATA = LocationService.get_user_data()
-
-# The library clips each person gets. Each adds to the file, so only the
-# ones the game uses.
-CLIPS = [
-    "Idle_Loop", "Idle_Talking_Loop", "Walk_Loop", "Walk_Formal_Loop",
-    "Jog_Fwd_Loop", "Sprint_Loop", "Jump_Start", "Jump_Loop", "Jump_Land",
-    "Interact", "PickUp_Table", "Punch_Jab", "Punch_Cross", "Push_Loop",
-    "Crouch_Idle_Loop", "Crouch_Fwd_Loop", "Roll", "Hit_Chest", "Death01",
-    "Driving_Loop", "Sitting_Enter", "Sitting_Idle_Loop", "Sitting_Exit",
-    "Pistol_Idle_Loop", "Pistol_Aim_Neutral", "Pistol_Shoot", "Fixing_Kneeling",
-    "Dance_Loop",
-]
-
-# Mixamo clips: motion capture, so the everyday moves (standing, walking,
-# running, jumping) look natural where the library's are stylised. Each is a
-# "Without Skin" download in MIXAMO_DIR named after the clip, e.g.
-# "Walking.fbx". Mixamo's terms allow them in games but not redistributed as
-# raw files, so the downloads stay out of the repo.
-MIXAMO_CLIPS = ["Breathing Idle", "Walking", "Running", "Jumping", "Running Jump", "Picking Up", "Punching"]
 
 
 def mixamo_bones():
@@ -69,15 +54,6 @@ MIXAMO_BONES = mixamo_bones()
 # Every clip is sampled at this rate: Mixamo's. The FBX importer sets the
 # scene to it anyway, and the glTF importer keys the library's clips by it.
 FPS = 30
-
-# name: (gender 0 female .. 1 male, skin, clothes). The clothes are
-# MakeHuman community assets: WojackOWL's Boxer Shorts (CC-BY; installed by
-# hand as wojackowl_boxer_shorts, see the README), and wolgade's panties and
-# top from the underwear01 pack (CC0).
-PEOPLE = {
-    "man": (1.0, "young_african_male", ["wojackowl_boxer_shorts"]),
-    "woman": (0.0, "young_african_female", ["wolgade_female_panties_01", "wolgade_female_top_01"]),
-}
 
 # The region each underwear piece sits on (see split_body): it's hidden with
 # the region, so it can't poke through the clothes worn over it.
@@ -163,12 +139,23 @@ def shrink_textures(obj, size):
                 image.scale(max(1, int(w * k)), max(1, int(h * k)))
 
 
-def make_person(gender, skin, clothes):
+def shape_face(basemesh, face):
+    """Loads the targets in face (see FACE) onto basemesh."""
+    targets = os.path.join(LocationService.get_mpfb_data("targets"))
+    for name, weight in face.items():
+        for side in ("l-", "r-") if "?-" in name else ("",):
+            path = os.path.join(targets, name.replace("?-", side) + ".target.gz")
+            TargetService.load_target(basemesh, path, weight=weight)
+
+
+def make_person(gender, skin, clothes, face=FACE):
     macro = TargetService.get_default_macro_info_dict()
     macro["gender"] = gender
     macro["race"] = {"african": 1.0, "asian": 0.0, "caucasian": 0.0}
     # detailed_helpers keeps the joint-* vertex groups the rig is fitted to.
     basemesh = HumanService.create_human(macro_detail_dict=macro)
+    # Before the rig and the eyes, which are fitted to the face.
+    shape_face(basemesh, face)
     HumanService.set_character_skin(asset("skins", skin, ".mhmat"), basemesh, skin_type="GAMEENGINE", material_instances=False)
     # The rig first, so the eyes and eyebrows are bound to it too.
     rig = HumanService.add_builtin_rig(basemesh, "game_engine")
@@ -674,6 +661,7 @@ def main():
         for action in bpy.data.actions:
             action.name = action.name.removesuffix(BAKED)
         print("PERSON", name, len(pairs), "library and", len(mix_pairs), "Mixamo bones matched,", len(bpy.data.actions), "clips")
+        author_traversal(rig, mixamo=mixamo)
         split_body(basemesh)
         export(os.path.join(out, name + ".glb"))
 
