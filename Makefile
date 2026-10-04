@@ -5,9 +5,10 @@ GAME := earth-two
 TITLE := Earth Two
 PORT ?= 8080
 
-# illusion's directory: the module cache, or a local checkout if go.mod
-# replaces it. Its web/build.sh does the browser build.
-ILLUSION = $(shell go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
+# illusion's directory: the module cache, or a local checkout if go.work
+# uses one. Its web/build.sh does the browser build. It's downloaded first:
+# a module that isn't in the cache yet has no directory to list.
+ILLUSION = $(shell go mod download github.com/struckchure/illusion 2>/dev/null; go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
 .PHONY: run build web serve test characters people wardrobe traversal-animations paint bindpose clean
 
