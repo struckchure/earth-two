@@ -5,6 +5,8 @@
 // game_js.go.
 //
 //	go run ./cmd/web [-addr :8080] [-dir build/web]
+//
+// Without -addr it listens on $PORT, if that's set.
 package main
 
 import (
@@ -16,7 +18,12 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", ":8080", "address to listen on")
+	// Hosts that run this for us say which port to listen on in PORT.
+	listen := ":8080"
+	if port := os.Getenv("PORT"); port != "" {
+		listen = ":" + port
+	}
+	addr := flag.String("addr", listen, "address to listen on")
 	dir := flag.String("dir", "build/web", "directory holding the browser build")
 	flag.Parse()
 

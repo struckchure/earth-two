@@ -1,0 +1,19 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "golang",
+  "buildAptPackages": ["git", "make", "python3", "xz-utils"],
+  "steps": {
+    "build": {
+      "commands": [
+        "git clone --depth 1 https://github.com/emscripten-core/emsdk.git /opt/emsdk",
+        "/opt/emsdk/emsdk install 6.0.10",
+        "/opt/emsdk/emsdk activate 6.0.10",
+        "EM_CONFIG=/opt/emsdk/.emscripten PATH=/opt/emsdk/upstream/emscripten:$PATH make web",
+        "CGO_ENABLED=0 go build -o out ./cmd/web"
+      ]
+    }
+  },
+  "deploy": {
+    "startCommand": "./out -dir build/web"
+  }
+}
