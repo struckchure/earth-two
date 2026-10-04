@@ -73,7 +73,7 @@ func Run() {
 		AddPlugins(
 			defaults.Plugins(defaults.Config{
 				Window:    window.Config{Title: "Earth Two", Resizable: true, HighDPI: true, MSAA: true, VSync: true, KeepEscape: true},
-				AssetRoot: "assets",
+				AssetRoot: assetRoot(),
 			}),
 			physics.Plugin{},
 			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass},

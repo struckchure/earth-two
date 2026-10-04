@@ -434,8 +434,9 @@ requests. Each run uploads the builds as artifacts.
   the HTTP server for `build/web/`; built for the browser (`make web`) it's
   the game, from `game_js.go`.
 - `assets/` holds files the game loads by path. Desktop builds read them from
-  disk, relative to the working directory, so run the game from here. Web
-  builds bundle the directory into the page.
+  disk: from `assets` in the working directory, or else from an `assets`
+  folder beside the program (CI's downloads come with one). Web builds bundle
+  the directory into the page.
 
 ## Notes for the browser
 

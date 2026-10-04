@@ -46,6 +46,9 @@ jobs:
       # go build rather than make build: Windows runners don't have make.
       - name: Build
         run: go build -o "build/earth-two$(go env GOEXE)" ./cmd/desktop
+      # The game loads its files from an assets folder beside it.
+      - name: Put the assets with the build
+        run: cp -R assets build/assets
       - uses: actions/upload-artifact@v7
         with:
           name: earth-two-${{ runner.os }}
