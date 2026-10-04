@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	github.com/gen2brain/raylib-go/raylib v0.60.1
 	github.com/mlange-42/ark v0.8.3
-	github.com/struckchure/illusion v0.0.0-20260930183732-109546400904
+	github.com/struckchure/illusion v0.0.0-20261004190515-4838c61a6d02
 )
 
 require (
