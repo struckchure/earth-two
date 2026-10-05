@@ -5,3 +5,7 @@ go.work
 go.work.sum
 
 __pycache__/
+
+# The Blender harness's state and its renders: scratch, not source.
+.harness/
+out/
