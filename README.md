@@ -91,9 +91,9 @@ can chain kicks between walls; the same surface requires separation before
 another kick.
 
 Ctrl slides from a run and R rolls about two metres. Both shorten the
-collision capsule. Rolls settle over 0.7 seconds; slides finish with a
-0.28-second stand-up recovery that permits movement, jumping, and chaining a
-roll. Under a low ceiling, the character stays crouched and
+collision capsule. Rolls settle over 0.7 seconds, and slides get up by
+themselves over 0.8; still holding Shift and a direction, either runs straight
+on out of it. Under a low ceiling, the character stays crouched and
 can move slowly until there is room to stand. There is no stamina cost or
 invulnerability; actions require fresh presses with a short repeat guard.
 Pause and wardrobe menus freeze traversal. Falling below the world resets
@@ -124,11 +124,13 @@ upper bodies clear of nearby static walls while preserving limb lengths.
 The corrected pose is shared by the body, clothing, and bone attachments
 on desktop and browser; contact offsets fade out when leaving a wall.
 
-The existing Roll clip is joined by dedicated clips made in Blender: slide,
-ladder climb/hold, crouch and standing recovery are posed by hand, and the
-rest are retargeted from Mixamo downloads in `build/mixamo/` (fetched like
-the other Mixamo clips): the two wall kicks from `Wall Run.fbx`, the vault
-and mantle from `Vault Over Box.fbx`, as is the hop off the top of a ladder.
+The existing Roll clip is joined by dedicated clips made in Blender: ladder
+climb/hold, crouch and standing recovery are posed by hand, and the rest are
+retargeted from Mixamo downloads in `build/mixamo/` (fetched like the other
+Mixamo clips): the slide from `Running Slide.fbx`, which gets up by itself
+(still sprinting, it runs on out of it), the two wall kicks from
+`Wall Run.fbx`, the vault and mantle from `Vault Over Box.fbx`, as is the hop
+off the top of a ladder.
 The ladder climb's hands and feet are posed to the rails and rungs, and its
 hips and spine move as in `Climbing Ladder.fbx` (by `LADDER_HIPS` in
 `cast.py`).
@@ -177,7 +179,9 @@ job and contract AI will write everyone else's.
 - Jump clips start at take-off (`Clip.Start`) and are stretched so
   take-off to touchdown (`Clip.Land`) lasts as long as the physics jump. A
   model without one holds a pose instead (`Clip.Hold`), and one with an
-  in-air cycle loops it (`Clip.Loop`).
+  in-air cycle loops it (`Clip.Loop`). Falling on past touchdown, from
+  higher than it jumped, it swings its legs (the Fall clip, which
+  `traversal.py` makes from the jump's touchdown pose) until it lands.
 
 The people are a MakeHuman man and woman: realistic bodies (about 29k
 triangles, with eyes and eyebrows) in underwear, on MakeHuman's game engine

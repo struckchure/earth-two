@@ -38,7 +38,7 @@ test:
 # Its steps run on their own too:
 #   make people                the bodies and their clips
 #   make wardrobe              clothes, hair, glasses, faces, skins and wardrobe.json
-#   make traversal-animations  the traversal clips, on the bodies as they are
+#   make traversal-animations  the traversal clips and mirrored punch, on the bodies as they are
 #   make paint                 the painted look, on what isn't painted yet
 BLENDER ?= /Applications/Blender.app/Contents/MacOS/Blender
 UAL ?= build/makehuman/dl/ual/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb

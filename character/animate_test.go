@@ -44,6 +44,9 @@ func TestPickAnim(t *testing.T) {
 		{"stepping round turning about", motion{Grounded: true, Speed: 0.1, Pivoting: true}, Walk, false, Walk},
 		{"stepping round from standing", motion{Grounded: true, Pivoting: true}, Idle, false, Walk},
 		{"falling cuts an action short", motion{}, PickUp, true, Jump},
+		{"a fall plays on in the air", motion{Speed: 5}, Fall, false, Fall},
+		{"landing from a fall", motion{Grounded: true}, Fall, false, Idle},
+		{"landing from a fall on the move", motion{Grounded: true, Speed: 5}, Fall, false, Run},
 	}
 	for _, tt := range tests {
 		if got := pickAnim(tt.m, c, tt.current, tt.acting); got != tt.want {
@@ -58,15 +61,48 @@ func TestAnimKinds(t *testing.T) {
 			t.Errorf("%v is both airborne and a one-shot", a)
 		}
 	}
-	for _, a := range []Anim{Interact, Punch, PickUp} {
+	for _, a := range []Anim{Interact, Punch, PunchRight, PickUp} {
 		if !a.OneShot() {
 			t.Errorf("%v isn't a one-shot", a)
 		}
 	}
-	for _, a := range []Anim{Jump, RunJump} {
+	for _, a := range []Anim{Jump, RunJump, Fall} {
 		if !a.Airborne() {
 			t.Errorf("%v isn't airborne", a)
 		}
+	}
+}
+
+func TestPunchesAlternate(t *testing.T) {
+	both := &Skin{Clips: map[Anim]Clip{Punch: {Name: "left"}, PunchRight: {Name: "right"}}}
+	var st State
+	if a := st.action(Punch, both); a != Punch {
+		t.Errorf("first punch is %v, want the left", a)
+	}
+	st.rightPunch = true
+	if a := st.action(Punch, both); a != PunchRight {
+		t.Errorf("second punch is %v, want the right", a)
+	}
+	if a := st.action(Punch, &Skin{Clips: map[Anim]Clip{Punch: {Name: "left"}}}); a != Punch {
+		t.Errorf("punch without a right-hand clip is %v, want the left", a)
+	}
+	if a := st.action(PickUp, both); a != PickUp {
+		t.Errorf("pick up is %v", a)
+	}
+}
+
+func TestRollClip(t *testing.T) {
+	if rollClip(0) != 0 || rollClip(1) != 1 {
+		t.Fatalf("roll clip runs %v to %v, want 0 to 1", rollClip(0), rollClip(1))
+	}
+	for u := float32(0); u < 1; u += .01 {
+		if rollClip(u+.01) < rollClip(u) {
+			t.Fatalf("roll clip goes back at %v", u)
+		}
+	}
+	// A sprinting roll runs on with its feet planted (see rollRelease).
+	if c := rollClip(rollRelease); c < .58 || c > .65 {
+		t.Errorf("roll runs on at %v of its clip, want the feet planted", c)
 	}
 }
 

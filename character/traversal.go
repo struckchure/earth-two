@@ -14,6 +14,15 @@ import (
 // off, and the body turns away from it in the air.
 const wallKickTime float32 = 8. / 30
 
+// rollRelease and slideRelease are the shares of a roll and a slide after
+// which a character still sprinting runs straight on: by then its feet are
+// under it in a stride, and the rest is getting up to stand. (The slide's
+// clip gets up by itself; see SLIDE_FRAMES in tools/makehuman/traversal.py.)
+const (
+	rollRelease  = .6
+	slideRelease = .875
+)
+
 // TraversalConfig contains distances, seconds and speeds used by every character.
 type TraversalConfig struct {
 	LowHeight, SlideMin, SlideSpeed, SlideTime, RollDistance, RollTime float32
@@ -284,12 +293,22 @@ func traverse(
 				}
 				speed := s.Speed
 				if s.Mode == Roll {
-					// The roll lands and settles instead of stopping at full speed.
+					// It dives forward fastest, a third of the way in while
+					// stretched out in the air (see rollKeys), and slows
+					// through the tuck and getting up. Over the roll it
+					// averages Speed.
 					u := clamp(s.Elapsed/s.Duration, 0, 1)
-					speed *= 6 * u * (1 - u)
+					speed *= 12 * u * (1 - u) * (1 - u)
 				}
+				sprinting := in.Run && in.Move != (rl.Vector3{})
 				if s.Mode == Slide {
-					speed = s.Speed * max(0, 1-s.Elapsed/s.Duration)
+					// Sprinting, it slows to a run to run on at; otherwise to
+					// a stop.
+					floor := float32(0)
+					if sprinting {
+						floor = min(c.RunSpeed, s.Speed)
+					}
+					speed = floor + (s.Speed-floor)*max(0, 1-s.Elapsed/s.Duration)
 					s.Direction = direction(rl.Vector3Lerp(s.Direction, dir, min(dt*1.5, .1)))
 				}
 				// Reserve the pose's leading foot/shoulder as well as capsule
@@ -304,14 +323,20 @@ func traverse(
 				} else {
 					cc.Walk = rl.Vector3Scale(s.Direction, speed)
 				}
-				if s.Elapsed >= s.Duration || !s.active() {
-					wasSlide := slideMode
+				release := float32(rollRelease)
+				if slideMode {
+					release = slideRelease
+				}
+				if s.active() && sprinting && s.Elapsed >= release*s.Duration && p.ResizeCharacter(e, cc, tr, capsuleHeight) {
+					// Still sprinting: up out of the roll or slide into a
+					// run, at the speed it's going, instead of standing up
+					// first.
+					walk := cc.Walk
+					endTraversal(s, cc)
+					cc.Walk = walk
+				} else if s.Elapsed >= s.Duration || !s.active() {
 					if p.ResizeCharacter(e, cc, tr, capsuleHeight) {
-						if wasSlide {
-							standUp(s, cc)
-						} else {
-							endTraversal(s, cc)
-						}
+						endTraversal(s, cc)
 					} else {
 						s.Mode = Crouch
 						cc.Walk = rl.Vector3{}

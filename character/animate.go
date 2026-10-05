@@ -26,7 +26,33 @@ const (
 	// pivot is how fast (radians per second) a body turns before it steps
 	// round rather than swivelling on the spot.
 	pivot = 1
+	// fallFade is how long the fall's leg swing takes to fade in out of the
+	// jump's pose.
+	fallFade = .3
+	// rollRun is the share of the run clip a roll or slide runs on into:
+	// the left foot planted ahead and the right behind, as both leave them.
+	rollRun = .25
 )
+
+// rollKeys retimes the roll's clip: pairs of how far through the roll
+// (0 to 1) and how far through its clip. It lingers on the dive, the body
+// stretched out forward in the air, and hurries through the tuck, so it
+// reads as a dive and roll rather than a ball. The clip's parts: the take-off
+// to .09, the dive to .3, the tuck to .55 and getting up after.
+var rollKeys = [][2]float32{{0, 0}, {.1, .09}, {.4, .3}, {.55, .55}, {1, 1}}
+
+// rollClip is how far through the roll's clip to show u of the way through
+// the roll.
+func rollClip(u float32) float32 {
+	u = clamp(u, 0, 1)
+	for i := 1; i < len(rollKeys); i++ {
+		a, b := rollKeys[i-1], rollKeys[i]
+		if u <= b[0] {
+			return a[1] + (b[1]-a[1])*(u-a[0])/(b[0]-a[0])
+		}
+	}
+	return 1
+}
 
 // motion is what the animation state machine knows about a character.
 type motion struct {
@@ -72,6 +98,15 @@ func canAct(m motion, acting bool) bool {
 	return m.Grounded && !acting
 }
 
+// action is the one-shot a body plays when asked for act on skin: a punch
+// is with whichever hand's turn it is, the left if the skin has no right.
+func (st *State) action(act Anim, skin *Skin) Anim {
+	if act == Punch && st.rightPunch && skin.Has(PunchRight) {
+		return PunchRight
+	}
+	return act
+}
+
 // skins is the roster's skins and their clips, for animate (one parameter,
 // to stay within Fn6).
 type skins struct {
@@ -84,15 +119,24 @@ func (s *skins) InitParam(w *ecs.World) {
 	s.anims.InitParam(w)
 }
 
+// duration is how long skin's clip name lasts, if it has it.
+func (s *skins) duration(skin *Skin, name string) (float32, bool) {
+	a := s.anims.Get().Get(skin.Anims)
+	if a == nil {
+		return 0, false
+	}
+	i, ok := a.Clip(name)
+	if !ok {
+		return 0, false
+	}
+	return a.Duration(i), true
+}
+
 // released reports whether p, playing an action on skin, is past release:
 // far enough through that a character wanting to move can move on.
 func (s *skins) released(skin *Skin, p *render.AnimationPlayer) bool {
-	a := s.anims.Get().Get(skin.Anims)
-	if a == nil {
-		return false
-	}
-	i, ok := a.Clip(p.Clip())
-	return ok && p.Time() >= release*a.Duration(i)
+	d, ok := s.duration(skin, p.Clip())
+	return ok && p.Time() >= release*d
 }
 
 // animate runs the state machine for every body, playing its skin's clip for
@@ -202,6 +246,10 @@ func animate(
 						} else {
 							p.Seek(traversalTime(traversal, fixed.Get()) / traversal.Duration * duration)
 						}
+					case Roll:
+						if traversal.Duration > 0 {
+							p.Seek(rollClip(traversalTime(traversal, fixed.Get())/traversal.Duration) * duration)
+						}
 					default:
 						if traversal.Duration > 0 && next != WallKick {
 							p.Seek(traversalTime(traversal, fixed.Get()) / traversal.Duration * duration)
@@ -249,11 +297,15 @@ func animate(
 			// Moving on, a released action is still on screen this frame:
 			// starting one now would jump its clip back to the start.
 			showing := st.Current.OneShot() && !p.Finished()
-			if canAct(m, showing) && skin.Has(in.Act) {
-				st.Current, acting = in.Act, true
-				play(p, skin.clip(in.Act), true)
+			act := st.action(in.Act, skin)
+			if canAct(m, showing) && skin.Has(act) {
+				st.Current, acting = act, true
+				play(p, skin.clip(act), true)
 				if m.Speed > moving {
 					p.FadeIn(fade) // out of a stride: ease into it as it pulls up
+				}
+				if act == Punch || act == PunchRight {
+					st.rightPunch = act == Punch
 				}
 			}
 			in.Act = Idle // started or not, it's done with
@@ -267,11 +319,19 @@ func animate(
 
 		if next := pickAnim(m, *c, st.Current, acting); next != st.Current {
 			landing := st.Current.Airborne() && m.Grounded
+			rolled := st.Current == Roll || st.Current == Slide
 			st.Current = next
 			clip := skin.clip(next)
 			play(p, clip, next.Airborne() && !clip.Loop)
 			if landing {
 				p.FadeIn(.12)
+			}
+			if rolled && next == Run {
+				// Running on out of a roll or slide: into the stride its feet
+				// are in.
+				if d, ok := sk.duration(skin, clip.Name); ok {
+					p.Seek(rollRun * d)
+				}
 			}
 		}
 
@@ -294,7 +354,14 @@ func animate(
 			default:
 				p.Speed = airSpeed(clip, c.JumpSpeed, gravity)
 				if clip.Land > 0 && p.Time() >= clip.Land {
-					p.Paused = true // still falling: hold just before touchdown
+					if skin.Has(Fall) {
+						// Still falling: swing the legs until it lands.
+						st.Current = Fall
+						play(p, skin.clip(Fall), false)
+						p.FadeIn(fallFade)
+					} else {
+						p.Paused = true // hold just before touchdown
+					}
 				}
 			}
 		default:

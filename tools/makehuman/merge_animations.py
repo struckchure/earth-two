@@ -7,6 +7,13 @@ import pathlib
 import struct
 import sys
 
+# The clips traversal.py mirrors from the rig's own (its MIRRORED).
+MIRRORED={'Punching Mirrored'}
+
+
+def authored(name):
+    return name.startswith('Traversal_') or name in MIRRORED
+
 
 def read(path):
     raw=path.read_bytes();assert raw[:4]==b'glTF'
@@ -30,9 +37,9 @@ def merge(path,donor):
     data=data[:baseline['bytes']]
     names={n.get('name'):i for i,n in enumerate(doc['nodes'])}
     mapping={i:names[n['name']] for i,n in enumerate(src['nodes']) if n.get('name') in names}
-    selected=[copy.deepcopy(a) for a in src.get('animations',[]) if a.get('name','').startswith('Traversal_')]
-    required={'Traversal_'+n for n in ('Slide','Ladder','Vault','Mantle','WallKick','WallKickRight','WallKickFall','WallLand','WallKickFallRight','Crouch','StandUp','LadderExit')}
-    assert {a['name'] for a in selected} == required, 'missing or unexpected traversal clips'
+    selected=[copy.deepcopy(a) for a in src.get('animations',[]) if authored(a.get('name',''))]
+    required={'Traversal_'+n for n in ('Slide','Ladder','Vault','Mantle','WallKick','WallKickRight','WallKickFall','WallLand','WallKickFallRight','Crouch','StandUp','LadderExit','Fall')}|MIRRORED
+    assert {a['name'] for a in selected} == required, 'missing or unexpected authored clips'
     # Copy only the animation accessors/views, without donor meshes or textures.
     accessors={};views={};binary=bytearray(data)
     def accessor(index):
@@ -51,7 +58,7 @@ def merge(path,donor):
             channel['target']['node']=mapping[channel['target']['node']]
         for sampler in animation['samplers']:
             sampler['input']=accessor(sampler['input']);sampler['output']=accessor(sampler['output'])
-    doc['animations']=[a for a in doc['animations'] if not a.get('name','').startswith('Traversal_')]+selected
+    doc['animations']=[a for a in doc['animations'] if not authored(a.get('name',''))]+selected
     binary.extend(b'\0'*(-len(binary)%4));doc['buffers']=[{'byteLength':len(binary)}]
     js=json.dumps(doc,separators=(',',':')).encode();js+=b' '*(-len(js)%4)
     result=struct.pack('<III',0x46546c67,2,28+len(js)+len(binary))+struct.pack('<II',len(js),0x4e4f534a)+js+struct.pack('<II',len(binary),0x004e4942)+binary

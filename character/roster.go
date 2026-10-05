@@ -72,6 +72,10 @@ func (s *Skin) clip(a Anim) Clip {
 	switch a {
 	case WallKickRight:
 		return s.clip(WallKick)
+	case PunchRight:
+		return s.clip(Punch)
+	case Fall:
+		return s.clip(Jump)
 	case WallFallRight:
 		return s.clip(WallFall)
 	case WallFall:

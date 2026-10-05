@@ -43,6 +43,7 @@ var makehuman = map[character.Anim]character.Clip{
 	character.RunJump:       {Name: "Running Jump", Start: 0.13, Land: 0.62},
 	character.Interact:      {Name: "Interact"},
 	character.Punch:         {Name: "Punching"},
+	character.PunchRight:    {Name: "Punching Mirrored"},
 	character.PickUp:        {Name: "Picking Up"},
 	character.Slide:         {Name: "Traversal_Slide"},
 	character.Roll:          {Name: "Roll"},
@@ -58,6 +59,7 @@ var makehuman = map[character.Anim]character.Clip{
 	character.StandUp:       {Name: "Traversal_StandUp"},
 	character.LadderExit:    {Name: "Traversal_LadderExit"},
 	character.LadderEnter:   {Name: "Traversal_Ladder"},
+	character.Fall:          {Name: "Traversal_Fall"},
 }
 
 // people are the character models in assets/characters (see CREDITS.txt).

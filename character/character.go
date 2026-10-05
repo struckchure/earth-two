@@ -25,7 +25,8 @@ const (
 	// One-shots: they play once, the character pulling up for them. Only a
 	// fall cuts one short; wanting to move skips its recovery.
 	Interact
-	Punch
+	Punch      // with the left hand
+	PunchRight // its mirror image: punches alternate hands
 	PickUp
 
 	Slide
@@ -42,10 +43,13 @@ const (
 	StandUp
 	LadderExit
 	LadderEnter
+	// Fall loops after a jump's clip reaches touchdown in the air: falling
+	// from higher than it jumped, legs swinging, until it lands.
+	Fall
 )
 
-// Airborne reports whether a is a jump.
-func (a Anim) Airborne() bool { return a == Jump || a == RunJump }
+// Airborne reports whether a is a jump, or the fall after one.
+func (a Anim) Airborne() bool { return a == Jump || a == RunJump || a == Fall }
 
 // OneShot reports whether a is an action that plays once.
 func (a Anim) OneShot() bool { return a >= Interact && a <= PickUp }
@@ -64,7 +68,7 @@ func (a Anim) String() string {
 		return "running jump"
 	case Interact:
 		return "interact"
-	case Punch:
+	case Punch, PunchRight:
 		return "punch"
 	case PickUp:
 		return "pick up"
@@ -92,6 +96,8 @@ func (a Anim) String() string {
 		return "ladder entry"
 	case Crouch:
 		return "crouch"
+	case Fall:
+		return "fall"
 	}
 	return "unknown"
 }
@@ -151,6 +157,8 @@ type State struct {
 	air     float32 // seconds off the ground
 	turn    float32 // how fast the body is turning, in radians per second
 	resume  float32 // seconds left counting as moving on after an action
+	// rightPunch is whether the next punch is with the right hand.
+	rightPunch bool
 
 	// Off the ground (as the physics step last saw it), and the way it was
 	// going and facing when it left: in the air it can only veer a little

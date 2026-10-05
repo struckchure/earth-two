@@ -1,0 +1,11 @@
+{
+  "state": "failed",
+  "step": "Encoding turntable",
+  "progress": null,
+  "script": "scenes/hello.py",
+  "pid": 50289,
+  "startedAt": "2026-10-05T12:05:03Z",
+  "exported": "out/model.glb",
+  "error": "subprocess.CalledProcessError: Command '['/opt/homebrew/bin/ffmpeg', '-y', '-loglevel', 'error', '-framerate', '30', '-i', '/Users/mohammed/projects/earth-two/out/turntable-frames/frame_%04d.png', '-\u2026",
+  "updatedAt": "2026-10-05T12:05:10Z"
+}

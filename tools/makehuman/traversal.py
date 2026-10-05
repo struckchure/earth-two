@@ -77,6 +77,15 @@ VAULT_BOX = .89
 VAULT_HOVER = .08  # how far above the obstacle the controller carries the body
 MANTLE_STAND = .6  # the share of the mantle after which it straightens up
 
+# The slide is Mixamo's "Running Slide" (downloaded the same way): out of a
+# run it drops onto its hips, the left leg out ahead and the right folded
+# under, leaning back and over onto the right hand, then gets up and runs on.
+# SLIDE_FRAMES is from the drop to back on its feet, mid-stride, where the
+# game runs on if it's still sprinting (see slideRelease in
+# character/traversal.go). It runs the rig's way; the controller carries it.
+SLIDE = "Running Slide"
+SLIDE_FRAMES = (5, 37)
+
 # The ladder climb is authored (hands on the rails, feet on the rungs), but
 # its hips and spine move as in Mixamo's "Climbing Ladder" (downloaded the
 # same way), which climbs facing the other way, two rungs a cycle like ours:
@@ -118,8 +127,14 @@ def hop_frame(t):
     return LADDER_EXIT_FRAMES[1]+pace*left/2*(1-((1-t)/left)**2)
 
 
+# Mirrored clips: each of the rig's own clips here gets a copy with left and
+# right swapped, under the name it maps to. Mixamo's "Punching" throws the
+# left hand; the game alternates it with its mirror, the right.
+MIRRORED = {"Punching": "Punching Mirrored"}
+
+
 DURATIONS = {"Slide": .8, "Ladder": 1., "Vault": 1., "Mantle": .8, "WallKick": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30,
-             "WallKickRight": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30, "WallKickFall": 1.2, "WallKickFallRight": 1.2, "WallLand": .45, "Crouch": 1., "StandUp": .28, "LadderExit": 3.}
+             "WallKickRight": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30, "WallKickFall": 1.2, "WallKickFallRight": 1.2, "WallLand": .45, "Crouch": 1., "StandUp": .28, "LadderExit": 3., "Fall": .9}
 
 
 def smooth(a, b, t):
@@ -132,11 +147,10 @@ def pose(name, t):
     All motion is in-place; the fixed-step controller supplies translation.
     """
     p = {}; z = 0.; lean = 0.; back = 0.
-    if name in ("Slide", "Crouch", "StandUp"):
+    if name in ("Crouch", "StandUp"):
         recover = smooth(0, 1, t) if name == "StandUp" else 0
-        slide = smooth(0, 1, t/.22) * (1-smooth(0, 1, (t-.62)/.38)) if name == "Slide" else 0
-        z = (-.56-.09*slide)*(1-recover)
-        lean = (52-17*slide)*(1-recover)
+        z = -.56*(1-recover)
+        lean = 52*(1-recover)
     elif name in ("Ladder", "LadderExit"):
         lean = LADDER_LEAN; back = LADDER_BACK  # the height is LADDER_HIGH, in metres
     p["spine_01"] = lean*.5; p["spine_02"] = lean*.3; p["spine_03"] = lean*.2
@@ -245,19 +259,15 @@ def rail_grip(rig, side, strength):
 
 
 def contacts(rig, name, t, rest):
-    if name not in ("Slide", "Crouch", "StandUp", "Ladder", "LadderExit"):
+    if name not in ("Crouch", "StandUp", "Ladder", "LadderExit"):
         return
     recover = smooth(0,1,t) if name == "StandUp" else 0
-    slide = smooth(0,1,t/.22)*(1-smooth(0,1,(t-.62)/.38)) if name == "Slide" else 0
     for side, sign in (("l",1),("r",-1)):
         foot = Vector((sign*.18, -.035, .085))
         foot_rotation = rest["foot_"+side][1]
         hand = Vector((sign*.27, -.34, .48))
         hand_rotation = rest["hand_"+side][1]
         elbow = (sign*.85,.05,.9)
-        if name == "Slide":
-            foot = foot.lerp(Vector((sign*.19, -.66 if side=="l" else .20, .085)), slide)
-            hand = hand.lerp(Vector((sign*.29, -.23 if side=="l" else .05, .35 if side=="l" else .19)),slide)
         if name == "StandUp":
             foot = foot.lerp(rest["foot_"+side][0],recover)
             hand = hand.lerp(rest["hand_"+side][0],recover)
@@ -423,10 +433,47 @@ FALL_SWAY = {"spine_01": ((1, 0, 0), 2.5, 1, 0), "spine_03": ((0, 1, 0), 2, 1, .
              "calf_l": ((1, 0, 0), -8, 1, .15), "calf_r": ((1, 0, 0), -8, 1, .65)}
 
 
-def falling(rig, pose, t):
-    """pose swaying as FALL_SWAY says, t of the way through its loop."""
+# Falling from higher than a jump, the body hangs in the jump's pose just
+# before touchdown (FALL_POSE: the rig's clip and how many seconds into it,
+# where the game holds the jump; see Clip.Land in character/roster.go) and
+# swings its legs, one forward as the other goes back, the arms swinging
+# against them, until it lands. LEG_SWING says how, as FALL_SWAY does. The
+# legs start even (the pose's halfway to its mirror image), to swing as far
+# either way.
+FALL_POSE = ("Jumping", 1.05)
+LEGS = ("thigh", "calf", "foot", "ball")
+LEG_SWING = {"thigh_l": ((1, 0, 0), 28, 1, 0), "thigh_r": ((1, 0, 0), 28, 1, .5),
+             "calf_l": ((1, 0, 0), 18, 1, .25), "calf_r": ((1, 0, 0), 18, 1, .75),
+             "upperarm_l": ((1, 0, 0), 10, 1, .5), "upperarm_r": ((1, 0, 0), 10, 1, 0),
+             "spine_01": ((0, 1, 0), 3, 1, 0)}
+
+
+def pose_at(rig, action, seconds, fps):
+    """The rig's pose seconds into action, imported at fps: each bone's
+    armature-space rotation, parents first, and where the hips are. It
+    leaves the rig posed as it was."""
+    was = {b.name: (b.rotation_mode, b.rotation_quaternion.copy(), b.location.copy(), b.scale.copy()) for b in rig.pose.bones}
+    a = bpy.data.actions[action]
+    rig.animation_data.action = a
+    if a.slots: rig.animation_data.action_slot = a.slots[0]
+    at = a.frame_range[0]+seconds*fps
+    bpy.context.scene.frame_set(int(at), subframe=at-int(at))
+    bpy.context.view_layer.update()
+    order = sorted(rig.pose.bones, key=lambda b: len(b.parent_recursive))
+    pose = {b.name: b.matrix.to_quaternion() for b in order}
+    hips = rig.pose.bones["pelvis"].head.copy()
+    rig.animation_data.action = None
+    for b in rig.pose.bones:
+        b.rotation_mode, b.rotation_quaternion, b.location, b.scale = was[b.name]
+    bpy.context.view_layer.update()
+    return pose, hips
+
+
+def falling(rig, pose, t, sway=None):
+    """pose swaying as sway (FALL_SWAY by default) says, t of the way
+    through its loop."""
     out = dict(pose)
-    for bone, (axis, degrees, cycles, phase) in FALL_SWAY.items():
+    for bone, (axis, degrees, cycles, phase) in (sway or FALL_SWAY).items():
         sway = Quaternion(axis, math.radians(degrees)*math.sin(2*math.pi*(cycles*t+phase)))
         for n in out:
             if n == bone or any(p.name == bone for p in rig.data.bones[n].parent_recursive):
@@ -444,6 +491,52 @@ def mirrored(rig, pose):
         turn = pose[other] @ rest(other).inverted()
         out[name] = Quaternion((turn.w, turn.x, -turn.y, -turn.z)) @ rest(name)
     return out
+
+
+def mirror_clip(rig, source, name, fps):
+    """Bakes the rig's action source, imported at fps, mirrored (see
+    mirrored) as name: the same frames, with the hips across the middle the
+    other way."""
+    scene = bpy.context.scene
+    action = bpy.data.actions[source]
+    rig.animation_data_create()
+    rig.animation_data.action = action
+    if action.slots: rig.animation_data.action_slot = action.slots[0]
+    # Keyed 30 times a second, like the clips author makes.
+    start, end = action.frame_range
+    step = fps/30
+    frames = round((end-start)/step)
+    poses = []
+    for f in range(frames+1):
+        at = start+f*step
+        scene.frame_set(int(at), subframe=at-int(at))
+        bpy.context.view_layer.update()
+        poses.append(({b.name: b.matrix.to_quaternion() for b in rig.pose.bones}, rig.pose.bones["pelvis"].head.copy()))
+    rig.animation_data.action = None
+    out = bpy.data.actions.new(name)
+    out.use_fake_user = True
+    rig.animation_data.action = out
+    order = sorted(rig.pose.bones, key=lambda b: len(b.parent_recursive))
+    for f, (pose, hips) in enumerate(poses):
+        for b in rig.pose.bones:
+            b.rotation_mode = "QUATERNION"; b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0)
+        bpy.context.view_layer.update()
+        flipped = mirrored(rig, pose)
+        for b in order:
+            orient(b, flipped[b.name])
+        pelvis = rig.pose.bones["pelvis"]
+        pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (Vector((-hips.x, hips.y, hips.z))-pelvis.head)
+        bpy.context.view_layer.update()
+        for b in rig.pose.bones:
+            b.keyframe_insert("rotation_quaternion", frame=f+1)
+            if b.name == "pelvis": b.keyframe_insert("location", frame=f+1)
+    if out.slots:
+        bag = out.layers[0].strips[0].channelbag(out.slots[0])
+        for curve in bag.fcurves:
+            for key in curve.keyframe_points: key.interpolation = 'LINEAR'
+    rig.animation_data.action = None
+    for b in rig.pose.bones:
+        b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0)
 
 
 def ladder_stance(rig, rest):
@@ -501,7 +594,7 @@ def climb(rig, moves, phase, share):
     bpy.context.view_layer.update()
 
 
-def author(rig, suffix="", mixamo=MIXAMO):
+def author(rig, suffix="", mixamo=MIXAMO, fps=24):
     scene = bpy.context.scene
     scene.render.fps = 30; scene.render.fps_base = 1
     rig.animation_data_create()
@@ -520,6 +613,13 @@ def author(rig, suffix="", mixamo=MIXAMO):
     landing = capture(rig, mixamo, LANDING, [LANDING_FRAMES[0]+(LANDING_FRAMES[1]-LANDING_FRAMES[0])*f/steps for f in range(steps+1)], Quaternion())
     vaults = {name: capture(rig, mixamo, VAULT, [vault_frame(name, f/round(DURATIONS[name]*30)) for f in range(round(DURATIONS[name]*30)+1)], Quaternion())
               for name in VAULT_KEYS}
+    hang = pose_at(rig, *FALL_POSE, fps)
+    flipped = mirrored(rig, hang[0])
+    for n, q in hang[0].items():
+        if n.rsplit("_", 1)[0] in LEGS:
+            hang[0][n] = q.slerp(flipped[n], .5)
+    steps = round(DURATIONS["Slide"]*30)
+    slide = capture(rig, mixamo, SLIDE, [SLIDE_FRAMES[0]+(SLIDE_FRAMES[1]-SLIDE_FRAMES[0])*f/steps for f in range(steps+1)], Quaternion())
     moves = ladder_moves(rig, mixamo)
     frames = round(DURATIONS["LadderExit"]*30)
     # Its last sample is where the hop begins.
@@ -552,6 +652,22 @@ def author(rig, suffix="", mixamo=MIXAMO):
                 # The hips sink as the capture's do, from where they end up: standing.
                 pelvis = rig.pose.bones["pelvis"]
                 pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ Vector((0,0,rest["pelvis"][0].z+hips[f].z-hips[-1].z-pelvis.head.z))
+                bpy.context.view_layer.update()
+            if name == "Fall":
+                hanging, hips = hang
+                for n, q in falling(rig, hanging, f/frames, LEG_SWING).items():
+                    orient(rig.pose.bones[n], q)
+                pelvis = rig.pose.bones["pelvis"]
+                pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (hips-pelvis.head)
+                bpy.context.view_layer.update()
+            if name == "Slide":
+                poses, hips, metre = slide
+                for n, q in poses[f].items():
+                    orient(rig.pose.bones[n], q)
+                # The hips drop and rise as the capture's do, kept over the
+                # controller.
+                pelvis = rig.pose.bones["pelvis"]
+                pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ Vector((0,rest["pelvis"][0].y-pelvis.head.y,hips[f].z-pelvis.head.z))
                 bpy.context.view_layer.update()
             if name in vaults:
                 poses, hips, metre = vaults[name]
@@ -621,6 +737,11 @@ def author(rig, suffix="", mixamo=MIXAMO):
         b.rotation_quaternion=Quaternion(); b.location=(0,0,0)
 
 
+def authored(name):
+    """Whether name is one of the clips this script makes."""
+    return name.startswith('Traversal_') or name in MIRRORED.values()
+
+
 def main():
     args = sys.argv[sys.argv.index("--")+1:]
     folder = os.path.abspath(args[0])
@@ -631,11 +752,14 @@ def main():
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=os.path.join(folder,name+".glb"))
         rig=next(o for o in bpy.data.objects if o.type=='ARMATURE')
+        fps=bpy.context.scene.render.fps/bpy.context.scene.render.fps_base
         for action in list(bpy.data.actions):
-            if action.name.startswith('Traversal_'): bpy.data.actions.remove(action)
-        author(rig, mixamo=mixamo)
+            if authored(action.name): bpy.data.actions.remove(action)
+        author(rig, mixamo=mixamo, fps=fps)
+        for source, mirror in MIRRORED.items():
+            mirror_clip(rig, source, mirror, fps)
         for action in list(bpy.data.actions):
-            if not action.name.startswith('Traversal_'): bpy.data.actions.remove(action)
+            if not authored(action.name): bpy.data.actions.remove(action)
         bpy.ops.export_scene.gltf(filepath=os.path.join(out,name+"-traversal.glb"),export_format='GLB',export_animations=True,export_animation_mode='ACTIONS',export_morph=False)
 
 if __name__=='__main__': main()

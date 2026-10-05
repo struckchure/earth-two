@@ -102,6 +102,59 @@ func TestSlideRollAndJump(t *testing.T) {
 		t.Fatal("completed roll cannot chain")
 	}
 }
+func TestSprintingRollRunsOn(t *testing.T) {
+	h := newTraversalHarness(t, rl.Vector3{}, nil)
+	h.in.Run, h.in.Move = true, rl.Vector3{Z: 1}
+	h.in.Roll = true
+	h.tick(1)
+	if h.s.Mode != Roll {
+		t.Fatalf("roll mode=%v", h.s.Mode)
+	}
+	steps := 0
+	for h.s.Mode == Roll && steps < 60 {
+		h.tick(1)
+		steps++
+	}
+	if h.s.active() || h.cc.Height != capsuleHeight {
+		t.Fatalf("sprinting roll ended in mode %v, height %v", h.s.Mode, h.cc.Height)
+	}
+	if limit := int(DefaultTraversal().RollTime*rollRelease*60) + 2; steps > limit {
+		t.Fatalf("sprinting roll took %d steps, want it to run on after %d", steps, limit)
+	}
+	if v := rl.Vector3Length(horizontal(h.cc.Walk)); v < Default().WalkSpeed*2 {
+		t.Fatalf("ran on out of the roll at %v, want it to keep its speed", v)
+	}
+	h.tick(30)
+	if v := rl.Vector3Length(horizontal(h.cc.Velocity)); v < Default().RunSpeed*.9 {
+		t.Fatalf("not running after the roll: %v", v)
+	}
+}
+
+func TestSprintingSlideRunsOn(t *testing.T) {
+	h := newTraversalHarness(t, rl.Vector3{}, nil)
+	h.cc.Walk, h.cc.Velocity.Z = rl.Vector3{Z: 4.6}, 4.6
+	h.in.Run, h.in.Move = true, rl.Vector3{Z: 1}
+	h.in.Slide = true
+	h.tick(1)
+	if h.s.Mode != Slide {
+		t.Fatalf("slide mode=%v", h.s.Mode)
+	}
+	steps := 0
+	for h.s.Mode == Slide && steps < 60 {
+		h.tick(1)
+		steps++
+	}
+	if h.s.active() || h.cc.Height != capsuleHeight {
+		t.Fatalf("sprinting slide ended in mode %v, height %v", h.s.Mode, h.cc.Height)
+	}
+	if limit := int(DefaultTraversal().SlideTime*slideRelease*60) + 2; steps > limit {
+		t.Fatalf("sprinting slide took %d steps, want it to run on after %d", steps, limit)
+	}
+	if v := rl.Vector3Length(horizontal(h.cc.Walk)); v < Default().RunSpeed {
+		t.Fatalf("ran on out of the slide at %v, want at least running speed", v)
+	}
+}
+
 func TestLowCeilingAndBlockedRoll(t *testing.T) {
 	h := newTraversalHarness(t, rl.Vector3{}, func(cmd *illusion.Commands) {
 		staticBox(cmd, rl.Vector3{Z: 1, Y: 1.2}, rl.Vector3{X: 3, Y: .2, Z: 1.4})
@@ -329,23 +382,20 @@ func TestWallKicksCanChainBetweenWalls(t *testing.T) {
 	}
 }
 
-func TestSlideHasStandingRecovery(t *testing.T) {
+func TestSlideGetsUpByItself(t *testing.T) {
 	h := newTraversalHarness(t, rl.Vector3{}, nil)
 	h.cc.Velocity.Z = 4
 	h.in.Move, h.in.Run, h.in.Slide = rl.Vector3{Z: 1}, true, true
 	h.tick(1)
 	h.in.Move = rl.Vector3{}
-	h.tick(49)
-	if h.s.Mode != StandUp {
-		t.Fatalf("slide skipped recovery: %v", h.s.Mode)
+	h.tick(40)
+	if h.s.Mode != Slide {
+		t.Fatalf("slide ended early: %v", h.s.Mode)
 	}
-	h.tick(8)
-	if h.s.Mode != StandUp {
-		t.Fatal("stand-up ended too abruptly")
-	}
-	h.tick(20)
+	h.tick(10)
+	// Its clip gets up out of it: no stand-up after.
 	if h.s.active() || h.cc.Height != capsuleHeight {
-		t.Fatal("recovery did not finish standing")
+		t.Fatalf("slide did not end standing: %v, height %v", h.s.Mode, h.cc.Height)
 	}
 }
 

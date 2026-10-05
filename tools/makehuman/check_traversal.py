@@ -104,16 +104,22 @@ def check(folder):
         slide = bpy.data.actions['Traversal_Slide']
         crouch = bpy.data.actions['Traversal_Crouch']
         recover = bpy.data.actions['Traversal_StandUp']
-        for phase in (0, .2, .4, .6, .8, 1):
+        # Down on its hips, the folded trailing foot on the ground, mid-slide.
+        for phase in (.2, .4, .6):
             points = sample(rig, slide, phase)
-            for side in ('l','r'):
-                assert abs(points['foot_'+side][0].z-.085) < .01, (body, "slide foot left ground", phase)
-        # Slide -> crouch -> stand-up share the same contact pose.
-        end, hold, start = sample(rig, slide, 1), sample(rig, crouch, 0), sample(rig, recover, 0)
-        for name in end:
-            assert (end[name][0]-hold[name][0]).length < .003, (body, name, "slide recovery seam")
+            assert points['pelvis'][0].z < .4, (body, "slide hips off the ground", phase)
+            assert .02 < points['foot_r'][0].z < .08, (body, "slide trailing foot left ground", phase)
+        # The fall's leg swing loops without a seam.
+        fall = bpy.data.actions['Traversal_Fall']
+        first, last = sample(rig, fall, 0), sample(rig, fall, 1)
+        for name, (position, rotation) in first.items():
+            assert (position-last[name][0]).length < .003, (body, name, "fall loop position seam")
+            assert abs(rotation.dot(last[name][1])) > .999, (body, name, "fall loop rotation seam")
+        # Crouch -> stand-up share the same contact pose.
+        hold, start = sample(rig, crouch, 0), sample(rig, recover, 0)
+        for name in hold:
             assert (hold[name][0]-start[name][0]).length < .003, (body, name, "standing recovery seam")
-        print(body, ': side-rail grips, planted rung feet, slide feet, wall kicks, loop and recovery seams passed')
+        print(body, ': side-rail grips, planted rung feet, slide feet, wall kicks, fall loop, loop and recovery seams passed')
 
 
 if __name__ == '__main__':
