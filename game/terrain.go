@@ -31,7 +31,7 @@ const (
 // level is a part of the world the terrain is flat under, on the XZ plane
 // (X across, Y for the game's Z), from tools/world/landfall.py.
 var level = []rl.Rectangle{
-	{X: -58, Y: -66, Width: 132, Height: 120}, // the dome, and a margin round it
+	{X: -64, Y: -66, Width: 144, Height: 120}, // the dome, and a margin round it
 	{X: -7, Y: 44, Width: 14, Height: 52},     // the road south from the gate
 	{X: -156, Y: 83, Width: 312, Height: 14},  // the caravan road
 	{X: -152, Y: 94, Width: 54, Height: 40},   // the farms

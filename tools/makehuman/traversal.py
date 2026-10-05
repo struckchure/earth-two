@@ -86,6 +86,19 @@ MANTLE_STAND = .6  # the share of the mantle after which it straightens up
 SLIDE = "Running Slide"
 SLIDE_FRAMES = (5, 37)
 
+# Climbing stairs is Mixamo's "Ascending Stairs" (downloaded the same way):
+# STAIRS_FRAMES is one cycle of it, a step with each foot. Its stairs are
+# steeper and shallower than ours, 0.235 m up and 0.25 m deep, so the feet
+# are moved (by leg IK) to step as far as ours: STAIR_RISE up and
+# STAIR_TREAD on (the kit's stairs, tools/world/hull_kit.py), about where
+# they are on average. The climb itself is the controller's, up the stairs'
+# ramp: the hips keep only how they sway about it. The game sets the clip
+# by how high the feet are (character/animate.go), and plays it backwards
+# coming down.
+STAIRS = "Ascending Stairs"
+STAIRS_FRAMES = (1, 41)
+STAIR_RISE, STAIR_TREAD = .3, .5
+
 # The ladder climb is authored (hands on the rails, feet on the rungs), but
 # its hips and spine move as in Mixamo's "Climbing Ladder" (downloaded the
 # same way), which climbs facing the other way, two rungs a cycle like ours:
@@ -134,7 +147,8 @@ MIRRORED = {"Punching": "Punching Mirrored"}
 
 
 DURATIONS = {"Slide": .8, "Ladder": 1., "Vault": 1., "Mantle": .8, "WallKick": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30,
-             "WallKickRight": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30, "WallKickFall": 1.2, "WallKickFallRight": 1.2, "WallLand": .45, "Crouch": 1., "StandUp": .28, "LadderExit": 3., "Fall": .9}
+             "WallKickRight": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30, "WallKickFall": 1.2, "WallKickFallRight": 1.2, "WallLand": .45, "Crouch": 1., "StandUp": .28, "LadderExit": 3., "Fall": .9,
+             "StairsUp": (STAIRS_FRAMES[1]-STAIRS_FRAMES[0])/30}
 
 
 def smooth(a, b, t):
@@ -594,6 +608,50 @@ def climb(rig, moves, phase, share):
     bpy.context.view_layer.update()
 
 
+def stairs_cycle(rig, folder, base, rest):
+    """The stair climb's frames: the capture's pose at each, how far the hips
+    sway from their steady climb, and where each foot goes and how it's
+    turned, stretched to our steps."""
+    frames = round(DURATIONS["StairsUp"]*30)
+    poses, hips, metre = capture(rig, folder, STAIRS, [STAIRS_FRAMES[0]+(STAIRS_FRAMES[1]-STAIRS_FRAMES[0])*f/frames for f in range(frames+1)], Quaternion())
+    climb = hips[-1]-hips[0]
+    sway = [hips[f]-hips[0]-climb*(f/frames) for f in range(frames+1)]
+    feet = []
+    for f in range(frames+1):
+        for b in rig.pose.bones:
+            q, loc, scale = base[b.name]
+            b.rotation_mode = "QUATERNION"; b.rotation_quaternion = q.copy(); b.location = loc.copy(); b.scale = scale.copy()
+        bpy.context.view_layer.update()
+        for n, q in poses[f].items():
+            orient(rig.pose.bones[n], q)
+        pelvis = rig.pose.bones["pelvis"]
+        pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (rest["pelvis"][0]+sway[f]-pelvis.head)
+        bpy.context.view_layer.update()
+        feet.append({s: (rig.pose.bones["foot_"+s].head.copy(), rig.pose.bones["foot_"+s].matrix.to_quaternion()) for s in "lr"})
+    # Stretch each foot's way about its average, to step our steps: a cycle
+    # is two of them.
+    along, up = 2*STAIR_TREAD/max(.01, -climb.y), 2*STAIR_RISE/max(.01, climb.z)
+    targets = []
+    for f in range(frames+1):
+        targets.append({})
+        for s in "lr":
+            mean = sum((feet[g][s][0] for g in range(frames)), Vector())/frames
+            p = feet[f][s][0]
+            targets[f][s] = (Vector((p.x, mean.y+(p.y-mean.y)*along, mean.z+(p.z-mean.z)*up)), feet[f][s][1])
+    # The capture's cycle doesn't quite close; spread what's left over across
+    # it, so the end meets the start.
+    for s in "lr":
+        gap = targets[0][s][0]-targets[-1][s][0]
+        for f in range(frames+1):
+            p, turn = targets[f][s]
+            targets[f][s] = (p+gap*(f/frames), turn)
+    for b in rig.pose.bones:
+        q, loc, scale = base[b.name]
+        b.rotation_quaternion = q.copy(); b.location = loc.copy(); b.scale = scale.copy()
+    bpy.context.view_layer.update()
+    return poses, sway, targets
+
+
 def author(rig, suffix="", mixamo=MIXAMO, fps=24):
     scene = bpy.context.scene
     scene.render.fps = 30; scene.render.fps_base = 1
@@ -620,6 +678,7 @@ def author(rig, suffix="", mixamo=MIXAMO, fps=24):
             hang[0][n] = q.slerp(flipped[n], .5)
     steps = round(DURATIONS["Slide"]*30)
     slide = capture(rig, mixamo, SLIDE, [SLIDE_FRAMES[0]+(SLIDE_FRAMES[1]-SLIDE_FRAMES[0])*f/steps for f in range(steps+1)], Quaternion())
+    stairs = stairs_cycle(rig, mixamo, base, rest)
     moves = ladder_moves(rig, mixamo)
     frames = round(DURATIONS["LadderExit"]*30)
     # Its last sample is where the hop begins.
@@ -660,6 +719,16 @@ def author(rig, suffix="", mixamo=MIXAMO, fps=24):
                 pelvis = rig.pose.bones["pelvis"]
                 pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (hips-pelvis.head)
                 bpy.context.view_layer.update()
+            if name == "StairsUp":
+                poses, sway, targets = stairs
+                for n, q in poses[f].items():
+                    orient(rig.pose.bones[n], q)
+                pelvis = rig.pose.bones["pelvis"]
+                pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (rest["pelvis"][0]+sway[f]-pelvis.head)
+                bpy.context.view_layer.update()
+                for s, sign in (("l", 1), ("r", -1)):
+                    target, turn = targets[f][s]
+                    limb(rig, "thigh_"+s, "calf_"+s, "foot_"+s, target, (sign*.35, -1, .45), turn)
             if name == "Slide":
                 poses, hips, metre = slide
                 for n, q in poses[f].items():

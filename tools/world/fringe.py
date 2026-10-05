@@ -1290,6 +1290,81 @@ def dry_brush(style: Style) -> Piece:
     return p
 
 
+def ship_wreck(style: Style) -> Piece:
+    """The wreck of an old Corvane lander, half sunk in the dust where it
+    came down in the Company Years: nose up, its tail torn off and its ribs
+    showing at the break, one wing standing out of a drift, a nacelle thrown
+    clear, its markings faded nearly away. After the desert spaceship
+    graveyard of the brief; salvage crews have long had its insides out."""
+    PALETTE.setdefault("Hull pale", (0.42, 0.43, 0.42))  # the drifter's pale hull (vehicles.py) too
+    p = Piece("ship_wreck", "prop", "about 9 × 15 m, 4.5 m high; half buried, nose to -Y", budget=40000)
+    r = rng(style, p.name)
+    pitch, roll = 14, 7
+    rot = (90 - pitch, roll, 0)  # the hull's axis, local Z, out towards -Y and up
+    tail = Vector((0.0, 4.6, -0.75))
+    from mathutils import Euler
+    frame = Euler([math.radians(a) for a in rot]).to_matrix()
+
+    def along(t, side=0.0, up=0.0):
+        """A point t metres along the hull from the break, side and up off
+        its axis (in the hull's own frame, roll and all, as its lathe is)."""
+        return tail + frame @ Vector((side, up, t))
+
+    # The hull: a pressure body tapering to its nose, banded.
+    p.lathe([(1.45, 0.0), (1.55, 0.3), (1.6, 2.0), (1.6, 7.0), (1.5, 8.5), (1.2, 10.0), (0.75, 11.2), (0.25, 11.9), (0.0, 12.05)],
+            tail, "Hull pale", rot=rot, segments=14)
+    for t in (2.6, 5.2, 7.6):
+        p.torus(1.62, 0.05, along(t), "Hull dark", rot=rot, segments=14, sides=4)
+    # The cockpit glazing near the nose: its inside sunk into the hull, its
+    # outside a centimetre and a half proud.
+    p.lathe([(1.1, 9.95), (0.82, 10.75), (0.94, 10.78), (1.14, 10.4), (1.235, 9.98)], tail, "Screen", rot=rot, segments=14)
+    # The break: the dark inside, ribs, and plates torn back off the edge.
+    p.cyl(1.4, 0.1, along(0.12), "Hull dark", rot=rot, segments=14)
+    for t in (0.35, 0.9, 1.45):
+        p.torus(1.42, 0.06, along(t), "Rust", rot=rot, segments=14, sides=4, arc=290)
+    for i in range(9):
+        a = math.tau * i / 9 + r.uniform(-0.2, 0.2)
+        length = r.uniform(0.4, 1.1)
+        c = along(-length * 0.35, math.cos(a) * 1.55, math.sin(a) * 1.55)
+        p.prism([(-0.25, 0), (0.25, 0), (0.12, length), (-0.05, length * 0.7), (-0.18, length * 0.9)], 0.03, c,
+                r.choice(["Hull pale", "Rust", "Corvane faded"]),
+                rot=(90 - pitch + r.uniform(-25, 25), roll + r.uniform(-20, 20), math.degrees(a) + 90))
+    # A wing standing out of the dust on the left, the other snapped off and
+    # lying flat beyond the right-hand drift.
+    p.prism([(0.0, 0.0), (4.6, 1.1), (4.9, 1.7), (4.6, 2.0), (0.3, 2.9)], 0.2, along(4.2, -1.3, -0.6), "Hull pale",
+            rot=(0, 28, -90))
+    p.prism([(0.0, 0.0), (3.2, 0.8), (3.4, 1.3), (0.2, 2.1)], 0.18, (3.6, 2.2, 0.05), "Hull pale", rot=(0, -6, 15))
+    # A nacelle, thrown clear and half sunk, its bell scorched.
+    nac = (-4.2, 5.4, 0.25)
+    p.lathe([(0.0, 0.0), (0.7, 0.0), (0.75, 0.3), (0.75, 2.4), (0.62, 2.7), (0.0, 2.75)], nac, "Corvane faded", rot=(0, 90, 20), segments=12)
+    p.lathe([(0.5, -0.02), (0.9, -0.72), (0.95, -0.74), (0.55, -0.02)], nac, "Rust", rot=(0, 90, 20), segments=12)
+    # Plates and a strut scattered, sunk in the dust.
+    for _ in range(6):
+        x, y = r.uniform(-5, 5), r.uniform(-8, 7)
+        p.prism([(-0.6, 0), (0.6, 0.1), (0.5, 0.8), (-0.4, 0.7)], 0.03, (x, y, 0.0), r.choice(["Hull pale", "Rust", "Hull dark"]),
+                rot=(r.uniform(-70, -20), 0, r.uniform(0, 360)))
+    p.tube([(2.5, -3.0, -0.1), (3.6, -1.6, 0.6)], 0.08, "Hull dark", segments=4)
+    # Faded markings: a Corvane band and the registration.
+    with p.painted():
+        for s in (-1, 1):
+            c = along(6.2, s * 1.615, 0.2)
+            p.stencil("07-3", (c.x + s * 0.005, c.y, c.z), 0.5, "Corvane faded", facing="-X" if s < 0 else "+X")
+    p.torus(1.612, 0.12, along(3.6), "Corvane blue", rot=rot, segments=14, sides=4)
+    # Dust banked against its flanks, heaped over the tail and the wing root.
+    _drift(p, (2.0, 2.0, 0), 2.6, 5.0, 1.5, "Dust red", r, rings=5, segments=18)
+    _drift(p, (-2.1, 3.2, 0), 2.4, 4.2, 1.3, "Dust red", r, rings=5, segments=18)
+    _drift(p, (0.0, 6.2, 0), 3.4, 2.4, 1.1, "Dust red", r, rings=5, segments=18)
+    _drift(p, (-4.0, 5.6, 0), 1.8, 2.2, 0.5, "Dust red", r, rings=4, segments=14)
+    # Colliders: the hull along its axis, the standing wing, the nacelle.
+    # The hull's full-width length only: past it the nose tapers away.
+    mid = along(5.0)
+    p.collider((2.4, 9.0, 2.4), (mid.x, mid.y, mid.z), rot=(-pitch, roll, 0))
+    wing = along(5.6, -2.6, 0.4)
+    p.collider((2.4, 2.2, 0.3), (wing.x, wing.y, wing.z), rot=(0, 62, 0))
+    p.collider((1.4, 2.6, 1.0), (nac[0] + 1.2, nac[1] + 0.4, 0.5), rot=(0, 0, 20))
+    return p
+
+
 PIECES = [rock_small, rock_large, rock_spire, dust_mound, wind_turbine, greenhouse, crop_bed, irrigation_pipe,
           wrecked_terraformer, terraformer_debris, scrap_pile, salvage_frame, caravan_cart, fringer_tent, camp_stove,
-          water_tank_fringe, wire_fence, signpost, filter_cache, windsock, quiver_tree, dead_tree, dry_brush]
+          water_tank_fringe, wire_fence, signpost, filter_cache, windsock, quiver_tree, dead_tree, dry_brush, ship_wreck]

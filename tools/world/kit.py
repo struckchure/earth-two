@@ -198,6 +198,7 @@ class Piece:
     note: str = ""
     category: str = ""  # which part of the world it's from; set by build.py from its module
     budget: int = 0  # most triangles, if not its kind's (BUDGET)
+    texture: int = 0  # its texture's size, if more than finish.TEXTURE_MAX (a 50 m pad's markings)
     bm: bmesh.types.BMesh = field(default_factory=bmesh.new)
     decals: bmesh.types.BMesh = field(default_factory=bmesh.new)
     proxy: bmesh.types.BMesh = field(default_factory=bmesh.new)
@@ -513,14 +514,16 @@ class Piece:
         turn = {"-Y": 0, "+X": 90, "+Y": 180, "-X": -90}[facing]
         mesh.transform(Matrix.Translation(Vector(at)) @ Matrix.Rotation(math.radians(turn), 4, "Z")
                        @ Matrix.Rotation(math.radians(90), 4, "X"))
-        before = len(self.bm.faces)
+        # The letters' faces are the new ones (by identity: bmesh can slot
+        # new faces in among the old, so not by index).
+        before = set(self.bm.faces)
         self.bm.from_mesh(mesh)
         bpy.data.meshes.remove(mesh)
-        self.bm.faces.ensure_lookup_table()
         i = self._slot(mat)
-        for f in self.bm.faces[before:]:
-            f.material_index = i
-            f.smooth = False
+        for f in self.bm.faces:
+            if f not in before:
+                f.material_index = i
+                f.smooth = False
 
     def stencil(self, text: str, at, height: float, mat: str, facing: str = "-Y") -> None:
         """Stencilled digits, seven-segment style, painted on a face (see
@@ -579,6 +582,9 @@ class Piece:
         for ladder in self.ladders:
             for k in ("bottom", "top", "facing", "bottomExit", "topExit"):
                 ladder[k] = [round(v, 4) + 0.0 for v in q @ Vector(ladder[k])]
+        for s in self.sources:
+            s["at"] = tuple(Matrix.Rotation(a, 3, "Z") @ Vector(s["at"]))
+            s["turns"] = s.get("turns", 0) + turns
 
     def build(self, collection: bpy.types.Collection | None = None) -> bpy.types.Object:
         """The piece as one object, with chamfered edges whose normals keep
@@ -648,6 +654,8 @@ class Piece:
         self.proxy.free()
         obj["kind"] = self.kind
         obj["category"] = self.category
+        if self.texture:
+            obj["texture"] = self.texture
         if self.note:
             obj["note"] = self.note
         return obj
@@ -665,7 +673,7 @@ class Piece:
         parts = []
         for s in self.sources:
             o = polyhaven.load(s["asset"], s["res"])
-            polyhaven.fit(o.data, s["fit"], rot=s["rot"], at=s["at"])
+            polyhaven.fit(o.data, s["fit"], rot=s["rot"], turns=s.get("turns", 0), at=s["at"])
             if s["recolour"]:
                 for m in o.data.materials:
                     m["recolour"] = s["recolour"]

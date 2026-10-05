@@ -404,7 +404,8 @@ func animate(
 			if d, ok := sk.duration(skin, skin.clip(st.Current).Name); ok {
 				feet := samples.Position(samples.current, fixed.Get().Overstep()).Y - cc.Height/2
 				p.ManualTime = true
-				p.Seek(stairPhase(feet, st.Current == StairsUp, skin.clip(st.Current).Step) * d)
+				clip := skin.clip(st.Current)
+				p.Seek(stairPhase(feet, st.Current == StairsUp || clip.Backward, clip.Step) * d)
 			}
 		case Walk:
 			p.Speed = clamp(m.Speed/c.WalkSpeed, 0.6, 1.6)

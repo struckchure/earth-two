@@ -81,7 +81,7 @@ var (
 
 // The dome line, as tools/world/landfall.py has it (DOME_*), in the game's
 // frame.
-var domeArea = rl.Rectangle{X: -48, Y: -56, Width: 112, Height: 100}
+var domeArea = rl.Rectangle{X: -54, Y: -56, Width: 124, Height: 100}
 
 // places are the full map's names, at landfall.py's districts in the
 // game's frame (Blender's (x, y) is the game's (x, -y)).
@@ -91,7 +91,7 @@ var places = []label{
 	{"Lower decks", rl.Vector2{X: -34, Y: 4}, false},
 	{"The Stacks", rl.Vector2{X: -15, Y: -6}, false},
 	{"Charter Row", rl.Vector2{X: -4, Y: -36}, true},
-	{"The Pads", rl.Vector2{X: 38, Y: 10}, true},
+	{"The Pads", rl.Vector2{X: 46, Y: 8}, true},
 	{"South gate", rl.Vector2{X: 0, Y: 49}, false},
 	{"Caravan road", rl.Vector2{X: 70, Y: 86}, false},
 	{"Farms", rl.Vector2{X: -125, Y: 113}, true},

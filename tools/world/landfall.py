@@ -37,10 +37,15 @@ Layout = list[tuple[str, float, float, float, int]]
 # The dome line: a rectangle of dome_wall sections 4 m wide, close round
 # the city. The South gate's opening is in its south side, on the road
 # from the Hull.
-DOME_W, DOME_E = -48, 64
+DOME_W, DOME_E = -54, 70
 DOME_S, DOME_N = -44, 56
-# Its sides are whole numbers of sections, so neighbours meet exactly:
-# overlapping glass in one plane flickers.
+# A corner piece takes 2 m of each side at the corners, and the rest are
+# whole numbers of sections, so neighbours meet exactly: overlapping glass
+# in one plane flickers. Room is left for the Second Light's stern, 10.5 m
+# out from the Hull's west wall.
+# Over it, sloping glass rises from the walls' tops to the roof, ROOF_IN in
+# from them at ROOF_UP; the slopes' hips at the corners take HIP of a side.
+ROOF_IN, ROOF_UP, HIP = 9.18, 20, 12
 GATE_X = 0
 # How far either side of the gate's middle the dome line stops: at the
 # outer edges of its pillars (±4), inside its 9.9 m frame, so there's no way
@@ -59,14 +64,19 @@ STACKS_Y0, STACKS_ROWS = 0.75, 9
 
 # Charter Row, behind its fence; the Pads; the road outside.
 CHARTER_S, CHARTER_N, CHARTER_W, CHARTER_E = 20, 52, -30, 22
-PADS_W, PADS_E, PADS_S, PADS_N = 14, 62, -40, 20
+# The Pads start clear of the Second Light's bow, which reaches 16.7 m east
+# of the Hull.
+PADS_W, PADS_E, PADS_S, PADS_N = 26, 66, -40, 24
+# The drifter, on its pad: nose to the south, its ramp down there.
+SHIP = (54, -2)
 ROAD_Y = -90
 FARMS = (-150, -100)   # x from, to
+WRECK = (70, -132)
 SALVAGE = (100, 150)
 
 # Where the player starts: on the Pads by the drifter's ramp, where new
 # players arrive (docs/settlement.md). Blender's frame, like the rest.
-SPAWN = (44, -30, 0)
+SPAWN = (54, -30, 0)
 
 
 def layout() -> Layout:
@@ -78,6 +88,7 @@ def layout() -> Layout:
     _dome(put)
     _gate(put)
     _hull(put, out)
+    _second_light(put)
     _stacks(put)
     _exchange(put)
     _lower_decks(put)
@@ -105,29 +116,47 @@ def _spans(a, b):
 
 
 def _dome(put):
-    # The south side either side of the gate's opening, and the rest.
-    south = _spans(DOME_W, GATE_X - GATE_HALF) + _spans(GATE_X + GATE_HALF, DOME_E)
-    for x in south:
-        put("dome_wall", x, DOME_S, turns=0)       # front out, to the south
-    for x in _spans(DOME_W, DOME_E):
-        put("dome_wall", x, DOME_N, turns=2)       # front out, to the north
-    for y in _spans(DOME_S, DOME_N):
-        put("dome_wall", DOME_E, y, turns=1)       # front out, to the east
-        put("dome_wall", DOME_W, y, turns=3)       # front out, to the west
-    # The struts the glass hangs from, and frames up from it every 16 m (it
-    # leans in 1.3 m by its top), and over the gate.
-    for x in range(DOME_W + 9, DOME_E - 4, 16):
+    # The corners, each with the hip of the slopes over it: (where, turns).
+    corners = (((DOME_W, DOME_S), 0), ((DOME_E, DOME_S), 1), ((DOME_E, DOME_N), 2), ((DOME_W, DOME_N), 3))
+    for (x, y), turns in corners:
+        put("dome_corner", x, y, turns=turns)
+        put("dome_slope_hip", x, y, turns=turns)
+    # The walls between, the south side either side of the gate's opening,
+    # and the slopes up from them, but over the gate and the hips.
+    sides = (
+        ([x for x in _spans(DOME_W + 2, GATE_X - GATE_HALF) + _spans(GATE_X + GATE_HALF, DOME_E - 2)], DOME_S, 0, True),
+        (_spans(DOME_W + 2, DOME_E - 2), DOME_N, 2, True),
+        (_spans(DOME_S + 2, DOME_N - 2), DOME_E, 1, False),
+        (_spans(DOME_S + 2, DOME_N - 2), DOME_W, 3, False),
+    )
+    for along, at, turns, across in sides:
+        lo, hi = (DOME_W, DOME_E) if across else (DOME_S, DOME_N)
+        for v in along:
+            x, y = (v, at) if across else (at, v)
+            put("dome_wall", x, y, turns=turns)
+            if v - 2 >= lo + HIP and v + 2 <= hi - HIP:
+                put("dome_roof_slope", x, y, turns=turns)
+    # The roof: open frame, tiled every 8 m over the middle, as many as fit.
+    for xs, ys in ((_tiles(DOME_W + ROOF_IN, DOME_E - ROOF_IN), _tiles(DOME_S + ROOF_IN, DOME_N - ROOF_IN)),):
+        for x in xs:
+            for y in ys:
+                put("dome_roof", x, y, ROOF_UP)
+    # The struts the glass hangs from, and a frame over the gate.
+    for x in range(DOME_W + 15, DOME_E - 10, 16):
         if abs(x - GATE_X) > 8:
             put("dome_strut_anchor", x, DOME_S + 2.5)
-            put("dome_frame", x, DOME_S + 1.3, 5.0)
         put("dome_strut_anchor", x, DOME_N - 2.5)
-        put("dome_frame", x, DOME_N - 1.3, 5.0, 2)
     for y in range(DOME_S + 9, DOME_N - 4, 16):
         put("dome_strut_anchor", DOME_E - 2.5, y)
         put("dome_strut_anchor", DOME_W + 2.5, y)
-        put("dome_frame", DOME_E - 1.3, y, 5.0, 1)
-        put("dome_frame", DOME_W + 1.3, y, 5.0, 3)
     put("dome_frame", GATE_X, DOME_S, 6.6)
+
+
+def _tiles(a, b, size=8):
+    """The middles of as many size tiles as fit between a and b, centred."""
+    n = int((b - a) // size)
+    start = (a + b) / 2 - n * size / 2
+    return [start + size * (i + .5) for i in range(n)]
 
 
 def _gate(put):
@@ -148,6 +177,10 @@ def _gate(put):
         put("concrete_barrier", GATE_X + x, DOME_S + 18, turns=1)
     put("signpost", GATE_X + 6, DOME_S + 17)
     put("status_light", GATE_X + 5.2, DOME_S + 0.5, 4.5, 2)
+    # The street up from the gate to the Hull's doors, drains in it.
+    for i, y in enumerate(range(DOME_S + 1, HULL_S, 2)):
+        for x in (GATE_X - 1, GATE_X + 1, GATE_X + 3):
+            put("gate_street_drain" if i % 4 == 3 and x == GATE_X - 1 else "gate_street", x, y)
 
 
 def _hull(put, out):
@@ -165,9 +198,11 @@ def _hull(put, out):
     _wall_run(put, "hull_wall_port", xs, HULL_N, doors=north_doors)
     _wall_run(put, "hull_wall", xs, HULL_S, DECK)
     _wall_run(put, "hull_wall_port", xs, HULL_N, DECK)
+    # The end walls have no doors: the Second Light's bow and stern close
+    # them (see _second_light).
     for y in ys:
-        put("bulkhead_door" if y == -7 else "hull_wall", HULL_W, y, turns=1)
-        put("bulkhead_door" if y in (-5, -3) else "hull_wall", HULL_E, y, turns=1)
+        put("hull_wall", HULL_W, y, turns=1)
+        put("hull_wall", HULL_E, y, turns=1)
         put("hull_wall", HULL_W, y, DECK, 1)
         put("hull_wall_port" if y % 6 == 1 else "hull_wall", HULL_E, y, DECK, 1)
     # Ribs along the outside, every 6 m.
@@ -190,6 +225,16 @@ def _hull(put, out):
         put("food_stall", x, HULL_S + 2, turns=2)
     for x in (-11, -8):
         put("parts_stall", x, HULL_S + 2, turns=2)
+    # Their signs on the wall behind them, and bunting across the street.
+    for piece, x in (("shop_sign_water", -25), ("shop_sign_noodles", -22), ("shop_sign_parts", -11), ("shop_sign_repairs", -8)):
+        put(piece, x, HULL_S + .15, turns=2)
+    for x in (-18, -12):
+        put("bunting", x, HULL_S + 4, turns=1)
+    # The way to the lower decks, the Stacks and the Exchange, on the walls.
+    put("sign_lower_decks", LOWER_DECKS + .15, -15, turns=1)
+    put("shop_sign_filters", LOWER_DECKS + .15, 7, turns=1)
+    put("sign_stacks", EXCHANGE - .15, -3, turns=3)
+    put("sign_exchange_arrow", EXCHANGE - .15, -13, turns=3)
     for x, y, piece in ((-25, -17.2, "produce_crate"), (-22, -17.2, "protein_pack"),
                         (-19, -17.2, "coffee_tin"), (-11, -17.2, "valve"), (-8, -17.2, "electronics_box")):
         put(piece, x, y, 0.9)
@@ -214,6 +259,35 @@ def _hull(put, out):
     # A bike and a trike by the market's south door, outside.
     put("bike", -18, HULL_S - 3, turns=1)
     put("trike", -12, HULL_S - 3.5, turns=1)
+
+
+def _second_light(put):
+    """The grounded colony ship the Hull is cut into: its skin curving up
+    from the tops of the Hull's long walls, its bow and stern closing the
+    ends, rib arches across, gantries and vents outside."""
+    middle = (HULL_S + HULL_N) / 2
+    centres = range(HULL_W + 4, HULL_E, 8)            # six 8 m sections a side
+    for x in centres:
+        put("hull_shell", x, HULL_S, 2 * DECK)
+        put("hull_shell", x, HULL_N, 2 * DECK, 2)
+        # A rib across on each frame line, 2 m on from a section's middle.
+        put("hull_rib_arch", x + 2, middle, 2 * DECK, 1)
+    put("hull_bow", HULL_E, middle, turns=1)
+    put("hull_stern", HULL_W, middle, turns=3)
+    # Gantries against it, at least 4.8 m out from the wall, clear of the
+    # doors and Charter Row's fence; vents on its outer faces.
+    put("hull_gantry", -24, HULL_S - 5)
+    put("hull_gantry", -36, HULL_N + 5, turns=2)
+    for x in (-30, -6):
+        put("hull_vent", x, HULL_S - .15)
+    put("hull_vent", -12, HULL_N + .15, turns=2)
+    # Its signs and banners: the Hull over the market's door, the Exchange
+    # over its own, the Crew's on the lower decks, the Registrars' on the
+    # Exchange's north wall.
+    put("sign_hull", -15, HULL_S - .15)
+    put("sign_exchange", 2, HULL_S - .25)
+    put("banner_crew", -36, HULL_S - .15)
+    put("banner_registrar", 4, HULL_N + .15, turns=2)
 
 
 def _stacks(put):
@@ -243,6 +317,7 @@ def _stacks(put):
         put("bunk_bed", x0 + 2.2, HULL_N - 0.7, up, 2)
         put("locker", x0 + 3.5, 9.6, up, 3)
         put("stool" if i % 2 else "cot", x0 + 1.4, 9.4, up)
+        put("rug", x0 + 2, 10.2, up)
     put("curtain_partition", -6, 8.95, up, 1)
     put("curtain_partition", -6, 11.1, up, 1)
     # A shared kitchen and a laundry line over the walkway.
@@ -251,6 +326,7 @@ def _stacks(put):
     put("stool", -7.6, 6, up)
     put("water_canister", -6.2, 6.1, up + 0.8)
     put("laundry_line", -16, 6.4, up)
+    put("shop_sign_rooms", -9, HULL_N - .15, up)
     put("laundry_line", -11, 6.4, up)
     put("work_lamp", -20, 5, up)
     put("status_light", -24, HULL_N - 0.1, up + 2.6, 0)
@@ -272,8 +348,8 @@ def _exchange(put):
         put("ledger_book", x, 6.5, 0.8)
     put("stamp_station", mid + 4.5, 6)
     put("registrar_stamp", mid + 4.5, 6, 1.1)
-    for x in range(x0 + 1, x1, 2):
-        put("archive_shelves", x, HULL_N - 0.5)
+    for i in range(5):
+        put("archive_shelves", x0 + 1.5 + 2.1 * i, HULL_N - 0.5)
     for y in (7, 9):
         put("filing_cabinets", x1 - 0.5, y, turns=3)
     put("sealed_filing", x1 - 0.5, 7, 2.0)
@@ -288,10 +364,11 @@ def _exchange(put):
     put("terminal_row", mid + 2.5, -11)
     put("terminal_kiosk", x0 + 1, -15)
     put("exchange_board", x1 - 0.2, -8, turns=3)
+    put("notice_board_small", x0 + 2, HULL_S + .15, turns=2)
     put("floor_bell", mid + 3.5, -3)
     put("arbitration_table", mid - 3.5, -15.5)
     for x in (mid - 4.4, mid - 2.6):
-        put("office_chair", x, -16.6)
+        put("office_chair", x, -17.1)
     put("land_claim", mid - 3.5, -15.5, 0.9)
     for x in (mid - 3, mid + 3):
         for y in (-12, -4, 4, 10):
@@ -321,6 +398,8 @@ def _lower_decks(put):
     for x in (x0 + 4, x0 + 8):
         put("hazard_barrier", x, -8.5)
     put("status_light", x0 + 6, HULL_N - 0.1, 2.9)
+    put("crew_panel", x0 + 4, HULL_N - .15)
+    put("hazard_panel", x0 + 8, HULL_N - .15)
     put("work_lamp", x0 + 3, -8)
     # The warehouse, along the south wall.
     for x in (x0 + 2, x0 + 4.5, x0 + 10):
@@ -335,12 +414,37 @@ def _lower_decks(put):
 
 
 def _charter_room(put, cx, cy, door_south):
-    """One of Charter Row's company buildings: 8 m square, white walls with
-    windows and a door onto the street, pillars at its corners, and an
-    office inside."""
+    """One of Charter Row's company buildings: 8 m square and two storeys,
+    white walls with windows and a door onto the street, pillars at its
+    corners, a roof behind a parapet, a company banner, and an office
+    inside."""
     s = 4
     front_y = cy - s if door_south else cy + s
     back_y = cy + s if door_south else cy - s
+    front, back = (0, 2) if door_south else (2, 0)
+    # The upper storey, all windows but the sides' ends; its pillars; and
+    # the roof at the top, behind a parapet on the walls' lines.
+    up, top = DECK, 2 * DECK
+    for x in range(cx - 3, cx + 4, 2):
+        put("charter_window_upper", x, front_y, up, front)
+        put("charter_window_upper", x, back_y, up, back)
+        put("charter_parapet", x, front_y, top, front)
+        put("charter_parapet", x, back_y, top, back)
+    for y in range(cy - 3, cy + 4, 2):
+        put("charter_window_upper" if abs(y - cy) == 1 else "charter_wall_upper", cx - s, y, up, 3)
+        put("charter_window_upper" if abs(y - cy) == 1 else "charter_wall_upper", cx + s, y, up, 1)
+        put("charter_parapet", cx - s, y, top, 3)
+        put("charter_parapet", cx + s, y, top, 1)
+    for x in (cx - s, cx + s):
+        for y in (cy - s, cy + s):
+            put("charter_pillar", x, y, up)
+            put("charter_parapet_corner", x, y, top)
+    for x in range(cx - 3, cx + 4, 2):
+        for y in range(cy - 3, cy + 4, 2):
+            put("charter_roof", x, y, top)
+    put("charter_roof_unit", cx + 1.5, cy - 1.5 if door_south else cy + 1.5, top, back)
+    put("banner_charter", cx + 2, front_y + (-.2 if door_south else .2), turns=front)
+    put("rug", cx, cy)
     for i, x in enumerate(range(cx - 3, cx + 4, 2)):
         put("charter_door" if i == 1 else "charter_window", x, front_y, turns=0 if door_south else 2)
         put("charter_window" if i in (1, 2) else "charter_wall", x, back_y, turns=2 if door_south else 0)
@@ -406,59 +510,79 @@ def _charter_row(put):
         put("stone_bench", x, y)
     for x in (plaza - 4, plaza + 4):
         put("potted_tree", x, street)
-    # The road up from the Exchange's north door to the gate.
+    # Paving along the street and up from the gate, lawn round the plaza.
+    for x in range(w + 1, e, 2):
+        for y in (street - 2, street, street + 2):
+            put("charter_paving", x, y)
+    for y in range(s + 2, street - 2, 2):
+        put("charter_paving", gate, y)
+    for x in (plaza - 3, plaza - 1, plaza + 1, plaza + 3):
+        for y in (street - 7, street - 5, street + 5, street + 7):
+            put("lawn", x, y)
+    # The street up from the Exchange's north door to the gate, and the
+    # district's sign outside it.
+    for y in range(HULL_N + 1, s, 2):
+        put("gate_street", gate, y)
     for y in (HULL_N + 3, HULL_N + 6):
         put("street_lamp", -3, y)
+    put("sign_charter_row", gate - 4, s - 2)
 
 
 def _pads(put):
     """The Pads: landing pads turned freight yards east of the Hull, nobody's
     and everybody's. The drifter Patience on its pad with the drifter-day
-    market at its ramp, a container yard under a gantry crane, fuel tanks,
-    the receivership shuttle, floodlights, and a Quiet Book shack tucked in
-    the containers."""
+    market at its ramp, a container yard under gantry cranes, the
+    receivership shuttle, floodlights, a Quiet Book shack, and a fuel depot
+    north of them."""
     w, e, s, n = PADS_W, PADS_E, PADS_S, PADS_N
+    sx, sy = SHIP
+    # The pad tiles, but where the drifter's own pad (26 by 50 m) covers them.
     for x in range(w + 2, e, 4):
         for y in range(s + 2, n, 4):
-            put("pad_tile", x, y)
-    # The drifter, nose north, its ramp down to the south.
-    ship = (44, -2)
-    put("drifter_patience", *ship)
-    for x, y in ((ship[0] - 12, ship[1] - 22), (ship[0] + 12, ship[1] - 22),
-                 (ship[0] - 12, ship[1] + 21), (ship[0] + 12, ship[1] + 21)):
+            if not (sx - 13 <= x - 2 and x + 2 <= sx + 13 and sy - 25 <= y - 2 and y + 2 <= sy + 25):
+                put("pad_tile", x, y)
+    put("drifter_pad", sx, sy)
+    put("drifter_patience", sx, sy)
+    for x, y in ((sx - 12, sy - 22), (sx + 12, sy - 22), (sx - 12, sy + 21), (sx + 12, sy + 21)):
         put("pad_beacon", x, y)
-    # Drifter day: tables and nets of goods in front of the ramp.
-    for i, x in enumerate((35.8, 39, 42.2, 46.8, 50, 53.2)):
-        put("trade_table", x, -32)
-        put(("wine_bottle", "seed_case", "medkit", "data_core", "coffee_tin", "power_cell")[i], x, -32, 0.8)
-    for x in (37.5, 51.5):
-        put("cargo_net_pile", x, -34.5)
-    for x in (40, 48):
-        put("loader", x, -27, turns=2)
-    # The container yard, in two rows under the crane, some stacked.
-    for i, y in enumerate(range(s + 18, n - 3, 3)):  # clear of the shuttle
-        for col, x in enumerate((w + 5.5, w + 12.5)):
+    # Drifter day: tables and nets of goods in front of the ramp, under
+    # awnings.
+    for i, dx in enumerate((-8.2, -5, -1.8, 2.8, 6, 9.2)):
+        put("trade_table", sx + dx, -32)
+        put(("wine_bottle", "seed_case", "medkit", "data_core", "coffee_tin", "power_cell")[i], sx + dx, -32, 0.8)
+    for dx in (-6.5, 7.5):
+        put("cargo_net_pile", sx + dx, -34.5)
+    for dx in (-5, 5):
+        put("street_awning", sx + dx, -32)
+    for dx in (-4, 4):
+        put("loader", sx + dx, -27, turns=2)
+    # The container yard, in two rows under the cranes, some stacked.
+    for i, y in enumerate(range(s + 18, n - 3, 3)):
+        for col, x in enumerate((w + 4.1, w + 11.1)):
             piece = "container_open" if (i + col) % 5 == 2 else "shipping_container"
             put(piece, x, y)
             if (i + col) % 3 == 0 and piece == "shipping_container":
                 put("shipping_container", x, y, 2.6)
-    put("gantry_crane", w + 9, -6)
-    put("gantry_crane", w + 9, 10)
-    put("quiet_book_shack", w + 2, s + 2, turns=1)
-    put("forged_seal", w + 2, s + 2, 0.9)
-    # Fuel tanks at the south-east corner, the tanker east of the drifter,
-    # the shuttle south of the yard, a hauler in the street by the Hull.
-    for y in (s + 4, s + 11):
-        put("fuel_tank", e - 4, y, turns=1)
-    put("hauler_tanker", e - 4, 10)
-    put("receivership_shuttle", w + 14, s + 9, turns=1)
-    put("hauler", w - 3, s + 10)
-    for x, y in ((w + 1, s + 1), (e - 1, s + 1), (w + 1, n - 1), (e - 1, n - 1)):
+    put("gantry_crane", w + 7.6, -6)
+    put("gantry_crane", w + 7.6, 10)
+    # South of the yard: the shuttle, and the Quiet Book shack.
+    put("receivership_shuttle", w + 8, s + 2.5, turns=1)
+    put("quiet_book_shack", sx - 11.5, s + 2, turns=1)
+    put("forged_seal", sx - 11.5, s + 2, 0.9)
+    put("hauler", 12, s + 10)
+    for x, y in ((w + 1, s + 15), (e - 1, s + 1), (w + 1, n - 1), (e - 1, n - 1)):
         put("floodlight_tower", x, y)
-    # The edge between the Hull and the Pads: barriers and bollards.
+    # The edge between the bow and the Pads: barriers and bollards; and the
+    # Pads' sign over the way in from the gate.
     for y in range(s + 4, n, 6):
-        put("concrete_barrier", w - 2, y, turns=1)
-        put("bollard", w - 2, y + 3)
+        put("concrete_barrier", w - .5, y, turns=1)
+        put("bollard", w - .5, y + 3)
+    put("sign_the_pads", w - 4, s + 6, turns=1)
+    # The fuel depot, north of the Pads.
+    for y in (n + 5, n + 12):
+        put("fuel_tank", e - 6, y, turns=1)
+    put("hauler_tanker", e - 16, n + 9, turns=1)
+    put("floodlight_tower", e - 12, n + 16)
 
 
 def _fringe(put):
@@ -472,6 +596,22 @@ def _fringe(put):
     for x in range(FARMS[1] + 10, SALVAGE[0] - 9, 20):
         if abs(x) > 8:
             put("concrete_barrier", x, ROAD_Y + 6)
+    # The road itself: down from the gate to a junction with the caravan
+    # road, and that out to the farms and the salvage fields, where it
+    # fades; tracks off it to the salvage and the camp. (Each stands on the
+    # ground where it's put: see game/terrain.go.)
+    for y in range(DOME_S - 1, ROAD_Y + 3, -4):
+        put("road_straight", GATE_X, y - 2)
+    put("road_junction", GATE_X, ROAD_Y, turns=2)
+    for x in range(GATE_X + 5, SALVAGE[1] - 2, 4):
+        put("road_straight", x, ROAD_Y, turns=1)
+        put("road_straight", 2 * GATE_X - x, ROAD_Y, turns=1)
+    put("road_end", SALVAGE[1] - 1, ROAD_Y, turns=3)
+    put("road_end", FARMS[0] + 1, ROAD_Y, turns=1)
+    for y in range(ROAD_Y - 5, ROAD_Y - 30, -4):
+        put("track_straight", SALVAGE[0], y)
+    put("track_straight", 40, ROAD_Y - 5)
+    put("sign_south_gate", GATE_X - 7, DOME_S - 4)
     # Caravans waiting at the gate.
     put("caravan_cart", GATE_X - 6, DOME_S - 8)
     put("caravan_cart", GATE_X + 9, DOME_S - 10, turns=1)
@@ -489,8 +629,11 @@ def _fringe(put):
     put("windsock", cx + 8, cy - 5)
     put("trike", cx - 4, cy + 7, turns=1)
     put("covered_car", cx + 10, cy + 1, turns=1)
+    put("buggy", cx - 8, cy + 6, turns=1)
     put("rebreather", cx + 1, cy - 1, 0.4)
     put("water_canister", cx - 1, cy + 1)
+    # A ship that came down out here, long before Landfall's time.
+    put("ship_wreck", *WRECK, turns=1)
     # The wind farm, west of the dome.
     for y in range(-70, 61, 26):
         put("wind_turbine", -100, y)
@@ -505,6 +648,7 @@ def _farms(put):
     for i in range(10):
         for y in (ROAD_Y - 7.5, ROAD_Y - 9):
             put("crop_bed", x0 + 8 + 4.1 * i, y)
+        put("farm_furrows", x0 + 8 + 4 * i, ROAD_Y - 8.25)
     for x in range(x0 + 8, x1 - 2, 4):
         put("irrigation_pipe", x, ROAD_Y - 10.4)
     for x in (x0 + 4, x1 - 4):
@@ -536,6 +680,7 @@ def _salvage(put):
     put("terraformer_part", x0 - 4, ROAD_Y - 8)
     put("salvage_scrap", x0 + 1, ROAD_Y - 6)
     put("crowbar", x0 + 1.5, ROAD_Y - 6.4)
+    put("rover", x0 + 30, ROAD_Y - 8, turns=1)
     put("covered_car", x0 + 16, ROAD_Y - 44, turns=2)
     put("signpost", x0 - 4, ROAD_Y + 4, turns=3)
 
@@ -557,6 +702,8 @@ def _rocks(put):
             return False
         if 25 < x < 55 and ROAD_Y - 28 < y < ROAD_Y:
             return False  # the camp
+        if abs(x - WRECK[0]) < 12 + r and abs(y - WRECK[1]) < 12 + r:
+            return False
         if abs(x + 100) < 8 + r and -78 < y < 68:
             return False  # the wind farm
         return True

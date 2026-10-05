@@ -441,13 +441,17 @@ and the piece builder; the modules are:
 | `props.py` | The Hull's market: crates, a drum, an Exchange terminal, a market stall, a tarp, a work lamp, a status light, the Exchange's public board |
 | `hull_decks.py` | The Crew's air plant (scrubbers, fans, pumps, the repair-run valve station, generators, a console), the Stacks' rooms (bunks, cots, lockers, curtains, a numbered cabin door), warehouses (racking, pallets, a roller door), food and parts stalls |
 | `exchange.py` | The Exchange floor: the Registrars' counter and desks, filing cabinets, a row of terminals, queue rails, the floor bell, archive shelves, the seal, a stamp station, an arbitration table |
-| `charter_row.py` | Charter Row: white-and-navy facade walls, windows, doors and pilasters, a glasshouse, planters, hedges, a guard booth, iron gates and fences, lamps, an office (desk, chair, safe, bookshelf), a fountain |
+| `charter_row.py` | Charter Row: white-and-navy facade walls, windows, doors and pilasters (and their second storeys), roofs and parapets, a glasshouse, planters, hedges, a guard booth, iron gates and fences, lamps, an office (desk, chair, safe, bookshelf), a fountain |
 | `pads.py` | The Pads: pad tiles, shipping containers (one open to walk into), a gantry crane, fuel tanks, floodlight towers, a loader, a Quiet Book front, a drifter-day trade table, barriers |
-| `domes.py` | The dome line: dome walls and frames, strut anchors, the South gate, a boom barrier, the checkpoint booth, a scanner arch, an airlock door, a mask station |
-| `fringe.py` | The Fringe: rocks, dust drifts, quiver trees, a dead tree, dry brush, a wind turbine, a patched greenhouse, crop beds, the wrecked terraformer, scrap, a salvage rig, a caravan cart, tents, a cistern, fences, a filter cache |
+| `domes.py` | The dome line: dome walls, corners and frames, the overhead roof frame and its slopes, strut anchors, the South gate, a boom barrier, the checkpoint booth, a scanner arch, an airlock door, a mask station |
+| `fringe.py` | The Fringe: rocks, dust drifts, quiver trees, a dead tree, dry brush, a half-buried ship wreck, a wind turbine, a patched greenhouse, crop beds, the wrecked terraformer, scrap, a salvage rig, a caravan cart, tents, a cistern, fences, a filter cache |
 | `items.py` | What's carried: marks, scrip and filters; contracts, filings, ledgers, land claims and seals (and a forged one); water, food and Earth coffee; power cells, parts, valves and a Corvane data core; medicine, seeds, electronics, wine; tools |
 | `weapons.py` | Earth guns, lasers, a katana, a machete, a knife, a stun baton, armour, ammo, cell packs, a rack |
-| `vehicles.py` | Haulers (flatbed and tanker), a bike, a trike, a car under a tarp, the drifter *Patience* and the Receivership's shuttle |
+| `vehicles.py` | Six-wheel haulers (flatbed and tanker), a bike, a trike, a buggy, a crew rover, a car under a tarp, the drifter *Patience* and the Receivership's shuttle |
+| `second_light.py` | The grounded colony ship round the Hull: hull skin sections and corners, the bow and the engine-end stern, rib arches over the streets, a maintenance gantry, cut deck edges, vents |
+| `hull_levels.py` | Between the Hull's decks: ceiling undersides, a hatch with a ladder down, a stairwell to the lower decks, a freight lift, a shaft grate |
+| `ground.py` | Roads (straight, corner, junction, end), the salvage track, the gate street, Charter paving, lawn, farm furrows and crop rows, the drifter's landing pad |
+| `dressing.py` | District, deck and shop signs with real lettering, Crew marking panels, notice boards, rugs, faction banners, awnings and bunting across streets, doorway curtains |
 
 Real-world objects (drums, rocks, tools, furniture, lamps, food) are built
 on Poly Haven's CC0 models (`polyhaven.py`), fetched once into

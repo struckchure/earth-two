@@ -68,426 +68,536 @@ def _hanging(p: Piece, a, b, top: float, bottom: float, mat: str, ripple: float 
     p._faces(faces, mat, smooth=True)
 
 
-# Wheels ----------------------------------------------------------------------
+# Wheels and running gear ---------------------------------------------------------
+#
+# The colony makes nothing new, so every vehicle here is hand-built from
+# what the Second Light and the terraformers left: fat balloon tyres for the
+# dust (the air's too thin to hover in), suspension out in the open where it
+# can be mended, Crew-orange and Hazard-yellow accents on mismatched repaint.
+# They take their lines from the sci-fi references in the brief (a
+# cyberpunk bike's single-sided swingarm and long cowl, a six-wheel rover's
+# balloon tyres and boxy modules, an explorer truck's capsule nose, a
+# buggy's faceted tub and tube cage) and make them the Red's.
 
-def _wheel(p: Piece, x, y, z, radius, width, side: int, lugs: int = 8, rim="Hull alloy", hub="Hull dark") -> None:
-    """A wheel on an axle along Y, its outer face towards side (+1 or -1 in
-    Y): a tyre with bulged walls and a lugged tread, a pressed rim with its
-    bolts and a hub."""
+ACCENT = "Hazard yellow"
+
+
+def _balloon(p: Piece, x, y, z, radius, width, side: int, blocks: int = 24, rim: str = "Hull alloy",
+             cap: str = ACCENT, both: bool = False) -> None:
+    """A fat balloon tyre on an axle along Y, its outer face towards side
+    (+1 or -1 in Y); both puts a rim on each face (a bike's wheel). Bulged
+    walls, a tread of chunky staggered blocks, a dished rim with a painted
+    hub cap and its bolts."""
     r, w = radius, width
-    rr = 0.6 * r
-    rot = (-90, 0, 0) if side > 0 else (90, 0, 0)  # the lathe's axis out along side
-    p.lathe([(rr, -w / 2 + 0.03), (0.86 * r, -w / 2), (r, -0.3 * w), (r, 0.3 * w), (0.86 * r, w / 2), (rr, w / 2 - 0.03)],
-            (x, y, z), "Tyre", rot=rot, segments=9)
-    # The tread: lugs in two staggered rows, sunk into the tyre.
-    for i in range(lugs):
-        a = math.tau * i / lugs
-        off = (0.2 if i % 2 else -0.2) * w
-        c = (x + math.cos(a) * (r + 0.008), y + off, z + math.sin(a) * (r + 0.008))
-        p.box((0.32 * math.tau * r / lugs, 0.42 * w, 0.045), c, "Tyre", rot=(0, 90 - math.degrees(a), 0))
-    # The rim: a dished face 8 mm in front of the tyre's, the bolts, the hub.
-    face = y + side * (w / 2 - 0.022)
-    p.cyl(rr * 0.98, 0.03, (x, face - side * 0.015, z), rim, rot=(90, 0, 0), segments=9)
-    p.lathe([(0.0, 0.0), (rr * 0.42, 0.0), (rr * 0.38, 0.03), (rr * 0.2, 0.05), (0.0, 0.055)], (x, face, z), hub, rot=rot, segments=6)
-    # Its bolts, painted on (baked into the rim's texture).
-    with p.painted():
-        for i in range(6):
-            a = math.tau * i / 6
-            p.cyl(0.018 * r / 0.55, 0.012, (x + math.cos(a) * rr * 0.55, face + side * 0.012, z + math.sin(a) * rr * 0.55),
-                  "Steel", rot=(90, 0, 0), segments=5)
+    rr = 0.56 * r
+    rot = (-90, 0, 0) if side > 0 else (90, 0, 0)
+    p.lathe([(rr, -w / 2 + 0.02), (0.72 * r, -w / 2), (0.88 * r, -0.47 * w), (0.97 * r, -0.38 * w), (r, -0.22 * w),
+             (r, 0.22 * w), (0.97 * r, 0.38 * w), (0.88 * r, 0.47 * w), (0.72 * r, w / 2), (rr, w / 2 - 0.02)],
+            (x, y, z), "Tyre", rot=rot, segments=10)
+    # The tread: chunky blocks in two staggered rows, left plain (a bevel
+    # on every block would multiply a tyre's triangles several times).
+    with p.plain():
+        for i in range(blocks):
+            a = math.tau * i / blocks
+            for row in (-1, 1):
+                b = a + (math.pi / blocks if row > 0 else 0)
+                c = (x + math.cos(b) * (r + 0.004), y + row * 0.24 * w, z + math.sin(b) * (r + 0.004))
+                p.box((0.7 * math.tau * r / blocks, 0.42 * w, 0.03 * r / 0.6), c, "Tyre", rot=(0, 90 - math.degrees(b), 0))
+    for s in ((-1, 1) if both else (side,)):
+        rot_s = (-90, 0, 0) if s > 0 else (90, 0, 0)
+        face = y + s * (w / 2 - 0.03)
+        # A dished rim set into the tyre, the hub cap proud of it, its bolts.
+        p.lathe([(0.0, 0.0), (rr, 0.0), (rr, 0.025), (rr * 0.8, 0.05), (rr * 0.42, 0.06), (0.0, 0.06)],
+                (x, face - s * 0.06, z), rim, rot=rot_s, segments=10)
+        p.lathe([(0.0, 0.0), (rr * 0.34, 0.0), (rr * 0.32, 0.05), (rr * 0.2, 0.09), (0.0, 0.1)],
+                (x, face - s * 0.005, z), cap, rot=rot_s, segments=8)
+        with p.painted():
+            for i in range(5):
+                a = math.tau * i / 5
+                p.cyl(0.016 * r / 0.5, 0.012, (x + math.cos(a) * rr * 0.62, face + s * 0.012, z + math.sin(a) * rr * 0.62),
+                      "Steel", rot=(90, 0, 0), segments=5)
 
 
-def _spoked(p: Piece, x, z, radius, width, knobs: int = 12) -> None:
-    """A bike's spoked wheel on an axle along Y, centred on y = 0: a
-    knobbly tyre, a rim, spokes laced to a hub, and a brake disc."""
-    r = radius
-    p.torus(r - 0.045, 0.045, (x, 0, z), "Tyre", rot=(90, 0, 0), segments=13, sides=5)
-    for i in range(knobs):
-        a = math.tau * i / knobs
-        off = 0.022 if i % 2 else -0.022
-        p.box((0.032, 0.035, 0.03), (x + math.cos(a) * (r - 0.004), off, z + math.sin(a) * (r - 0.004)), "Tyre",
-              rot=(0, 90 - math.degrees(a), 0))
-    p.torus(r - 0.095, 0.014, (x, 0, z), "Steel", rot=(90, 0, 0), segments=13, sides=5)
-    p.lathe([(0.0, -0.05), (0.035, -0.05), (0.04, -0.035), (0.03, 0.0), (0.04, 0.035), (0.035, 0.05), (0.0, 0.05)],
-            (x, 0, z), "Hull alloy", rot=(90, 0, 0), segments=6)
-    for i in range(12):
-        a = math.tau * i / 12
-        side = 0.035 if i % 2 else -0.035
-        p.tube([(x + math.cos(a + 0.2) * 0.035, side, z + math.sin(a + 0.2) * 0.035),
-                (x + math.cos(a) * (r - 0.1), 0, z + math.sin(a) * (r - 0.1))], 0.0025, "Steel", segments=5)
-    p.cyl(0.11, 0.006, (x, -0.062, z), "Steel", rot=(90, 0, 0), segments=10)
-    with p.painted():
-        for i in range(6):
-            a = math.tau * i / 6
-            p.cyl(0.012, 0.008, (x + math.cos(a) * 0.075, -0.07, z + math.sin(a) * 0.075), "Hull dark", rot=(90, 0, 0), segments=5)
+def _source(p: Piece, asset: str, at, rot=(0, 0, 0), **fit) -> None:
+    """p.source for a piece made along +X and turned to -Y at the end: kit's
+    turn() turns the piece's own geometry and colliders but not its sourced
+    parts, so these are placed where they'll be after the quarter turn."""
+    x, y, z = at
+    p.source(asset, at=(y, -x, z), rot=(rot[0], rot[1], rot[2] - 90), **fit)
 
 
-# Hauler: a six-wheeled truck, made with its cab at +X and its bed behind -------
+def _coilover(p: Piece, a, b, radius: float = 0.06, turns: int = 7, spring: str = ACCENT) -> None:
+    """A coilover from a to b: a damper body and rod, the spring wound round
+    them (left plain: a wire, every turn of it)."""
+    from mathutils import Vector
+    a, b = Vector(a), Vector(b)
+    axis = (b - a)
+    length = axis.length
+    d = axis.normalized()
+    up = Vector((0, 0, 1)) if abs(d.z) < 0.9 else Vector((1, 0, 0))
+    u = d.cross(up).normalized()
+    v = d.cross(u)
+    mid = a + axis * 0.55
+    p.tube([a, mid], radius * 0.55, "Gunmetal", segments=5)
+    p.tube([mid - d * 0.02, b], radius * 0.25, "Steel", segments=4)
+    pts = []
+    steps = turns * 8
+    for i in range(steps + 1):
+        t = i / steps
+        ang = math.tau * turns * t
+        pts.append(a + axis * (0.1 + 0.8 * t) + (u * math.cos(ang) + v * math.sin(ang)) * radius)
+    with p.plain():
+        p.tube(pts, radius * 0.18, spring, segments=3)
+    for e in (a, b):
+        p.sphere(radius * 0.5, e, "Hull dark", segments=6, rings=4)
 
-def _leaf_spring(p: Piece, x, y) -> None:
-    """A leaf spring under the frame rail at (x, y): its stack of leaves,
-    each shorter than the one above, as one stepped plate."""
-    halves = (0.55, 0.47, 0.38, 0.29)
-    right = []
-    for i, h in enumerate(halves):
-        z = 0.62 - 0.022 * (i + 1)
-        right.append((x + h, z))
-        if i + 1 < len(halves):
-            right.append((x + halves[i + 1], z))
-    left = [(2 * x - px, pz) for px, pz in reversed(right)]
-    p.prism([(x - 0.55, 0.62), (x + 0.55, 0.62)] + right + left, 0.09, (0, y, 0), "Hull dark")
 
+def _arm(p: Piece, a, b, radius: float = 0.05, mat: str = "Hull dark") -> None:
+    p.tube([a, b], radius, mat, segments=4)
+
+
+def _light_bar(p: Piece, x0, x1, y, z, lamps: int = 4, along: str = "y") -> None:
+    """A light bar on a bracket: a dark housing and its lamps, facing +X."""
+    if along == "y":
+        p.span((x0 - 0.06, y - (x1 - x0) / 2, z - 0.07), (x0 + 0.06, y + (x1 - x0) / 2, z + 0.07), "Hull dark")
+        for i in range(lamps):
+            yy = y - (x1 - x0) / 2 + (x1 - x0) * (i + 0.5) / lamps
+            p.cyl(0.05, 0.03, (x0 + 0.07, yy, z), "Sodium lamp", rot=(0, 90, 0), segments=6)
+
+
+# Hauler: a six-wheel rover-truck, made with its cab at +X and its bed behind --
 
 def _hauler_chassis(p: Piece, style: Style) -> tuple[str, str]:
-    """The chassis, suspension, wheels and cab; returns its two paints."""
+    """The rover-truck's running gear and its capsule-nosed cab: a spine
+    and side modules over six balloon tyres on trailing arms and coilovers
+    (the yellow six-wheel rover's stance, the explorer truck's nose).
+    Returns its two paints."""
     r = rng(style, p.name)
-    paint = r.choice(["Crew orange", "Repaint teal", "Repaint oxide", "Repaint cream"])
+    paint = r.choice(["Crew orange", "Hazard yellow", "Repaint cream", "Crew orange"])
     patch = r.choice([c for c in REPAINTS if c != paint])
-    w = 1.3
-    # Frame rails, cross members and the bumpers.
-    for y in (-0.55, 0.55):
-        p.span((-4.0, y - 0.1, 0.62), (3.9, y + 0.1, 0.9), "Hull dark")
+    w = 1.25
+    # The spine, its cross members, and the side modules between the wheels.
+    p.span((-4.1, -0.6, 0.75), (4.0, 0.6, 1.15), "Hull dark")
+    for x in (-3.6, -1.9, 0.2, 2.0, 3.6):
+        p.span((x - 0.07, -1.0, 0.82), (x + 0.07, 1.0, 1.08), "Hull dark")
+    for s in (-1, 1):
+        y0, y1 = sorted((s * 0.62, s * (w - 0.03)))
+        # The battery and air module between the middle and front wheels,
+        # clear of both arches; its door panels a little proud of it.
+        p.span((0.0, y0, 0.72), (2.05, y1, 1.36), patch)
+        for x in (0.4, 1.05, 1.7):
+            p.span((x - 0.25, min(s * (w - 0.015), s * (w + 0.015)), 0.86), (x + 0.25, max(s * (w - 0.015), s * (w + 0.015)), 1.22), paint)
         with p.painted():
-            for i in range(26):
-                p.cyl(0.012, 0.012, (-3.8 + i * 0.3, y + (0.106 if y > 0 else -0.106), 0.76), "Steel", rot=(90, 0, 0), segments=5)
-    for x in (-3.8, -2.2, -0.6, 1.0, 2.6, 3.7):
-        p.span((x - 0.06, -0.45, 0.68), (x + 0.06, 0.45, 0.84), "Hull dark")
-    p.span((3.9, -w, 0.5), (4.12, w, 0.86), "Hull dark")
-    p.span((-4.1, -w + 0.1, 0.58), (-3.98, w - 0.1, 0.86), "Gunmetal")
+            for i in range(5):
+                p.box((0.1, 0.012, 0.22), (0.25 + i * 0.36, s * (w + 0.03), 1.04), "Hazard yellow",
+                      rot=(0, 35, 0))
+        # The steps up to the cab door, in front of the module.
+        b0, b1 = sorted((s * 0.9, s * 1.32))
+        for z in (0.55, 0.85):
+            p.span((2.29, b0, z), (2.58, b1, z + 0.04), "Grating")
+        for x in (2.25, 2.58):
+            p.span((x, b0, 0.5), (x + 0.04, b1, 1.15), "Hull dark")
+    # Six balloon tyres on trailing arms, each with its coilover.
+    for x in (3.05, -1.0, -2.85):
+        for s in (-1, 1):
+            y = s * 1.32
+            _balloon(p, x, y, 0.65, 0.65, 0.52, s, blocks=24)
+            pivot = (x + 0.75 if x > 0 else x + 0.7, s * 0.75, 0.95)
+            _arm(p, pivot, (x, s * 0.98, 0.65), 0.07, "Gunmetal")
+            _coilover(p, (x + 0.25, s * 0.95, 0.72), (x + 0.45, s * 0.72, 1.45), radius=0.07, turns=6)
+    # Mudguards: faceted arches over each wheel.
+    for x in (3.05, -1.0, -2.85):
+        for s in (-1, 1):
+            y0, y1 = sorted((s * 1.02, s * 1.62))
+            p.prism([(x - 0.85, 1.12), (x - 0.55, 1.5), (x + 0.55, 1.5), (x + 0.85, 1.12), (x + 0.8, 1.06), (x + 0.5, 1.42),
+                      (x - 0.5, 1.42), (x - 0.8, 1.06)], abs(y1 - y0), (0, (y0 + y1) / 2, 0), "Hull dark")
+    # The cab: a capsule nose in profile, extruded across; glass in its own
+    # plane, a band round it, the twin lamps, a bumper and tow hooks.
+    nose = [(1.7, 1.15), (3.95, 1.15), (4.3, 1.45), (4.36, 1.95), (4.06, 2.6), (3.45, 2.98), (1.7, 2.98)]
+    p.prism(nose, 2 * w, (0, 0, 0), paint)
+    slope = math.degrees(math.atan2(0.3, 0.6))
+    p.box((0.02, 2 * w - 0.3, 0.64), (4.23, 0, 2.29), "Glass", rot=(0, -slope, 0))
+    for s in (-1, 1):
+        p.prism([(2.3, 2.05), (3.95, 2.05), (4.02, 2.52), (3.4, 2.84), (2.3, 2.84)], 0.012, (0, s * (w + 0.008), 0), "Glass")
+        # The door: a seam and a handle (paint), hinges proud of the body.
+        with p.painted():
+            p.span((2.2, s * (w + 0.007) - 0.002, 1.25), (2.24, s * (w + 0.007) + 0.002, 2.0), "Hull dark")
+            p.span((3.3, s * (w + 0.007) - 0.002, 1.25), (3.34, s * (w + 0.007) + 0.002, 2.0), "Hull dark")
+            p.span((1.72, s * (w + 0.007) - 0.002, 1.92), (4.0, s * (w + 0.007) + 0.002, 2.0), "Hull dark")
+            p.stencil("27", (2.75, s * (w + 0.008), 1.6), 0.28, "Stencil white", facing="-Y" if s < 0 else "+Y")
+        for z in (1.35, 1.85):
+            p.cyl(0.025, 0.12, (2.22, s * (w + 0.02), z), "Steel", segments=5)
+        # Twin lamps either side of the nose, and the mirrors.
+        for dz in (0.0, 0.2):
+            p.lathe([(0.0, 0.0), (0.1, 0.0), (0.11, 0.04), (0.0, 0.06)], (4.31, s * 0.82, 1.55 + dz), "Hull dark", rot=(0, 90, 0), segments=6)
+            p.cyl(0.08, 0.02, (4.37, s * 0.82, 1.55 + dz), "Sodium lamp", rot=(0, 90, 0), segments=6)
+        p.tube([(3.9, s * w, 2.4), (3.95, s * (w + 0.3), 2.5), (3.95, s * (w + 0.3), 2.75)], 0.02, "Hull dark", segments=4)
+        p.span((3.9, s * (w + 0.26), 2.55), (4.0, s * (w + 0.42), 2.85), "Hull dark")
     with p.painted():
-        for i in range(8):
-            y0 = -w + 0.15 + i * 0.3
-            p.box((0.012, 0.14, 0.28), (-4.106, y0 + 0.07, 0.72), "Hazard yellow", rot=(35, 0, 0))
-    # Tow hooks at the front.
-    for x, s in ((4.18, 1),):
-        for y in (-0.6, 0.6):
-            p.torus(0.07, 0.02, (x, y, 0.62), "Steel", rot=(0, 0, 0), segments=5, sides=5)
-    # Axles, springs, wheels, the rear axles' differentials.
-    for x in (2.9, -1.6, -2.9):
-        p.cyl(0.06, 2.1, (x, 0, 0.55), "Gunmetal", rot=(90, 0, 0), segments=5)
-        for y in (-0.55, 0.55):
-            _leaf_spring(p, x, y)
+        for i in range(5):
+            p.box((0.012, 0.16, 0.24), (4.335, -0.48 + i * 0.24, 1.25), "Hazard yellow", rot=(35, 0, 0))
+    p.span((4.0, -w - 0.05, 0.85), (4.45, w + 0.05, 1.12), "Gunmetal")
+    for y in (-0.7, 0.7):
+        p.torus(0.08, 0.022, (4.5, y, 0.95), "Steel", rot=(90, 0, 0), segments=6, sides=4)
+    # The roof: a light bar, a rack, a beacon and two aerials.
+    _light_bar(p, 3.55, 5.15, 0, 3.08, lamps=5)
+    for y in (-0.95, 0.95):
+        p.tube([(1.85, y, 3.12), (3.3, y, 3.12)], 0.025, "Hull dark", segments=4)
+    for x in (2.1, 2.6, 3.1):
+        p.tube([(x, -0.95, 3.12), (x, 0.95, 3.12)], 0.02, "Hull dark", segments=4)
+    p.lathe([(0.0, 0.0), (0.08, 0.0), (0.07, 0.1), (0.0, 0.12)], (2.0, 0.6, 2.98), "Hazard yellow", segments=6)
+    with p.plain():
         for y in (-1.05, 1.05):
-            _wheel(p, x, y, 0.55, 0.55, 0.42, 1 if y > 0 else -1)
-    for x in (-1.6, -2.9):
-        p.lathe([(0.0, -0.18), (0.16, -0.17), (0.22, -0.05), (0.2, 0.08), (0.12, 0.17), (0.0, 0.18)], (x, 0, 0.55), "Gunmetal",
-                rot=(0, 90, 0), segments=7)
-    p.tube([(-1.6, 0, 0.55), (0.0, 0, 0.66), (2.6, 0, 0.7)], 0.05, "Gunmetal", segments=5)
-    # Mudguards over the wheels, and mud flaps behind them.
-    for x0, x1 in ((2.28, 3.53), (-3.55, -0.95)):
-        for s in (-1, 1):
-            y0, y1 = sorted((s * 0.82, s * (w + 0.02)))
-            p.span((x0, y0, 1.2), (x1, y1, 1.27), "Hull dark")
-            p.span((x0 - 0.02, y0, 0.96), (x0 + 0.04, y1, 1.2), "Hull dark")
-    for x in (2.25, -3.6):
-        for s in (-1, 1):
-            y0, y1 = sorted((s * 0.84, s * 1.26))
-            p.span((x - 0.015, y0, 0.25), (x + 0.015, y1, 1.0), "Rubber")
-    # The fuel tank on the right, an air tank and a battery box on the left,
-    # steps up to the doors.
-    p.lathe([(0.0, 0.0), (0.26, 0.0), (0.29, 0.03), (0.29, 0.57), (0.26, 0.6), (0.0, 0.6)], (1.15, -0.95, 0.82), "Steel",
-            rot=(0, 90, 0), segments=8)
-    for x in (1.3, 1.6):
-        p.torus(0.296, 0.012, (x, -0.95, 0.82), "Hull dark", rot=(0, 90, 0), segments=8, sides=5)
-    p.cyl(0.05, 0.04, (1.45, -0.95, 1.12), "Hull dark", segments=5)
-    p.cyl(0.16, 0.6, (1.55, 0.85, 0.85), "Gunmetal", rot=(0, 90, 0), segments=6)
-    p.span((1.1, 0.75, 0.62), (1.55, 1.15, 1.0), "Hull dark")
-    p.span((1.12, 0.73, 0.98), (1.53, 1.17, 1.04), paint)
-    for s in (-1, 1):
-        # Steps up to the door, behind the front wheel.
-        y0, y1 = sorted((s * 1.0, s * 1.32))
-        b0, b1 = sorted((s * 0.98, s * 1.34))
-        for z in (0.5, 0.74):
-            p.span((1.88, y0, z), (2.26, y1, z + 0.04), "Grating")
-        p.span((1.85, b0, 0.46), (1.89, b1, 0.92), "Hull dark")
-        p.span((2.25, b0, 0.46), (2.29, b1, 0.92), "Hull dark")
-    # The cab: lower body, rear wall, roof on pillars; glass in its own
-    # plane between them, seats and a wheel seen through it.
-    p.span((2.2, -w, 0.92), (3.9, w, 1.95), paint)
-    p.span((2.2, -w, 1.95), (2.32, w, 2.98), paint)
-    p.span((2.2, -w, 2.98), (3.62, w, 3.18), paint)
-    with p.painted():
-        p.span((2.21, -w - 0.005, 1.93), (3.89, -w + 0.002, 1.97), "Hull dark")
-    slope = math.degrees(math.atan2(0.4, 1.03))
-    for s in (-1, 1):
-        # Windscreen pillars, raked, and the rear pillars.
-        p.box((0.1, 0.12, 1.12), (3.76, s * (w - 0.06), 2.47), paint, rot=(0, -slope, 0))
-        p.span((2.32, s * w - 0.06, 1.95), (2.44, s * w + 0.0, 2.98) if s > 0 else (2.44, -w + 0.06, 2.98), paint)
-    p.box((0.08, 0.1, 1.08), (3.76, 0, 2.47), paint, rot=(0, -slope, 0))
-    for s in (-1, 1):
-        p.box((0.02, w - 0.26, 1.06), (3.72, s * 0.59, 2.47), "Glass", rot=(0, -slope, 0))
-        p.prism([(2.44, 1.95), (3.7, 1.95), (3.38, 2.98), (2.44, 2.98)], 0.02, (0, s * (w - 0.05), 0), "Glass")
-        # The doors, proud of the body, handles, hinges and mirrors.
-        y = s * (w + 0.008)
-        p.span((2.48, min(y, s * w), 0.98), (3.5, max(y, s * w), 1.9), patch)
-        p.span((3.2, min(y, y + s * 0.03), 1.6), (3.38, max(y, y + s * 0.03), 1.66), "Hull dark")
-        for z in (1.15, 1.7):
-            p.cyl(0.025, 0.12, (3.52, y, z), "Steel", segments=5)
-        p.tube([(3.75, s * w, 2.3), (3.75, s * (w + 0.35), 2.4), (3.75, s * (w + 0.35), 2.7)], 0.02, "Hull dark", segments=5)
-        p.span((3.72, s * (w + 0.29), 2.45), (3.8, s * (w + 0.47), 2.85), "Hull dark")
-        p.span((3.81, s * (w + 0.3), 2.47), (3.82, s * (w + 0.46), 2.83), "Glass")
-        # Headlights in pressed housings.
-        p.lathe([(0.0, 0.0), (0.15, 0.0), (0.16, 0.05), (0.15, 0.12), (0.0, 0.12)], (3.91, s * 0.95, 1.2), "Steel", rot=(0, 90, 0), segments=7)
-        p.cyl(0.12, 0.02, (4.035, s * 0.95, 1.2), "Sodium lamp", rot=(0, 90, 0), segments=7)
-        p.cyl(0.05, 0.03, (3.95, s * 1.18, 0.98), "Fabric red", rot=(0, 90, 0), segments=5)
-    # Seats and the wheel inside.
-    for y in (-0.6, 0.6):
-        p.span((2.45, y - 0.28, 1.95), (2.95, y + 0.28, 2.1), "Leather")
-        p.span((2.4, y - 0.28, 2.1), (2.52, y + 0.28, 2.75), "Leather")
-    p.span((3.35, -w + 0.1, 1.95), (3.7, w - 0.1, 2.2), "Hull dark")
-    p.torus(0.2, 0.02, (3.25, 0.6, 2.35), "Polymer", rot=(0, 60, 0), segments=8, sides=5)
-    p.cyl(0.03, 0.4, (3.38, 0.6, 2.2), "Hull dark", rot=(0, 60, 0), segments=5)
-    # The grille: a frame and its slats; a bull bar in front.
-    p.span((3.9, -0.82, 1.0), (3.96, 0.82, 1.9), "Hull dark")
-    for z in (1.08, 1.22, 1.36, 1.5, 1.64, 1.78):
-        p.box((0.05, 1.56, 0.07), (3.985, 0, z), "Steel", rot=(0, -25, 0))
-    p.tube([(4.22, -1.0, 0.6), (4.22, -1.0, 1.7), (4.22, 1.0, 1.7), (4.22, 1.0, 0.6)], 0.055, "Steel", segments=5)
-    p.tube([(4.22, -0.5, 0.7), (4.22, -0.5, 1.7)], 0.04, "Steel", segments=5)
-    p.tube([(4.22, 0.5, 0.7), (4.22, 0.5, 1.7)], 0.04, "Steel", segments=5)
-    for y in (-0.8, 0.8):
-        p.tube([(4.12, y, 1.2), (4.22, y, 1.2)], 0.04, "Steel", segments=5)
-    # The roof: a rack, a light bar, a beacon, the horn and an aerial.
-    for y in (-1.0, 1.0):
-        p.tube([(2.3, y, 3.32), (3.5, y, 3.32)], 0.025, "Hull dark", segments=5)
-        for x in (2.3, 3.5):
-            p.cyl(0.02, 0.14, (x, y, 3.25), "Hull dark", segments=5)
-    for x in (2.6, 2.9, 3.2):
-        p.tube([(x, -1.0, 3.32), (x, 1.0, 3.32)], 0.02, "Hull dark", segments=5)
-    p.span((3.52, -0.9, 3.18), (3.62, 0.9, 3.3), "Hull dark")
-    for y in (-0.6, -0.2, 0.2, 0.6):
-        p.cyl(0.07, 0.02, (3.63, y, 3.24), "Sodium lamp", rot=(0, 90, 0), segments=5)
-    p.lathe([(0.0, 0.0), (0.08, 0.0), (0.07, 0.1), (0.0, 0.12)], (2.6, 0, 3.18), "Hazard yellow", segments=5)
-    p.lathe([(0.0, 0.0), (0.03, 0.0), (0.08, 0.25), (0.0, 0.25)], (3.0, 1.1, 3.25), "Brass", rot=(0, 90, 0), segments=5)
-    p.cyl(0.006, 1.2, (2.35, -1.2, 3.75), "Hull dark", segments=5)
-    # The exhaust stack up the back of the cab, its heat shield and cap.
-    p.cyl(0.08, 2.4, (2.12, 1.1, 2.2), "Rust", segments=6)
-    p.cyl(0.098, 0.8, (2.12, 1.1, 2.4), "Steel", segments=6)
-    p.box((0.2, 0.2, 0.02), (2.12, 1.1, 3.42), "Hull dark", rot=(0, 20, 0))
-    # Welded patches, a stencilled number, rust run from the seams.
-    p.span((2.25, -w - 0.008, 1.32), (2.42, -w, 1.72), "Rust")
-    with p.painted():
-        p.stencil("27", (2.95, -w - 0.016, 1.62), 0.26, "Stencil white")
-        p.stencil("27", (2.95, w + 0.016, 1.62), 0.26, "Stencil white", facing="+Y")
-        for x in (2.6, 3.42):
-            p.span((x, -w - 0.016, 1.3), (x + 0.04, -w - 0.014, 1.9), "Rust")
-    p.collider((1.85, 2 * w, 2.55), (3.07, 0, 0.6 + 2.55 / 2))
+            p.cyl(0.008, 1.3, (1.85, y, 3.6), "Hull dark", segments=3)
+    # Seats and the wheel, seen through the glass.
+    for y in (-0.55, 0.55):
+        p.span((2.4, y - 0.28, 1.5), (2.9, y + 0.28, 1.65), "Leather")
+        p.span((2.35, y - 0.28, 1.65), (2.47, y + 0.28, 2.3), "Leather")
+    p.torus(0.2, 0.02, (3.4, 0.55, 1.95), "Polymer", rot=(0, 60, 0), segments=8, sides=4)
+    p.collider((2.7, 2 * w, 1.85), (3.03, 0, 1.15 + 1.85 / 2))
+    p.collider((8.2, 2 * w, 0.62), (-0.05, 0, 0.72 + 0.31))
     return paint, patch
 
 
 def hauler(style: Style) -> Piece:
-    """A six-wheeled cargo hauler: a patched cab, and a planked flatbed
-    whose load is under a tarp and ratchet straps. The Pads-to-Hull haul
-    contracts' workhorse; bought, or given as a faction's favour."""
-    p = Piece("hauler", "vehicle", "8.3 × 2.6 × 3.4 m hauler, cab at -Y")
+    """The Pads-to-Hull haul contracts' workhorse: a six-wheel rover-truck
+    on balloon tyres, a capsule cab up front and a planked bed behind, its
+    load of crates lashed down under a tarp. Bought, or given as a faction's
+    favour."""
+    p = Piece("hauler", "vehicle", "8.6 × 3.2 × 3.6 m rover-truck, cab at -Y")
     p.budget = 60000
     paint, patch = _hauler_chassis(p, style)
     r = rng(style, p.name + "bed")
-    w = 1.3
-    # The bed: a steel deck under wooden planks, stake pockets and rails.
-    p.span((-4.0, -w, 0.9), (2.1, w, 1.08), "Hull alloy")
+    w = 1.25
+    # The bed: a steel deck under planks, side rails with stake pockets.
+    p.span((-4.15, -w, 1.4), (1.6, w, 1.55), "Hull alloy")
     for i in range(10):
-        y0 = -w + 0.02 + i * 0.26
-        p.span((-3.98, y0, 1.08), (2.08, y0 + 0.24, 1.1), r.choice(["Wood", "Wood", "Wood dark"]))
+        y0 = -w + 0.02 + i * 0.248
+        p.span((-4.13, y0, 1.55), (1.58, y0 + 0.23, 1.57), r.choice(["Wood", "Wood", "Wood dark"]))
     for s in (-1, 1):
         y0, y1 = sorted((s * (w - 0.04), s * (w + 0.04)))
-        p.span((-4.02, y0, 1.0), (2.12, y1, 1.16), paint)
-        for x in (-3.6, -2.4, -1.2, 0.0, 1.2):
-            p.span((x - 0.05, y0 - 0.01, 1.16), (x + 0.05, y1 + 0.01, 1.3), "Hull dark")
-    # The headboard: a frame with a mesh between.
-    p.tube([(1.95, -w + 0.05, 1.1), (1.95, -w + 0.05, 2.7), (1.95, w - 0.05, 2.7), (1.95, w - 0.05, 1.1)], 0.04, "Hull dark", segments=5)
-    p.span((1.93, -w + 0.1, 1.15), (1.97, w - 0.1, 2.65), "Grating")
-    p.collider((6.1, 2 * w, 0.7), (-0.95, 0, 0.6 + 0.35))
-    # The load: crates two high, the front of it under a tarp, the back
-    # open, everything ratchet-strapped down.
-    stacks = [(-3.2, 1.0), (-1.9, 1.15), (-0.6, 1.15), (0.7, 1.1)]
+        p.span((-4.17, y0, 1.47), (1.62, y1, 1.67), paint)
+        for x in (-3.7, -2.5, -1.3, -0.1, 1.1):
+            p.span((x - 0.05, y0 - 0.01, 1.67), (x + 0.05, y1 + 0.01, 1.8), "Hull dark")
+    p.tube([(1.55, -w + 0.05, 1.57), (1.55, -w + 0.05, 3.0), (1.55, w - 0.05, 3.0), (1.55, w - 0.05, 1.57)], 0.04, "Hull dark", segments=4)
+    p.span((1.53, -w + 0.1, 1.61), (1.57, w - 0.1, 2.95), "Grating")
+    # The load: crates two high, lashed, the front of it under a tarp.
+    stacks = [(-3.5, 1.0), (-2.25, 1.15), (-1.0, 1.15), (0.3, 1.1)]
     top = 0
     for x, h in stacks:
-        for y in (-0.62, 0.62):
+        for y in (-0.6, 0.6):
             hh = h * r.uniform(0.85, 1.0)
             mat = r.choice(["Crew orange", "Container blue", "Container green", "Repaint cream"])
-            p.span((x - 0.6, y - 0.56, 1.1), (x + 0.6, y + 0.56, 1.1 + hh), mat)
-            p.span((x - 0.62, y - 0.58, 1.1 + hh - 0.08), (x + 0.62, y + 0.58, 1.1 + hh + 0.012), "Hull dark")
+            p.span((x - 0.58, y - 0.55, 1.57), (x + 0.58, y + 0.55, 1.57 + hh), mat)
+            p.span((x - 0.6, y - 0.57, 1.57 + hh - 0.08), (x + 0.6, y + 0.57, 1.57 + hh + 0.012), "Hull dark")
             top = max(top, hh)
-    lid = 1.1 + top + 0.05
-    p.cloth([(-2.55, -w - 0.06, lid), (1.4, -w - 0.06, lid), (1.4, w + 0.06, lid), (-2.55, w + 0.06, lid)],
+    lid = 1.57 + top + 0.05
+    p.cloth([(-2.9, -w - 0.06, lid), (1.0, -w - 0.06, lid), (1.0, w + 0.06, lid), (-2.9, w + 0.06, lid)],
             "Tarp", sag=-0.04, ripple=0.03, thickness=0.012, cell=0.3, seed=3, droop=(0.2, 0, 0.2, 0))
     for s in (-1, 1):
-        _hanging(p, (-2.55, s * (w + 0.065)), (1.4, s * (w + 0.065)), lid, 1.45, "Tarp", ripple=0.025, thickness=0.014, cell=0.3, seed=5 + s)
-    for x in (-2.0, -0.6, 0.9, -3.2):
-        p.tube([(x, -w - 0.09, 1.2), (x, -w - 0.09, lid + 0.04), (x, w + 0.09, lid + 0.04), (x, w + 0.09, 1.2)], 0.016,
-               "Hazard yellow", segments=5)
-        p.span((x - 0.05, -w - 0.13, 1.3), (x + 0.05, -w - 0.09, 1.42), "Steel")
-    p.collider((5.6, 2 * w - 0.2, top), (-1.3, 0, 1.1 + top / 2))
+        _hanging(p, (-2.9, s * (w + 0.065)), (1.0, s * (w + 0.065)), lid, 1.85, "Tarp", ripple=0.025, thickness=0.014,
+                 cell=0.3, seed=5 + s)
+    for x in (-2.4, -1.0, 0.5, -3.5):
+        p.tube([(x, -w - 0.09, 1.65), (x, -w - 0.09, lid + 0.04), (x, w + 0.09, lid + 0.04), (x, w + 0.09, 1.65)], 0.016,
+               "Hazard yellow", segments=4)
+        p.span((x - 0.05, -w - 0.13, 1.75), (x + 0.05, -w - 0.09, 1.87), "Steel")
+    p.collider((5.0, 2 * w - 0.2, top), (-1.6, 0, 1.57 + top / 2))
     p.turn(-1)  # nose along -Y
     return p
 
 
 def hauler_tanker(style: Style) -> Piece:
-    """The hauler with a tank on its back: water out to the Fringe, fuel to
-    the Pads. A walkway and rails along the top, manholes, a ladder, a hose
-    reel and valves at the back. Whoever drives it is carrying the colony's
-    leverage."""
-    p = Piece("hauler_tanker", "vehicle", "8.5 × 2.6 × 3.5 m tanker, cab at -Y")
+    """The rover-truck with a tank on its back: water out to the Fringe,
+    fuel to the Pads. A walkway and rails along the top, manholes, a ladder,
+    a hose reel and valves at the back. Whoever drives it is carrying the
+    colony's leverage."""
+    p = Piece("hauler_tanker", "vehicle", "8.6 × 3.2 × 3.7 m rover-tanker, cab at -Y")
     p.budget = 60000
     paint, patch = _hauler_chassis(p, style)
     # The tank on its cradles, banded, domed at its ends.
-    p.span((-4.0, -1.0, 0.9), (2.1, 1.0, 1.05), "Hull dark")
-    p.lathe([(0.0, -3.08), (0.6, -3.05), (0.92, -2.95), (1.05, -2.8), (1.05, 2.8), (0.92, 2.95), (0.6, 3.05), (0.0, 3.08)],
-            (-1.0, 0, 2.15), "Water blue", rot=(0, 90, 0), segments=11)
-    for x in (-3.4, -1.9, -0.1, 1.5):
-        p.torus(1.058, 0.04, (x, 0, 2.15), "Hull dark", rot=(0, 90, 0), segments=11, sides=5)
-        p.span((x - 0.1, -0.85, 1.05), (x + 0.1, 0.85, 1.4), "Hull dark")
-    # The walkway on top, its rails, two manholes.
-    p.span((-3.6, -0.3, 3.19), (1.6, 0.3, 3.25), "Grating")
+    p.span((-4.1, -1.0, 1.15), (1.6, 1.0, 1.3), "Hull dark")
+    p.lathe([(0.0, -2.88), (0.6, -2.85), (0.92, -2.75), (1.05, -2.6), (1.05, 2.6), (0.92, 2.75), (0.6, 2.85), (0.0, 2.88)],
+            (-1.25, 0, 2.4), "Water blue", rot=(0, 90, 0), segments=11)
+    for x in (-3.5, -2.0, -0.4, 1.0):
+        p.torus(1.058, 0.04, (x, 0, 2.4), "Hull dark", rot=(0, 90, 0), segments=11, sides=4)
+        p.span((x - 0.1, -0.85, 1.3), (x + 0.1, 0.85, 1.65), "Hull dark")
+    p.span((-3.7, -0.3, 3.44), (1.2, 0.3, 3.5), "Grating")
     for s in (-1, 1):
-        for x in (-3.4, -2.0, -0.6, 0.8):
-            p.cyl(0.018, 0.9, (x, s * 0.36, 3.65), "Steel", segments=5)
-        p.tube([(-3.4, s * 0.36, 4.1), (0.8, s * 0.36, 4.1)], 0.02, "Steel", segments=5)
-    for x in (-2.6, -0.2):
-        p.lathe([(0.0, 0.0), (0.26, 0.0), (0.26, 0.1), (0.22, 0.14), (0.0, 0.15)], (x, 0, 3.15), "Hull alloy", segments=8)
-        p.torus(0.2, 0.02, (x, 0, 3.32), "Steel", segments=6, sides=5)
-    # The ladder at the back, the hose reel and valves.
+        for x in (-3.5, -2.1, -0.7, 0.7):
+            p.cyl(0.018, 0.9, (x, s * 0.36, 3.9), "Steel", segments=4)
+        p.tube([(-3.5, s * 0.36, 4.35), (0.7, s * 0.36, 4.35)], 0.02, "Steel", segments=4)
+    for x in (-2.7, -0.3):
+        p.lathe([(0.0, 0.0), (0.26, 0.0), (0.26, 0.1), (0.22, 0.14), (0.0, 0.15)], (x, 0, 3.4), "Hull alloy", segments=8)
+        p.torus(0.2, 0.02, (x, 0, 3.57), "Steel", segments=6, sides=4)
     for y in (0.5, 0.9):
-        p.tube([(-4.12, y, 1.1), (-4.12, y, 3.25)], 0.025, "Steel", segments=5)
-    for z in (1.4, 1.75, 2.1, 2.45, 2.8, 3.15):
-        p.tube([(-4.12, 0.5, z), (-4.12, 0.9, z)], 0.018, "Steel", segments=5)
-    p.cyl(0.3, 0.32, (-3.8, -0.6, 1.4), "Crew orange", rot=(0, 90, 0), segments=8)
-    p.cyl(0.24, 0.34, (-3.8, -0.6, 1.4), "Rubber", rot=(0, 90, 0), segments=8)
-    p.cable((-3.96, -0.6, 1.2), (-4.1, -0.9, 0.3), 0.035, "Rubber", sag=0.1, segments=5)
+        p.tube([(-4.18, y, 1.3), (-4.18, y, 3.5)], 0.025, "Steel", segments=4)
+    for z in (1.6, 1.95, 2.3, 2.65, 3.0, 3.35):
+        p.tube([(-4.18, 0.5, z), (-4.18, 0.9, z)], 0.018, "Steel", segments=4)
+    p.cyl(0.3, 0.32, (-3.85, -0.6, 1.65), "Crew orange", rot=(0, 90, 0), segments=8)
+    p.cyl(0.24, 0.34, (-3.85, -0.6, 1.65), "Rubber", rot=(0, 90, 0), segments=8)
+    p.cable((-4.02, -0.6, 1.45), (-4.15, -0.9, 0.3), 0.035, "Rubber", sag=0.1, segments=5)
     for y in (-0.1, 0.2):
-        p.lathe([(0.0, 0.0), (0.05, 0.0), (0.05, 0.2), (0.08, 0.22), (0.08, 0.3), (0.0, 0.3)], (-4.08, y, 1.3), "Brass", rot=(0, -90, 0), segments=5)
-        p.torus(0.07, 0.012, (-4.4, y, 1.3), "Fabric red", rot=(0, 90, 0), segments=5, sides=5)
-    # Hazard placards, a number and a band.
+        p.lathe([(0.0, 0.0), (0.05, 0.0), (0.05, 0.2), (0.08, 0.22), (0.08, 0.3), (0.0, 0.3)], (-4.12, y, 1.5), "Brass",
+                rot=(0, -90, 0), segments=5)
     with p.painted():
-        p.stencil("40", (-2.2, -1.068, 2.7), 0.32, "Stencil white")
-        for x in (-3.0, 0.8):
-            p.box((0.32, 0.01, 0.32), (x, -1.06, 2.0), "Hazard yellow", rot=(0, 45, 0))
-    p.collider((6.1, 2.1, 2.3), (-0.95, 0, 0.9 + 2.3 / 2))
+        p.stencil("40", (-2.3, -1.068, 2.95), 0.32, "Stencil white")
+        for x in (-3.1, 0.6):
+            p.box((0.32, 0.01, 0.32), (x, -1.065, 2.25), "Hazard yellow", rot=(0, 45, 0))
+    p.collider((5.8, 2.1, 2.3), (-1.25, 0, 1.15 + 2.3 / 2))
     p.turn(-1)  # nose along -Y
     return p
 
 
-# Bike and trike --------------------------------------------------------------
+# Bike, trike and buggy --------------------------------------------------------
+
+def _nose_lamps(p: Piece, x, z, gap: float, mat: str = "Laser cyan") -> None:
+    """Twin round lamps set into a cowl's nose, facing +X."""
+    for y in (-gap / 2, gap / 2):
+        p.lathe([(0.0, 0.0), (0.05, 0.0), (0.055, 0.03), (0.0, 0.04)], (x, y, z), "Hull dark", rot=(0, 90, 0), segments=6)
+        p.cyl(0.038, 0.02, (x + 0.04, y, z), mat, rot=(0, 90, 0), segments=6)
+
 
 def bike(style: Style) -> Piece:
-    """A rugged dirt bike: spoked wheels on knobbly tyres, long-travel
-    forks, a finned single-cylinder engine, a patched tank, and panniers
-    for courier work. Bought, or won."""
-    p = Piece("bike", "vehicle", "2.1 × 0.8 × 1.2 m dirt bike, front at -Y")
+    """A frontier courier bike after the cyberpunk-bike concept: fat balloon
+    tyres, a single-sided swingarm in Hazard yellow, a boxy electric drive
+    out in the open between the wheels, and one long low cowl from the seat
+    to past the front wheel, a ridge down its back, twin lamps in its nose.
+    Patched, dusty, a courier's bag strapped on."""
+    p = Piece("bike", "vehicle", "2.3 × 0.7 × 1.1 m bike, front at -Y")
     p.budget = 30000
     r = rng(style, p.name)
-    paint = r.choice(["Crew orange", "Repaint teal", "Hazard yellow", "Repaint oxide"])
-    for x in (-0.72, 0.72):
-        _spoked(p, x, 0.34, 0.34, 0.13)
-    # Frame: a cradle under the engine, the backbone, the swingarm.
-    p.tube([(0.38, 0, 0.86), (0.3, 0, 0.6), (0.1, 0, 0.3), (-0.2, 0, 0.28), (-0.25, 0, 0.5)], 0.022, "Hull dark", segments=5)
-    p.tube([(0.38, 0, 0.88), (0.05, 0, 0.82), (-0.25, 0, 0.6), (-0.6, 0, 0.78)], 0.026, "Hull dark", segments=5)
+    paint = r.choice(["Hull alloy", "Repaint teal", "Repaint cream", "Crew grey"])
+    ridge = r.choice([c for c in REPAINTS + ["Crew orange"] if c != paint])
+    rad = 0.34
+    _balloon(p, -0.8, 0, rad, rad, 0.24, -1, both=True)
+    _balloon(p, 0.82, 0, rad, rad, 0.2, -1, both=True)
+    # The swingarm: one deep yellow arm on the left, tapering from the pivot
+    # to the rear hub, and its shock up to the frame.
+    p.prism([(-0.86, 0.29), (-0.12, 0.36), (-0.1, 0.54), (-0.86, 0.41)], 0.07, (0, -0.16, 0), ACCENT)
+    p.cyl(0.07, 0.1, (-0.12, -0.16, 0.45), "Gunmetal", rot=(90, 0, 0), segments=6)
+    _coilover(p, (-0.4, -0.09, 0.5), (-0.22, -0.06, 0.84), radius=0.035, turns=6)
+    # The fork: two straight raked legs, yellow sliders on steel tubes, a
+    # fender over the tyre.
     for s in (-1, 1):
-        p.tube([(-0.2, s * 0.07, 0.42), (-0.72, s * 0.07, 0.34)], 0.022, "Gunmetal", segments=5)
-    # The rear shock: a spring round a rod, its reservoir.
-    p.cyl(0.012, 0.36, (-0.32, 0, 0.6), "Steel", rot=(0, -30, 0), segments=5)
-    for i in range(4):
-        t = i / 3
-        p.torus(0.032, 0.006, (-0.38 + t * 0.12, 0, 0.5 + t * 0.21), "Hazard yellow", rot=(0, -30, 0), segments=5, sides=5)
-    # Forks: stanchions in their sliders, the clamps, bars and controls.
+        p.tube([(0.82, s * 0.13, rad), (0.7, s * 0.13, 0.66)], 0.034, ACCENT, segments=4)
+        p.tube([(0.71, s * 0.12, 0.62), (0.58, s * 0.1, 0.98)], 0.024, "Steel", segments=4)
+    for z in (0.86, 0.97):
+        p.span((0.53, -0.13, z - 0.02), (0.63, 0.13, z + 0.02), "Hull dark")
+    arc = [(0.82 + math.cos(math.radians(a)) * (rad + 0.05), rad + math.sin(math.radians(a)) * (rad + 0.05)) for a in range(20, 150, 16)]
+    p.prism(arc + [(x - (x - 0.82) * 0.12, z - 0.03) for x, z in reversed(arc)], 0.21, (0, 0, 0), "Hull dark")
+    # The frame: a spine from the head back over the drive to the tail.
+    p.tube([(0.58, 0, 0.96), (0.1, 0, 0.78), (-0.4, 0, 0.74), (-0.8, 0, 0.8)], 0.035, "Hull dark", segments=4)
+    p.tube([(0.56, 0, 0.9), (0.42, 0, 0.42), (0.02, 0, 0.3), (-0.12, 0, 0.45)], 0.03, "Hull dark", segments=4)
+    # The drive: a motor drum with yellow rims, a finned battery box, the
+    # controller and its cables, all out in the open.
+    p.cyl(0.16, 0.26, (-0.05, 0, 0.45), "Gunmetal", rot=(90, 0, 0), segments=10)
     for s in (-1, 1):
-        p.tube([(0.72, s * 0.08, 0.34), (0.58, s * 0.08, 0.66)], 0.032, "Gunmetal", segments=5)
-        p.tube([(0.6, s * 0.08, 0.62), (0.42, s * 0.08, 1.02)], 0.02, "Steel", segments=5)
-    for z in (0.88, 1.0):
-        p.span((0.42, -0.12, z - 0.025), (0.5, 0.12, z + 0.025), "Hull dark")
-    p.tube([(0.36, -0.38, 1.12), (0.42, -0.3, 1.07), (0.42, 0.3, 1.07), (0.36, 0.38, 1.12)], 0.014, "Hull dark", segments=5)
-    for s in (-1, 1):
-        p.cyl(0.022, 0.12, (0.36, s * 0.37, 1.12), "Rubber", rot=(90, 0, 0), segments=5)
-        p.tube([(0.4, s * 0.28, 1.1), (0.46, s * 0.36, 1.08)], 0.006, "Steel", segments=5)
-        p.cable((0.4, s * 0.25, 1.08), (0.3, s * 0.05, 0.85), 0.006, "Polymer", sag=0.05, segments=5, steps=3)
-    # Engine: crankcase, a finned barrel and head, the carburettor.
-    p.lathe([(0.0, -0.13), (0.13, -0.13), (0.16, -0.08), (0.16, 0.08), (0.13, 0.13), (0.0, 0.13)], (-0.02, 0, 0.42), "Hull alloy",
-            rot=(90, 0, 0), segments=8)
-    for i in range(7):
-        z = 0.56 + i * 0.035
-        p.span((0.0, -0.11, z), (0.22, 0.11, z + 0.016), "Gunmetal")
-    p.span((0.03, -0.07, 0.55), (0.19, 0.07, 0.81), "Gunmetal")
-    p.cyl(0.04, 0.12, (-0.08, -0.04, 0.7), "Steel", rot=(0, 90, 0), segments=5)
-    # The exhaust: header, a heat shield, the silencer high at the back.
-    p.tube([(0.2, -0.06, 0.66), (0.32, -0.12, 0.45), (0.1, -0.16, 0.3), (-0.2, -0.17, 0.34), (-0.42, -0.17, 0.38)], 0.024, "Rust", segments=5)
-    p.lathe([(0.0, 0.0), (0.045, 0.0), (0.055, 0.04), (0.055, 0.3), (0.04, 0.34), (0.0, 0.34)], (-0.42, -0.17, 0.38), "Steel",
-            rot=(0, -85, 0), segments=6)
-    # The chain over its sprockets.
-    p.cyl(0.05, 0.012, (-0.02, 0.1, 0.42), "Gunmetal", rot=(90, 0, 0), segments=6)
-    p.cyl(0.1, 0.012, (-0.72, 0.1, 0.34), "Gunmetal", rot=(90, 0, 0), segments=8)
-    for z0, z1 in ((0.47, 0.44), (0.37, 0.24)):
-        p.tube([(-0.02, 0.1, z0), (-0.72, 0.1, z1)], 0.008, "Hull dark", segments=5)
-    # Tank, seat, side panels, fenders, number board and the lamp.
-    p.prism([(-0.08, 0.78), (0.38, 0.86), (0.34, 1.0), (-0.02, 0.97)], 0.3, (0, 0, 0), paint)
-    p.prism([(0.08, 0.8), (0.18, 0.82), (0.17, 0.95), (0.09, 0.94)], 0.32, (0, 0, 0), r.choice(REPAINTS))
-    p.cyl(0.04, 0.03, (0.18, 0, 1.0), "Hull alloy", segments=5)
-    p.prism([(-0.82, 0.83), (-0.08, 0.86), (0.0, 0.96), (-0.82, 0.92)], 0.25, (0, 0, 0), "Leather")
-    p.prism([(-0.75, 0.6), (-0.3, 0.62), (-0.22, 0.8), (-0.75, 0.8)], 0.27, (0, 0, 0), paint)
-    p.prism([(-1.04, 0.6), (-0.7, 0.78), (-0.25, 0.8), (-0.25, 0.77), (-0.7, 0.74), (-1.02, 0.55)], 0.16, (0, 0, 0), paint)
-    p.prism([(0.55, 0.74), (0.92, 0.58), (0.94, 0.62), (0.6, 0.8)], 0.15, (0, 0, 0), paint)
-    p.prism([(0.42, 0.95), (0.57, 0.9), (0.55, 1.2), (0.44, 1.2)], 0.18, (0, 0, 0), "Bleached")
-    p.lathe([(0.0, 0.0), (0.07, 0.0), (0.075, 0.05), (0.06, 0.08), (0.0, 0.08)], (0.56, 0, 1.06), "Hull dark", rot=(0, 90, 0), segments=6)
-    p.cyl(0.055, 0.012, (0.644, 0, 1.06), "Sodium lamp", rot=(0, 90, 0), segments=6)
-    p.cyl(0.035, 0.03, (-1.04, 0, 0.66), "Fabric red", rot=(0, 90, 0), segments=5)
+        p.torus(0.16, 0.02, (-0.05, s * 0.14, 0.45), ACCENT, rot=(90, 0, 0), segments=10, sides=4)
+    p.span((0.1, -0.12, 0.4), (0.44, 0.12, 0.68), "Hull dark")
+    for i in range(6):
+        z = 0.42 + i * 0.042
+        p.span((0.44, -0.11, z), (0.48, 0.11, z + 0.018), "Gunmetal")
+    p.span((0.14, -0.13, 0.46), (0.4, -0.12, 0.62), ridge)
     with p.painted():
-        p.stencil("9", (-0.5, -0.141, 0.72), 0.14, "Hull dark", facing="-Y")
-        p.stencil("9", (-0.5, 0.141, 0.72), 0.14, "Hull dark", facing="+Y")
-    # Panniers either side of the rear wheel, strapped on.
+        p.stencil("9", (0.27, -0.136, 0.54), 0.1, "Stencil white")
+    with p.plain():
+        for z in (0.52, 0.6):
+            p.cable((0.12, 0.1, z), (-0.1, 0.1, z - 0.15), 0.01, "Polymer", sag=0.03, steps=4, segments=3)
+    # The exhaust: a chrome loop from the drive's cooler back under the tail.
+    p.tube([(-0.05, 0.14, 0.6), (-0.3, 0.17, 0.66), (-0.6, 0.17, 0.6), (-0.9, 0.15, 0.66)], 0.028, "Steel", segments=5)
+    # The cowl: low and long, seat to nose, its flank panel and a ridge down
+    # its back in another paint; the twin lamps in its nose.
+    p.prism([(-0.35, 0.76), (0.5, 0.78), (0.94, 0.84), (1.0, 0.94), (0.72, 1.01), (0.1, 0.99), (-0.3, 0.93)], 0.32, (0, 0, 0), paint)
+    p.prism([(-0.2, 0.92), (0.62, 0.99), (0.66, 1.05), (0.1, 1.07), (-0.18, 0.98)], 0.16, (0, 0, 0), ridge)
+    with p.painted():
+        for s in (-1, 1):
+            p.prism([(0.15, 0.82), (0.6, 0.84), (0.55, 0.92), (0.2, 0.9)], 0.006, (0, s * 0.165, 0), "Hull dark")
+    _nose_lamps(p, 0.99, 0.9, 0.12)
+    # The seat, low and long, the upswept tail, the tail lamp.
+    p.prism([(-0.85, 0.82), (-0.3, 0.84), (-0.25, 0.92), (-0.8, 0.92)], 0.24, (0, 0, 0), "Leather")
+    p.prism([(-1.08, 0.82), (-0.82, 0.8), (-0.78, 0.93), (-1.02, 0.98)], 0.2, (0, 0, 0), paint)
+    p.span((-1.1, -0.07, 0.86), (-1.06, 0.07, 0.92), "Fabric red")
+    # Bars, grips.
+    p.tube([(0.5, -0.33, 1.06), (0.58, -0.22, 1.0), (0.58, 0.22, 1.0), (0.5, 0.33, 1.06)], 0.014, "Hull dark", segments=4)
     for s in (-1, 1):
-        y0, y1 = sorted((s * 0.15, s * 0.33))
-        p.span((-0.95, y0, 0.55), (-0.45, y1, 0.86), "Canvas")
-        p.span((-0.96, min(y0, y1) - 0.006, 0.76), (-0.44, max(y0, y1) + 0.006, 0.88), "Fabric olive")
-        p.span((-0.76, min(y0, y1) - 0.012, 0.53), (-0.72, max(y0, y1) + 0.012, 0.9), "Leather")
-    p.collider((2.1, 0.6, 1.0), (0, 0, 0.6))
+        p.cyl(0.022, 0.11, (0.5, s * 0.33, 1.06), "Rubber", rot=(90, 0, 0), segments=5)
+    # A courier bag strapped on the right of the tail.
+    p.span((-0.9, 0.13, 0.62), (-0.6, 0.26, 0.8), "Canvas")
+    p.span((-0.91, 0.124, 0.74), (-0.59, 0.266, 0.82), "Fabric olive")
+    p.collider((2.2, 0.5, 1.0), (0, 0, 0.6))
     p.turn(-1)  # nose along -Y
     return p
 
 
 def trike(style: Style) -> Piece:
-    """A three-wheeled Fringe runabout: a single front wheel on a sprung
-    fork, a tub over the back axle, a bench seat under a roll bar, and a
-    rack of water cans and filters roped down behind."""
-    p = Piece("trike", "vehicle", "2.7 × 1.7 × 1.75 m trike, front at -Y")
+    """A three-wheeled Fringe runabout in the bike's family: one fat tyre
+    up front on a yellow fork under a faceted cowl with twin lamps, two
+    balloon tyres behind under a tub, a bench under a roll bar, and a rack of
+    water cans and a crate roped down behind."""
+    p = Piece("trike", "vehicle", "2.8 × 1.8 × 1.75 m trike, front at -Y")
     p.budget = 30000
     r = rng(style, p.name)
     paint = r.choice(["Bleached", "Repaint green", "Repaint cream", "Crew grey"])
-    _spoked(p, 1.0, 0.36, 0.36, 0.2, knobs=24)
-    for y, s in ((-0.62, -1), (0.62, 1)):
-        _wheel(p, -0.85, y, 0.42, 0.42, 0.3, s, lugs=16)
-    p.cyl(0.05, 1.3, (-0.85, 0, 0.42), "Hull dark", rot=(90, 0, 0), segments=5)
-    p.lathe([(0.0, -0.14), (0.12, -0.13), (0.16, 0.0), (0.12, 0.13), (0.0, 0.14)], (-0.85, 0, 0.42), "Gunmetal", rot=(90, 0, 0), segments=6)
-    # The tub over the back axle, its nose, the frame forward to the fork.
-    p.span((-1.3, -0.5, 0.48), (0.2, 0.5, 0.95), paint)
-    p.prism([(0.2, 0.48), (0.86, 0.66), (0.86, 0.85), (0.2, 0.95)], 0.5, (0, 0, 0), paint)
-    p.tube([(-0.2, 0, 0.5), (0.5, 0, 0.55), (0.8, 0, 0.95)], 0.035, "Hull dark", segments=5)
+    _balloon(p, 1.0, 0, 0.38, 0.38, 0.24, -1, blocks=24, both=True)
     for s in (-1, 1):
-        y0, y1 = sorted((s * 0.45, s * 0.8))
-        p.span((-1.25, y0, 0.88), (-0.45, y1, 0.93), "Hull dark")
-        p.span((-1.25, y0, 0.78), (-1.22, y1, 0.88), "Hull dark")
-        p.tube([(1.0, s * 0.11, 0.36), (0.74, s * 0.11, 1.05)], 0.03, "Steel", segments=5)
-        p.tube([(0.98, s * 0.11, 0.4), (0.86, s * 0.11, 0.72)], 0.042, "Gunmetal", segments=5)
-    p.tube([(0.62, -0.4, 1.2), (0.72, -0.3, 1.12), (0.72, 0.3, 1.12), (0.62, 0.4, 1.2)], 0.018, "Hull dark", segments=5)
+        _balloon(p, -0.85, s * 0.66, 0.44, 0.44, 0.32, s, blocks=24)
+    p.cyl(0.05, 1.3, (-0.85, 0, 0.44), "Hull dark", rot=(90, 0, 0), segments=5)
+    p.lathe([(0.0, -0.14), (0.12, -0.13), (0.16, 0.0), (0.12, 0.13), (0.0, 0.14)], (-0.85, 0, 0.44), "Gunmetal", rot=(90, 0, 0), segments=6)
     for s in (-1, 1):
-        p.cyl(0.024, 0.12, (0.62, s * 0.41, 1.2), "Rubber", rot=(90, 0, 0), segments=5)
-    p.lathe([(0.0, 0.0), (0.08, 0.0), (0.085, 0.05), (0.07, 0.09), (0.0, 0.09)], (0.86, 0, 0.8), "Hull dark", rot=(0, 90, 0), segments=6)
-    p.cyl(0.065, 0.012, (0.955, 0, 0.8), "Sodium lamp", rot=(0, 90, 0), segments=6)
-    # The bench seat and the roll bar over it.
-    p.span((-0.35, -0.42, 0.95), (0.15, 0.42, 1.08), "Leather")
-    p.span((-0.42, -0.42, 1.08), (-0.3, 0.42, 1.45), "Leather")
-    p.tube([(-0.47, -0.5, 0.95), (-0.47, -0.5, 1.72), (-0.47, 0.5, 1.72), (-0.47, 0.5, 0.95)], 0.035, "Hull dark", segments=5)
-    p.tube([(-0.47, -0.5, 1.6), (-1.25, -0.48, 0.96)], 0.025, "Hull dark", segments=5)
-    p.tube([(-0.47, 0.5, 1.6), (-1.25, 0.48, 0.96)], 0.025, "Hull dark", segments=5)
-    # The rack: water cans and a crate of filters, roped down.
-    p.span((-1.3, -0.5, 0.95), (-0.5, 0.5, 1.0), "Grating")
+        _coilover(p, (-0.7, s * 0.4, 0.5), (-0.45, s * 0.38, 0.95), radius=0.045, turns=6)
+        p.tube([(1.0, s * 0.15, 0.38), (0.82, s * 0.13, 0.7), (0.7, s * 0.1, 1.02)], 0.032, ACCENT, segments=4)
+    # The tub over the back axle and the frame forward to the head.
+    p.prism([(-1.35, 0.5), (0.25, 0.5), (0.35, 0.8), (0.2, 0.98), (-1.3, 0.98), (-1.42, 0.75)], 1.0, (0, 0, 0), paint)
+    p.tube([(-0.2, 0, 0.55), (0.45, 0, 0.58), (0.72, 0, 0.98)], 0.04, "Hull dark", segments=4)
+    # The cowl over the fork, its lamps; the bars.
+    p.prism([(0.3, 0.82), (0.92, 0.9), (1.02, 1.0), (0.75, 1.1), (0.35, 1.05)], 0.36, (0, 0, 0), paint)
+    _nose_lamps(p, 1.0, 0.96, 0.16, "Sodium lamp")
+    p.tube([(0.62, -0.42, 1.22), (0.72, -0.3, 1.14), (0.72, 0.3, 1.14), (0.62, 0.42, 1.22)], 0.018, "Hull dark", segments=4)
+    for s in (-1, 1):
+        p.cyl(0.024, 0.12, (0.62, s * 0.42, 1.22), "Rubber", rot=(90, 0, 0), segments=5)
+        # Fenders over the rear tyres.
+        y0, y1 = sorted((s * 0.45, s * 0.88))
+        p.prism([(-1.4, 0.7), (-1.2, 0.95), (-0.5, 0.95), (-0.3, 0.7), (-0.34, 0.66), (-0.52, 0.9), (-1.18, 0.9), (-1.36, 0.66)],
+                abs(y1 - y0), (0, (y0 + y1) / 2, 0), "Hull dark")
+    # The bench and the roll bar.
+    p.span((-0.3, -0.36, 0.98), (0.1, 0.36, 1.08), "Leather")
+    p.span((-0.4, -0.36, 1.08), (-0.3, 0.36, 1.4), "Leather")
+    p.tube([(-0.47, -0.5, 0.98), (-0.47, -0.5, 1.72), (-0.47, 0.5, 1.72), (-0.47, 0.5, 0.98)], 0.035, "Hull dark", segments=4)
+    for s in (-1, 1):
+        p.tube([(-0.47, s * 0.5, 1.6), (-1.28, s * 0.48, 0.99)], 0.025, "Hull dark", segments=4)
+    _light_bar(p, -0.42, 0.42, 0, 1.76, lamps=3)
+    # The rack: water cans and a crate, roped down.
+    p.span((-1.32, -0.5, 0.98), (-0.52, 0.5, 1.02), "Grating")
     for y in (-0.3, 0.05):
-        p.source("metal_jerrycan_green", at=(-1.12, y, 1.0), rot=(0, 0, 90), height=0.46)
-    p.source("plastic_crate_02", at=(-0.72, 0.0, 1.0), rot=(0, 0, 90), length=0.4)
-    for y in (-0.08, 0.08):
-        for x in (-0.82, -0.62):
-            p.cyl(0.045, 0.12, (x, y, 1.33), "Fabric sand", segments=5)
-    p.cable((-1.3, -0.52, 1.45), (-0.5, -0.52, 1.3), 0.01, "Canvas", sag=0.03, segments=5)
-    p.cable((-1.3, 0.52, 1.45), (-0.5, 0.52, 1.3), 0.01, "Canvas", sag=0.03, segments=5)
-    p.collider((2.3, 1.2, 1.1), (-0.15, 0, 0.6 + 0.4))
+        _source(p, "metal_jerrycan_green", (-1.12, y, 1.02), (0, 0, 90), height=0.46)
+    _source(p, "plastic_crate_02", (-0.72, 0.0, 1.02), (0, 0, 90), length=0.4)
+    p.cable((-1.3, -0.52, 1.47), (-0.52, -0.52, 1.32), 0.01, "Canvas", sag=0.03, segments=4)
+    p.cable((-1.3, 0.52, 1.47), (-0.52, 0.52, 1.32), 0.01, "Canvas", sag=0.03, segments=4)
+    p.collider((2.4, 1.2, 1.1), (-0.15, 0, 0.6 + 0.4))
+    p.turn(-1)  # nose along -Y
+    return p
+
+
+def buggy(style: Style) -> Piece:
+    """A two-seat Fringe runabout after the sci-fi buggy: a faceted tub
+    low between four balloon tyres on A-arms and yellow coilovers, a tube
+    cage over the seats with a light bar, water cans and a spare on the back.
+    What a Fringer who's done well drives."""
+    p = Piece("buggy", "vehicle", "3.7 × 2.1 × 1.8 m buggy, front at -Y")
+    p.budget = 40000
+    r = rng(style, p.name)
+    paint = r.choice(["Bleached", "Hull alloy", "Repaint oxide", "Crew orange"])
+    for x in (1.3, -1.25):
+        for s in (-1, 1):
+            _balloon(p, x, s * 0.88, 0.44, 0.44, 0.32, s, blocks=24)
+            # Upper and lower A-arms to the hub, and the coilover.
+            for z0, z1 in ((0.38, 0.4), (0.72, 0.56)):
+                _arm(p, (x - 0.22, s * 0.42, z0), (x, s * 0.72, z1), 0.025, "Gunmetal")
+                _arm(p, (x + 0.22, s * 0.42, z0), (x, s * 0.72, z1), 0.025, "Gunmetal")
+            _coilover(p, (x + (0.08 if x > 0 else -0.08), s * 0.68, 0.5), (x + (0.18 if x > 0 else -0.18), s * 0.45, 1.0),
+                      radius=0.055, turns=7)
+    # The tub: a faceted shell in profile, its hood and its flanks.
+    tub = [(-1.75, 0.32), (1.6, 0.32), (1.95, 0.55), (1.82, 0.78), (0.75, 0.92), (0.45, 0.82), (-0.75, 0.82), (-1.1, 0.95),
+           (-1.8, 0.9)]
+    p.prism(tub, 0.9, (0, 0, 0), paint)
+    p.prism([(0.75, 0.92), (1.82, 0.78), (1.84, 0.82), (0.78, 0.96)], 0.8, (0, 0, 0), r.choice(REPAINTS))
+    for s in (-1, 1):
+        p.prism([(-1.4, 0.36), (1.3, 0.36), (1.5, 0.55), (1.2, 0.72), (-1.1, 0.72), (-1.5, 0.6)], 0.1, (0, s * 0.5, 0), "Hull dark")
+    p.span((1.9, -0.55, 0.36), (2.02, 0.55, 0.55), "Gunmetal")
+    with p.painted():
+        for i in range(4):
+            p.box((0.012, 0.13, 0.15), (2.026, -0.36 + i * 0.24, 0.46), "Hazard yellow", rot=(35, 0, 0))
+    _nose_lamps(p, 1.9, 0.68, 0.7, "Sodium lamp")
+    # Two bucket seats, a wheel, the dash.
+    for y in (-0.27, 0.27):
+        p.prism([(-0.55, 0.62), (0.1, 0.62), (0.12, 0.72), (-0.45, 0.72), (-0.6, 1.3), (-0.7, 1.28)], 0.38, (0, y, 0), "Leather")
+    p.span((0.5, -0.4, 0.82), (0.7, 0.4, 0.95), "Hull dark")
+    p.torus(0.16, 0.018, (0.42, -0.27, 1.02), "Polymer", rot=(0, 65, 0), segments=8, sides=4)
+    # The cage: a main hoop behind the seats, the screen hoop, the roof
+    # bars and braces; the light bar on top.
+    for x, top in ((-0.75, 1.75), (0.6, 1.62)):
+        p.tube([(x, -0.5, 0.82), (x - 0.05, -0.46, top), (x - 0.05, 0.46, top), (x, 0.5, 0.82)], 0.03, "Hull dark", segments=4)
+    for s in (-1, 1):
+        p.tube([(-0.8, s * 0.46, 1.75), (0.55, s * 0.46, 1.62)], 0.028, "Hull dark", segments=4)
+        p.tube([(-0.8, s * 0.46, 1.6), (-1.6, s * 0.42, 0.9)], 0.028, "Hull dark", segments=4)
+        p.tube([(0.55, s * 0.46, 1.5), (1.4, s * 0.4, 0.9)], 0.025, "Hull dark", segments=4)
+    p.tube([(-0.8, -0.46, 1.75), (0.55, 0.46, 1.62)], 0.022, "Hull dark", segments=4)
+    _light_bar(p, 0.6, 1.5, 0, 1.68, lamps=4)
+    # The back: water cans in a frame, the spare wheel stood up behind.
+    p.span((-1.75, -0.45, 0.9), (-1.15, 0.45, 0.94), "Grating")
+    for y in (-0.22, 0.22):
+        _source(p, "metal_jerrycan_green", (-1.45, y, 0.94), (0, 0, 90), height=0.46)
+    _balloon(p, -1.95, 0, 0.66 + 0.32, 0.32, 0.2, -1, blocks=24, both=True)
+    p.collider((3.6, 1.3, 0.85), (0.05, 0, 0.32 + 0.43))
+    p.turn(-1)  # nose along -Y
+    return p
+
+
+def rover(style: Style) -> Piece:
+    """A crew rover for the long Fringe runs: a pressurised capsule on six
+    balloon tyres, after the Mars rover and the explorer truck. Its nose is a
+    glazed dome, its flanks have portholes and lockers, its roof carries
+    solar panels, a dish and a light bar, and an airlock door and steps are
+    at the back. Salvage crews and caravan escorts live in these for weeks."""
+    p = Piece("rover", "vehicle", "7.6 × 3.2 × 3.6 m crew rover, front at -Y")
+    p.budget = 60000
+    r = rng(style, p.name)
+    paint = r.choice(["Crew orange", "Repaint cream", "Hazard yellow"])
+    patch = r.choice([c for c in REPAINTS if c != paint])
+    # Running gear: a spine, three axles of balloon tyres on trailing arms.
+    p.span((-3.2, -0.55, 0.65), (3.1, 0.55, 1.0), "Hull dark")
+    for x in (2.35, 0.0, -2.35):
+        for s in (-1, 1):
+            _balloon(p, x, s * 1.3, 0.6, 0.6, 0.48, s, blocks=24)
+            _arm(p, (x + 0.6, s * 0.6, 0.85), (x, s * 0.98, 0.6), 0.065, "Gunmetal")
+            _coilover(p, (x + 0.2, s * 0.92, 0.7), (x + 0.42, s * 0.75, 1.3), radius=0.065, turns=6)
+    # The capsule: a pressure hull along X, domed at the nose, banded.
+    p.lathe([(0.0, -3.1), (0.9, -3.08), (1.12, -2.9), (1.15, -2.6), (1.15, 2.2), (1.1, 2.7), (0.9, 3.1), (0.55, 3.35),
+             (0.0, 3.42)], (0, 0, 2.05), paint, rot=(0, 90, 0), segments=12)
+    # A frame ring round the cockpit's glazing.
+    p.torus(1.12, 0.045, (2.72, 0, 2.05), "Hull dark", rot=(0, 90, 0), segments=12, sides=4)
+    for x in (-2.6, -1.2, 0.2, 1.6):
+        p.torus(1.165, 0.04, (x, 0, 2.05), "Hull dark", rot=(0, 90, 0), segments=12, sides=4)
+    # The glazed nose: a band of glass a centimetre proud of the dome.
+    # The glazed nose: dark tinted glass a centimetre and a half proud of
+    # the dome, all the way to its tip.
+    p.lathe([(1.125, 2.74), (0.915, 3.115), (0.565, 3.365), (0.0, 3.435), (0.0, 3.45), (0.58, 3.38), (0.93, 3.13),
+             (1.14, 2.75)], (0, 0, 2.05), "Screen", rot=(0, 90, 0), segments=12)
+    # A patch of another paint, portholes and lockers down each flank.
+    for s in (-1, 1):
+        p.span((-2.1, s * 1.16 - 0.01, 1.7), (-1.0, s * 1.16 + 0.01, 2.4), patch)
+        for x in (-0.6, 0.6, 1.8):
+            p.cyl(0.26, 0.06, (x, s * 1.15, 2.2), "Hull dark", rot=(90, 0, 0), segments=8)
+            p.cyl(0.2, 0.08, (x, s * 1.15, 2.2), "Screen", rot=(90, 0, 0), segments=8)
+        # Lockers in the gaps between the wheels.
+        for x in (-1.18, 1.18):
+            p.span((x - 0.45, s * 0.75, 0.95), (x + 0.45, s * 1.04, 1.3), "Hull dark")
+            p.span((x - 0.41, s * 1.04 if s > 0 else -1.06, 0.98), (x + 0.41, s * 1.06 if s > 0 else -1.04, 1.27), paint)
+        with p.painted():
+            p.stencil("12", (-1.55, s * 1.175, 2.05), 0.24, "Stencil white", facing="-Y" if s < 0 else "+Y")
+    # The roof: solar panels on frames, a dish, aerials, a light bar.
+    for x in (-2.2, -1.0, 0.2):
+        p.span((x - 0.5, -0.8, 3.3), (x + 0.5, 0.8, 3.34), "Hull dark")
+        p.span((x - 0.47, -0.77, 3.34), (x + 0.47, 0.77, 3.36), "Container blue")
+        for y in (-0.6, 0.6):
+            p.cyl(0.03, 0.2, (x, y, 3.2), "Hull dark", segments=4)
+    p.lathe([(0.0, 0.0), (0.35, 0.12), (0.4, 0.16), (0.0, 0.06)], (1.4, 0.4, 3.35), "Hull alloy", rot=(30, 0, 0), segments=10)
+    p.cyl(0.03, 0.3, (1.4, 0.4, 3.2), "Hull dark", segments=4)
+    with p.plain():
+        for y in (-0.7, 0.7):
+            p.cyl(0.008, 1.4, (-2.9, y, 3.8), "Hull dark", segments=3)
+    _light_bar(p, 2.3, 3.5, 0, 3.05, lamps=5)
+    # The airlock at the back: its frame, the door, the steps down.
+    p.span((-3.25, -0.6, 1.2), (-3.12, 0.6, 2.75), "Hull dark")
+    p.span((-3.3, -0.5, 1.28), (-3.25, 0.5, 2.68), patch)
+    p.torus(0.15, 0.02, (-3.33, 0.0, 2.0), "Steel", rot=(0, 90, 0), segments=8, sides=4)
+    for z, x in ((0.95, -3.45), (0.62, -3.7), (0.3, -3.95)):
+        p.span((x - 0.15, -0.45, z - 0.03), (x + 0.15, 0.45, z), "Grating")
+    for s in (-1, 1):
+        p.tube([(-3.25, s * 0.48, 1.1), (-4.05, s * 0.48, 0.25)], 0.03, "Hull dark", segments=4)
+        p.tube([(-3.25, s * 0.55, 2.0), (-3.6, s * 0.55, 1.6), (-4.05, s * 0.55, 0.9)], 0.02, ACCENT, segments=4)
+    p.collider((6.4, 2.3, 2.3), (0.1, 0, 2.05))
+    p.collider((6.3, 1.1, 0.4), (-0.05, 0, 0.82))
     p.turn(-1)  # nose along -Y
     return p
 
@@ -803,4 +913,4 @@ def covered_car(style: Style) -> Piece:
     return p
 
 
-PIECES = [hauler, hauler_tanker, bike, trike, drifter_patience, receivership_shuttle, covered_car]
+PIECES = [hauler, hauler_tanker, bike, trike, buggy, rover, drifter_patience, receivership_shuttle, covered_car]

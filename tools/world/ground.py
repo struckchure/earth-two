@@ -31,6 +31,7 @@ PALETTE.setdefault("Lawn light", (0.14, 0.32, 0.06))
 PALETTE.setdefault("Pad concrete", (0.36, 0.34, 0.31))
 PALETTE.setdefault("Pad paint", (0.75, 0.70, 0.55))
 PALETTE.setdefault("Scorch", (0.22, 0.20, 0.19))
+PALETTE.setdefault("Charter flag", (0.72, 0.71, 0.67))
 PALETTE.setdefault("Scorch light", (0.28, 0.26, 0.24))
 
 TOP = 0.025    # a surface's top, above its origin
@@ -203,18 +204,13 @@ def track_straight(style: Style) -> Piece:
     return p
 
 
-def gate_street(style: Style) -> Piece:
-    """2 × 2 m of the paved street from the South gate to the Hull: slabs of
-    red-soil concrete poured when the company still paid for things, cracked
-    and patched since, red dust packed into the joints, a drain grate."""
-    p = Piece("gate_street", "kit", "2 × 2 m street paving; top 2.5 cm up, skirt 10 cm; no collider", budget=200)
-    r = rng(style, p.name)
+def _street(p: Piece, r, drain: bool) -> None:
     _base(p, 2, 2, "Concrete")
     # Four slabs a little apart, the joints between them dust-filled.
     halves = ((-0.985, -0.015), (0.015, 0.985))
     for x0, x1 in halves:
         for y0, y1 in halves:
-            p.span((x0, y0, 0.0), (x1, y1, TOP), r.choice(["Concrete", "Concrete", "Red concrete"]))
+            p.span((x0, y0, 0.0), (x1, y1, TOP), "Concrete")
     # Dust packed into the joints, the tile's edges included (half a joint
     # each side, so laid together they make a whole one).
     for c in (-1.0, 0.0, 1.0):
@@ -222,17 +218,33 @@ def gate_street(style: Style) -> Piece:
         p.span((-1, max(-1, c - w), 0.0), (1, min(1, c + w), 0.018), "Dust red")
         p.span((max(-1, c - w), -1, 0.0), (min(1, c + w), 1, 0.018), "Dust red")
     with p.painted():
-        # A patch of newer concrete, cracks, and a grate at one corner.
-        p.span((0.15, 0.2, TOP + 0.002), (0.75, 0.7, TOP + 0.006), "Red concrete")
-        for _ in range(3):
-            x, y = r.uniform(-0.9, -0.1), r.uniform(-0.9, 0.9)
-            a = r.uniform(0, 180)
-            p.box((r.uniform(0.2, 0.5), 0.008, 0.004), (x, y, TOP + 0.004), "Rock dark", rot=(0, 0, a))
-        p.span((0.55, -0.95, TOP + 0.002), (0.95, -0.55, TOP + 0.006), "Hull dark")
-        for i in range(5):
-            x = 0.6 + i * 0.075
-            p.span((x, -0.92, TOP + 0.006), (x + 0.03, -0.58, TOP + 0.009), "Grating")
+        # Faint wear and a hairline crack or two: kept quiet, since the
+        # tile repeats down the street.
+        for _ in range(2):
+            x, y = r.uniform(-0.8, 0.8), r.uniform(-0.8, 0.8)
+            p.box((r.uniform(0.25, 0.5), 0.006, 0.004), (x, y, TOP + 0.006), "Rock dark", rot=(0, 0, r.uniform(0, 180)))
+        if drain:
+            p.span((-0.2, -0.95, TOP + 0.006), (0.2, -0.55, TOP + 0.010), "Hull dark")
+            for i in range(5):
+                x = -0.15 + i * 0.075
+                p.span((x - 0.015, -0.92, TOP + 0.016), (x + 0.015, -0.58, TOP + 0.020), "Grating")
     _slab(p, 2, 2, "Concrete")
+
+
+def gate_street(style: Style) -> Piece:
+    """2 × 2 m of the paved street from the South gate to the Hull: slabs of
+    red-soil concrete poured when the company still paid for things, worn
+    and hairline-cracked, red dust packed into the joints."""
+    p = Piece("gate_street", "kit", "2 × 2 m street paving; top 2.5 cm up, skirt 10 cm; no collider", budget=200)
+    _street(p, rng(style, p.name), drain=False)
+    return p
+
+
+def gate_street_drain(style: Style) -> Piece:
+    """gate_street with a drain grate in one slab, at its -Y edge: one every
+    so often down the street's sides."""
+    p = Piece("gate_street_drain", "kit", "2 × 2 m street paving with a drain at -Y; no collider", budget=200)
+    _street(p, rng(style, p.name), drain=True)
     return p
 
 
@@ -249,7 +261,7 @@ def charter_paving(style: Style) -> Piece:
         xs = [-1.0] + [x for x in (-0.75 + off, -0.25 + off, 0.25 + off, 0.75 + off) if -1 < x < 1] + [1.0]
         for a, b in zip(xs, xs[1:]):
             p.span((a + 0.004, y0 + 0.004, 0.0), (b - 0.004, y0 + 0.496, TOP),
-                   r.choice(["Charter white", "Charter stone", "Charter white"]))
+                   r.choice(["Charter white", "Charter flag", "Charter white"]))
     _slab(p, 2, 2, "Charter white")
     return p
 
@@ -358,7 +370,8 @@ def drifter_pad(style: Style) -> Piece:
     under the engines but still legible. A touchdown box in its middle, the
     pad number at each end, hazard chevrons, and tie-down rings round its
     edge. The drifter (19 × 45 m) stands centred on it, nose to -Y."""
-    p = Piece("drifter_pad", "kit", "26 × 50 m landing pad; top 3 cm up, skirt 10 cm; no collider", budget=200)
+    p = Piece("drifter_pad", "kit", "26 × 50 m landing pad; top 3 cm up, skirt 10 cm; no collider", budget=200,
+              texture=2048)  # its markings read across 50 m
     r = rng(style, p.name)
     W, L, top = 26.0, 50.0, 0.03
     p.span((-W / 2, -L / 2, -SKIRT), (W / 2, L / 2, 0.0), "Pad concrete")
@@ -379,7 +392,8 @@ def drifter_pad(style: Style) -> Piece:
     for x, y in rings:
         p.torus(0.11, 0.018, (x, y, top + 0.012), "Steel", segments=8, sides=4)
     with p.painted():
-        z0, z1 = top + 0.003, top + 0.007
+        # Paint layers a clear 6 mm apart, each colour on its own.
+        z0, z1 = top + 0.006, top + 0.010
         # The touchdown box: a broad frame round the middle, corner brackets.
         bw, bl, t = 17.0, 34.0, 0.45
         for (a, b) in (((-bw / 2, -bl / 2), (bw / 2, -bl / 2 + t)), ((-bw / 2, bl / 2 - t), (bw / 2, bl / 2)),
@@ -406,14 +420,17 @@ def drifter_pad(style: Style) -> Piece:
         # its +Y end), and the odd oil stain.
         for _ in range(22):
             x = r.choice((-5.5, 5.5)) + r.uniform(-1.8, 1.8)
-            p.box((r.uniform(0.15, 0.5), r.uniform(2.5, 8), 0.004), (x, r.uniform(12, 21), z1 + 0.003),
-                  r.choice(["Scorch", "Scorch light", "Scorch light"]), rot=(0, 0, r.uniform(-10, 10)))
+            mat = r.choice(["Scorch", "Scorch light", "Scorch light"])
+            z = z1 + (0.008 if mat == "Scorch" else 0.018)
+            p.box((r.uniform(0.15, 0.5), r.uniform(2.5, 8), 0.004), (x, r.uniform(12, 21), z), mat,
+                  rot=(0, 0, r.uniform(-10, 10)))
         for _ in range(5):
-            p.cyl(r.uniform(0.25, 0.7), 0.004, (r.uniform(-7, 7), r.uniform(-18, 10), z1 + 0.006), "Scorch light",
+            p.cyl(r.uniform(0.25, 0.7), 0.004, (r.uniform(-7, 7), r.uniform(-18, 10), z1 + 0.018), "Scorch light",
                   segments=8)
     _slab(p, W, L, "Pad concrete", top=top)
     return p
 
 
-PIECES = [road_straight, road_corner, road_junction, road_end, track_straight, gate_street, charter_paving, lawn,
+PIECES = [road_straight, road_corner, road_junction, road_end, track_straight, gate_street, gate_street_drain,
+          charter_paving, lawn,
           farm_furrows, farm_rows, drifter_pad]

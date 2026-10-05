@@ -787,7 +787,7 @@ def dome_roof(style: Style) -> Piece:
                 a, b = ((x0, y0), (x1, y1)) if (i + j) % 2 == 0 else ((x1, y0), (x0, y1))
                 _strut(p, (a[0], a[1], z), (b[0], b[1], z), w=0.16, h=0.22, low=low)
         _hub(p, (0, 0, z), (0, 0, 1), low=low)
-        for c in ((0, -4 + 0.13), (0, 4 - 0.13), (-4 + 0.13, 0), (4 - 0.13, 0)):
+        for c in ((0, -4 + 0.3), (0, 4 - 0.3), (-4 + 0.3, 0), (4 - 0.3, 0)):
             _hub(p, (c[0], c[1], z), (0, 0, 1), low=low)
 
     frame(low=False)
@@ -895,11 +895,13 @@ def dome_corner(style: Style) -> Piece:
             if not low:
                 # Transoms across each arm, from the hip to its end.
                 for s in (0.0, length * 0.36, length * 0.7, length):
-                    _beam(p, at(s, s * sin + 0.05), at(s, arm - 0.005), 0.2, 0.14, "Hull dark")
-                _beam(p, at(0, arm - 0.04), at(length, arm - 0.04), 0.18, 0.07, "Hull dark")
+                    _beam(p, at(s, s * sin + 0.05), at(s, arm - 0.012), 0.2, 0.14, "Hull dark")
+                # The end mullion (half, shared with the next wall), a little
+                # past the glass at both ends so their ends don't share a plane.
+                _beam(p, at(-0.03, arm - 0.04), at(length + 0.03, arm - 0.04), 0.18, 0.07, "Hull dark")
         if not low:
             # The hip mullion up the corner, capped and bolted.
-            _beam(p, x_arm(0, 0), x_arm(length, length * sin), 0.24, 0.24, "Hull dark")
+            _beam(p, x_arm(-0.04, -0.04 * sin), x_arm(length + 0.04, (length + 0.04) * sin), 0.24, 0.24, "Hull dark")
             _beam(p, x_arm(0.06, 0.0, -0.13), x_arm(length - 0.06, length * sin, -0.13), 0.1, 0.03, "Hull alloy")
 
     walls(low=False)
@@ -919,8 +921,9 @@ def dome_corner(style: Style) -> Piece:
     p.collider((arm + 0.4, 0.8, FOOT), (arm / 2 - 0.2, 0, FOOT / 2))
     p.collider((0.8, arm - 0.4, FOOT), (0, arm / 2 + 0.2, FOOT / 2))
     mid = x_arm(length / 2, arm / 2 + length / 2 * sin / 2)
-    p.collider((arm, 0.2, length), (arm / 2 + 0.3, mid.y, mid.z), rot=(-LEAN, 0, 0))
-    p.collider((0.2, arm, length), (mid.y, arm / 2 + 0.3, mid.z), rot=(0, LEAN, 0))
+    # From 0.3 m along (clear of the hip) to the arm's end.
+    p.collider((arm - 0.3, 0.2, length), ((arm + 0.3) / 2, mid.y, mid.z), rot=(-LEAN, 0, 0))
+    p.collider((0.2, arm - 0.3, length), (mid.y, (arm + 0.3) / 2, mid.z), rot=(0, LEAN, 0))
     with p.lowpoly():
         walls(low=True)
         p.prism([(-0.6, 0.0), (arm, 0.0), (arm, 0.08), (0.0, 0.26), (-0.6, 0.12)], 0.3, (0, -0.56, 0), "Dust red")

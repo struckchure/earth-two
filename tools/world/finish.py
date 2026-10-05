@@ -382,7 +382,8 @@ def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object
     # Texels: about 220 a metre across the piece, a power of two; twice that
     # on a low-poly stand-in, whose texture is all its detail.
     density = 440 if high is not None and obj.get("lowpoly") else 220
-    px = 2 ** round(math.log2(max(256, min(TEXTURE_MAX, math.sqrt(area) * density))))
+    cap = max(TEXTURE_MAX, int(obj.get("texture", 0)))
+    px = 2 ** round(math.log2(max(256, min(cap, math.sqrt(area) * density))))
     if "Baked" not in obj.data.uv_layers:
         _unwrap(obj)
     else:
@@ -434,7 +435,24 @@ def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object
         s.render.bake.max_ray_distance = max(0.06, 0.08 * size)
     else:
         s.render.bake.use_selected_to_active = False
+    # Every piece is built standing on the origin, so the pieces built
+    # before this one are all still there, in the same place: hidden from
+    # the bake, or their shapes shade this one (ambient occlusion). The
+    # target, too, sits on the very surface being shaded.
+    hidden = [o for o in s.objects if o not in (obj, high) and not o.hide_render]
+    for o in hidden:
+        o.hide_render = True
+    rays = ("visible_diffuse", "visible_glossy", "visible_shadow", "visible_transmission", "visible_volume_scatter")
+    if high is not None:
+        kept = {r: getattr(obj, r) for r in rays}
+        for r in rays:
+            setattr(obj, r, False)
     bpy.ops.object.bake(type="EMIT")
+    if high is not None:
+        for r, v in kept.items():
+            setattr(obj, r, v)
+    for o in hidden:
+        o.hide_render = False
     s.render.engine = engine
     s.render.bake.use_selected_to_active = False
 

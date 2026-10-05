@@ -62,13 +62,14 @@ def modules() -> list:
     return out
 
 
-def builders() -> list[tuple[str, object]]:
-    """Every piece's builder, with the category it's shown under."""
-    return [(m.CATEGORY, make) for m in modules() for make in m.PIECES]
+def builders(only=None) -> list[tuple[str, object]]:
+    """Every piece's builder (or only module only's), with the category
+    it's shown under."""
+    return [(m.CATEGORY, make) for m in modules() if only in (None, m.__name__) for make in m.PIECES]
 
 
 def build_pieces(style: Style, collections: dict[str, bpy.types.Collection] | None = None, want=None,
-                 finished: bool = False) -> list:
+                 finished: bool = False, only=None) -> list:
     """The pieces as objects, each with its world.json entry: every piece,
     or those want(category, name) is true of. collections, by category, is
     where each goes. finished gives them the detailed finish (finish.py):
@@ -78,7 +79,7 @@ def build_pieces(style: Style, collections: dict[str, bpy.types.Collection] | No
         finish.prepare()
     built = []
     names = set()
-    for category, make in builders():
+    for category, make in builders(only):
         p = make(style)
         if p.name in names:
             raise ValueError(f"two pieces are called {p.name}")
@@ -156,7 +157,9 @@ def build_module(module: str, parts: Path, threads: int) -> None:
     import finish
     finish.THREADS = threads
     m = importlib.import_module(module)
-    built = build_pieces(Style.load(STYLE), want=lambda c, n: c == m.CATEGORY, finished=True)
+    # By module, not category: modules can share a category (second_light's
+    # pieces are "The Hull" too).
+    built = build_pieces(Style.load(STYLE), finished=True, only=module)
     for name, obj, entry in built:
         export(obj, OUT / f"{name}.glb")
     (parts / f"{module}.json").write_text(json.dumps({name: entry for name, _, entry in built}))

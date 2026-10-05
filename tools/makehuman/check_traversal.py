@@ -115,11 +115,16 @@ def check(folder):
         for name, (position, rotation) in first.items():
             assert (position-last[name][0]).length < .003, (body, name, "fall loop position seam")
             assert abs(rotation.dot(last[name][1])) > .999, (body, name, "fall loop rotation seam")
+        # The stair climb loops: a cycle on, its feet where they started.
+        stairs = bpy.data.actions['Traversal_StairsUp']
+        first, last = sample(rig, stairs, 0), sample(rig, stairs, 1)
+        for side in ('l', 'r'):
+            assert (first['foot_'+side][0]-last['foot_'+side][0]).length < .03, (body, side, "stair loop seam")
         # Crouch -> stand-up share the same contact pose.
         hold, start = sample(rig, crouch, 0), sample(rig, recover, 0)
         for name in hold:
             assert (hold[name][0]-start[name][0]).length < .003, (body, name, "standing recovery seam")
-        print(body, ': side-rail grips, planted rung feet, slide feet, wall kicks, fall loop, loop and recovery seams passed')
+        print(body, ': side-rail grips, planted rung feet, slide feet, wall kicks, fall and stair loops, loop and recovery seams passed')
 
 
 if __name__ == '__main__':

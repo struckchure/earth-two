@@ -38,7 +38,7 @@ def merge(path,donor):
     names={n.get('name'):i for i,n in enumerate(doc['nodes'])}
     mapping={i:names[n['name']] for i,n in enumerate(src['nodes']) if n.get('name') in names}
     selected=[copy.deepcopy(a) for a in src.get('animations',[]) if authored(a.get('name',''))]
-    required={'Traversal_'+n for n in ('Slide','Ladder','Vault','Mantle','WallKick','WallKickRight','WallKickFall','WallLand','WallKickFallRight','Crouch','StandUp','LadderExit','Fall')}|MIRRORED
+    required={'Traversal_'+n for n in ('Slide','Ladder','Vault','Mantle','WallKick','WallKickRight','WallKickFall','WallLand','WallKickFallRight','Crouch','StandUp','LadderExit','Fall','StairsUp')}|MIRRORED
     assert {a['name'] for a in selected} == required, 'missing or unexpected authored clips'
     # Copy only the animation accessors/views, without donor meshes or textures.
     accessors={};views={};binary=bytearray(data)

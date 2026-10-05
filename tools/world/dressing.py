@@ -49,6 +49,21 @@ RUGS = ["Fabric red", "Fabric ochre", "Fabric indigo", "Fabric teal", "Fabric sa
 
 # Shared parts ---------------------------------------------------------------
 
+def _letter(p: Piece, text, at, height, mat, **kw):
+    """kit's lettering, guarding the faces already built: it colours faces by
+    their index, and bmesh can slot new faces in among old ones, recolouring
+    those (a disc under a numeral, the letters before). So: note every face's
+    colour before, put them back after, and colour only what's new."""
+    old = {f: (f.material_index, f.smooth) for f in p.bm.faces}
+    p.lettering(text, at, height, mat, **kw)
+    i = p._slot(mat)
+    for f in p.bm.faces:
+        if f in old:
+            f.material_index, f.smooth = old[f]
+        else:
+            f.material_index, f.smooth = i, False
+
+
 def _clip(poly, x0, z0, x1, z1):
     """A convex outline clipped to a rectangle (Sutherland-Hodgman)."""
     for axis, edge, keep_above in ((0, x0, True), (0, x1, False), (1, z0, True), (1, z1, False)):
@@ -102,14 +117,14 @@ def _text(p: Piece, text, x, z, h, y, mat, facing="-Y", align="CENTER", bold=0.0
     """Painted lettering on a face at y (facing ±Y), layer out from it."""
     off = -layer if facing == "-Y" else layer
     with p.painted():
-        p.lettering(text, (x, y + off, z), h, mat, facing=facing, depth=COAT, align=align, bold=bold, spacing=spacing)
+        _letter(p, text, (x, y + off, z), h, mat, facing=facing, depth=COAT, align=align, bold=bold, spacing=spacing)
 
 
 def _raised(p: Piece, text, x, z, h, y, mat, depth=0.018, bold=0.0, spacing=1.0, align="CENTER"):
     """Letters standing out of a -Y face at y, depth deep (8 mm of it set
     into the face, so their backs are well inside it), left plain."""
     with p.plain():
-        p.lettering(text, (x, y - depth / 2 + 0.008, z), h, mat, facing="-Y", depth=depth, bold=bold,
+        _letter(p, text, (x, y - depth / 2 + 0.008, z), h, mat, facing="-Y", depth=depth, bold=bold,
                     spacing=spacing, align=align)
 
 
@@ -160,15 +175,17 @@ def _sheet(p: Piece, f, nu, nv, thickness, mat):
            [nv * w + nu - i for i in range(nu)] + [(nv - j) * w for j in range(nv)]
     for a, b in zip(ring, ring[1:] + ring[:1]):
         faces.append(p.bm.faces.new((front[b], front[a], back[a], back[b])))
-    p._faces(faces, mat, smooth=True)
+    with p.plain():  # thin cloth: a bevel round its rim would only cost triangles
+        p._faces(faces, mat, smooth=True)
 
 
 def _seal(p: Piece, x, z, y, r):
     """The Registrars' seal on a -Y face at y: a brass disc, a notched rim, a
     navy field and the open book of the record in brass."""
-    p.cyl(r, 0.03, (x, y - 0.015, z), "Brass", rot=(90, 0, 0), segments=16)
-    p.torus(r - 0.01, 0.012, (x, y - 0.03, z), "Brass", rot=(90, 0, 0), segments=16, sides=4)
-    p.cyl(r * 0.72, 0.012, (x, y - 0.036, z), "Repaint navy", rot=(90, 0, 0), segments=14)
+    p.cyl(r, 0.03, (x, y - 0.015, z), "Brass", rot=(90, 0, 0), segments=10)
+    with p.plain():
+        p.torus(r - 0.01, 0.012, (x, y - 0.03, z), "Brass", rot=(90, 0, 0), segments=10, sides=3)
+    p.cyl(r * 0.72, 0.012, (x, y - 0.036, z), "Repaint navy", rot=(90, 0, 0), segments=10)
     with p.plain():
         for i in range(16):
             a = math.tau * i / 16
@@ -239,12 +256,12 @@ def sign_charter_row(style: Style) -> Piece:
             for a, b in (((0.1, 2.55), (1.14, 2.565)), ((0.1, 2.295), (1.14, 2.31)),
                          ((0.1, 2.31), (0.115, 2.55)), ((1.125, 2.31), (1.14, 2.55))):
                 p.span((a[0], y - COAT / 2, a[1]), (b[0], y + COAT / 2, b[1]), "Charter navy")
-            p.lettering("CHARTER ROW", (0.62, y, 2.43), 0.085, "Charter navy", facing=facing, depth=COAT, spacing=1.05)
+            _letter(p, "CHARTER ROW", (0.62, y, 2.43), 0.085, "Charter navy", facing=facing, depth=COAT, spacing=1.05)
         for facing, sx in (("-X", -1), ("+X", 1)):
             x = sx * (t / 2 + L1)
             for a, b in (((-1.14, 2.21), (-0.1, 2.225)), ((-1.14, 1.955), (-0.1, 1.97))):
                 p.span((x - COAT / 2, a[0], a[1]), (x + COAT / 2, b[0], b[1]), "Charter navy")
-            p.lettering("THE HULL", (x, -0.5, 2.09), 0.08, "Charter navy", facing=facing, depth=COAT)
+            _letter(p, "THE HULL", (x, -0.5, 2.09), 0.08, "Charter navy", facing=facing, depth=COAT)
             arrow = [(-(b - 0.5) * 0.13, a * 0.13) for a, b in ARROW]
             p.prism(arrow, COAT, (x, -1.0, 2.09), "Charter navy", rot=(0, 0, 90))
     # The clamps holding them to the post.
@@ -317,7 +334,7 @@ def sign_south_gate(style: Style) -> Piece:
         p.cyl(0.07, COAT, (-w + 0.22, -d - L2, 2.25), "Stencil white", rot=(90, 0, 0), segments=8)
         for s in (-1, 1):
             p.cyl(0.035, COAT, (-w + 0.22 + s * 0.085, -d - L2, 2.19), "Stencil white", rot=(90, 0, 0), segments=6)
-        p.lettering("MASKS ON PAST THIS POINT", (0.12, -d - L2, 2.24), 0.075, "Stencil white", depth=COAT, spacing=1.05)
+        _letter(p, "MASKS ON PAST THIS POINT", (0.12, -d - L2, 2.24), 0.075, "Stencil white", depth=COAT, spacing=1.05)
     rules = ["GATE CHECK", "1  SHOW YOUR FILINGS", "2  MASK ON AND SEALED", "3  DECLARE ALL FILTERS"]
     for i, line in enumerate(rules):
         _text(p, line, -w + 0.12, 1.98 - i * 0.13, 0.075 if i else 0.09, -d, "Ink", align="LEFT",
@@ -348,7 +365,7 @@ def sign_hull(style: Style) -> Piece:
         with p.painted():
             p.cyl(0.085, COAT, (-x + 0.17, -d - L1, z), "Crew orange", rot=(90, 0, 0), segments=12)
             p.span((-x + 0.06, -d - L1 - COAT / 2, z - 0.155), (x - 0.06, -d - L1 + COAT / 2, z - 0.148), "Crew grey")
-            p.lettering(n, (-x + 0.17, -d - L2, z), 0.1, "Hull dark", depth=COAT)
+            _letter(p, n, (-x + 0.17, -d - L2, z), 0.1, "Hull dark", depth=COAT)
         _text(p, a, -x + 0.32, z + 0.035, 0.07, -d, "Stencil white", align="LEFT")
         _text(p, b, -x + 0.32, z - 0.055, 0.045, -d, "Crew orange", align="LEFT")
         if way:
@@ -358,6 +375,10 @@ def sign_hull(style: Style) -> Piece:
     _text(p, "YOU ARE ON DECK 2", -x + 0.26, 1.32, 0.045, -d, "Stencil white", align="LEFT")
     _bolts(p, [(sx * (x + 0.015), zz) for sx in (-1, 1) for zz in (z0 + 0.06, z1 - 0.06)], -d - 0.025)
     _rust(p, [(sx * (x + 0.015), z1 - 0.06) for sx in (-1, 1)], -d - 0.025, r)
+    # The game draws the board and its frame; the rest is baked onto them,
+    # at a stand-in's finer texture, so the small lettering stays legible.
+    with p.lowpoly():
+        p.span((-x - 0.04, -d - 0.025, z0 - 0.04), (x + 0.04, 0, z1 + 0.04), "Hull dark")
     return p
 
 
@@ -389,6 +410,10 @@ def _direction(name: str, note: str, style: Style, words, small, way, plate, ink
         for _ in range(3):
             a, b = r.uniform(-x + 0.05, x - 0.1), r.uniform(z0 + 0.03, z1 - 0.06)
             p.prism([(0, 0), (0.05, 0.01), (0.04, 0.04), (0.005, 0.03)], COAT, (a, -d - L2, b), "Hull alloy")
+    with p.lowpoly():
+        p.span((-x, -d, z0), (x, 0, z1), plate)
+        if small:
+            p.span((-x, -0.015, 1.86), (-x + sw, 0, 2.0), "Crew grey")
     return p
 
 
@@ -477,14 +502,22 @@ def _blade(name: str, note: str, style: Style, words: str, sub: str, icon: str, 
                 p.span((xo - COAT / 2, cy - pw / 2, cz - ph / 2), (xo + COAT / 2, cy + pw / 2, cz + ph / 2), r.choice(REPAINTS))
         xo2 = sx * (t / 2 + L2)
         with p.painted():
-            p.lettering(words, (xo2, -0.52, 2.69), min(0.1, 0.62 / _wide(words, 1.0)), ink, facing=facing,
+            _letter(p, words, (xo2, -0.52, 2.69), min(0.1, 0.62 / _wide(words, 1.0)), ink, facing=facing,
                         depth=COAT, bold=0.008)
-            p.lettering(sub, (xo2, -0.52, 2.56), 0.045, ink, facing=facing, depth=COAT)
+            _letter(p, sub, (xo2, -0.52, 2.56), 0.045, ink, facing=facing, depth=COAT)
             p.span((xo2 - COAT / 2, -0.75, 2.6), (xo2 + COAT / 2, -0.29, 2.605), ink)
             for outline in _icon(icon):
                 # Seen from -X, +Y is on the left: drawn mirrored there.
                 pts = [(-a * 0.9 if sx < 0 else a * 0.9, b * 0.9) for a, b in outline]
                 p.prism(pts, COAT, (xo2, -0.52, 2.38), ink, rot=(0, 0, 90))
+    with p.lowpoly():
+        p.span((-0.07, -0.02, 2.82), (0.07, 0, 3.22), "Hull dark")
+        p.span((-0.02, -0.98, 3.1), (0.02, -0.02, 3.15), "Hull dark")
+        p.box((0.02, 0.4, 0.02), (0, -0.33, 3.0), "Hull dark", rot=(-22, 0, 0))
+        for y in (-0.26, -0.78):
+            p.span((-0.004, y - 0.004, 2.86), (0.004, y + 0.004, 3.1), "Hull alloy")
+        p.prism([(a, b + 2.25) for a, b in jag], t, (0, -0.52, 0), board, rot=(0, 0, 90))
+        p.span((-0.022, -0.92, 2.835), (0.022, -0.12, 2.86), "Hull dark")
     return p
 
 
@@ -537,6 +570,8 @@ def crew_panel(style: Style) -> Piece:
     _text(p, "ZONE", x - 0.07, z1 - 0.07, 0.035, -d, "Hull dark", align="RIGHT")
     _text(p, "B-14", 0.03, 1.8, 0.13, -d, "Stencil white", bold=0.012, spacing=1.05)
     _stripes(p, -x + 0.01, z0 + 0.01, -x + 0.12, z0 + 0.11, -d, width=0.03)
+    with p.lowpoly():
+        p.span((-x, -d, z0), (x, 0, z1), "Crew orange")
     return p
 
 
@@ -553,6 +588,8 @@ def hazard_panel(style: Style) -> Piece:
         p.prism(tri, COAT, (-x + 0.1, -d - L1, 1.7), "Hull dark")
     _text(p, "DANGER", 0.06, 1.75, 0.1, -d, "Hull dark", bold=0.01, spacing=1.1)
     _text(p, "AIR PLANT: AUTHORISED CREW ONLY", 0, 1.58, 0.023, -d, "Hull dark")
+    with p.lowpoly():
+        p.span((-x, -d, z0), (x, 0, z1), "Hazard yellow")
     return p
 
 
@@ -599,6 +636,8 @@ def notice_board_small(style: Style) -> Piece:
         for cx, cz, w, h in sheets + [(0.32, 1.36, 0.24, 0.26)]:
             p.sphere(0.008, (cx, -d - 0.018, cz + h / 2 - 0.02), r.choice(["Medical red", "Brass", "Status blue"]),
                      segments=4, rings=3)
+    with p.lowpoly():
+        p.span((-x - 0.04, -d - 0.02, z0 - 0.04), (x + 0.04, 0, z1 + 0.04), "Wood dark")
     return p
 
 
@@ -612,8 +651,9 @@ def _rug(p: Piece, style: Style, w, l, stripes_across: bool) -> Piece:
     others = [c for c in RUGS if c != base]
     top = 0.014
     hw, hl = w / 2, l / 2
-    p.cloth([(-hw, -hl, top), (hw, -hl, top), (hw, hl, top), (-hw, hl, top)], base, sag=0.0, ripple=0.002,
-            thickness=0.006, cell=0.2, seed=r.randint(0, 99), droop=(0, 0, 0, 0))
+    with p.plain():
+        p.cloth([(-hw, -hl, top), (hw, -hl, top), (hw, hl, top), (-hw, hl, top)], base, sag=0.0, ripple=0.002,
+                thickness=0.006, cell=0.2, seed=r.randint(0, 99), droop=(0, 0, 0, 0))
     z = top + 0.008 + L1  # well clear of the cloth's ripple
     a, b = r.sample(others, 2)
     with p.painted():
@@ -665,7 +705,9 @@ def _banner(name: str, note: str, style: Style, cloth: str, trim: str, design) -
     with p.plain():
         p.cyl(0.018, 1.0, (0, -0.52, 3.5), "Hull dark", rot=(90, 0, 0), segments=4)
         p.sphere(0.035, (0, -1.04, 3.5), "Brass", segments=5, rings=3)
-        p.tube([(0, -0.02, 3.08), (0, -0.25, 3.3), (0, -0.4, 3.49)], 0.01, "Hull dark", segments=3)
+        # The brace runs from above, clear of the hanging cloth.
+        p.span((-0.05, -0.02, 3.82), (0.05, 0, 3.98), "Hull dark")
+        p.tube([(0, -0.02, 3.9), (0, -0.25, 3.72), (0, -0.48, 3.52)], 0.01, "Hull dark", segments=3)
         for y in (-0.16, -0.5, -0.86):
             p.torus(0.028, 0.006, (0, y, 3.5), "Hull alloy", rot=(0, 90, 0), segments=5, sides=3)
     # The cloth: in the YZ plane, hanging flat.
@@ -697,7 +739,7 @@ def _banner_paint(p: Piece, x, face, shapes):
                 p.cyl(rr, COAT, (x, y, z), mat, rot=(0, 90, 0), segments=14)
             else:
                 _, words, y, z, h, mat = s
-                p.lettering(words, (x, y, z), h, mat, facing=face, depth=COAT)
+                _letter(p, words, (x, y, z), h, mat, facing=face, depth=COAT)
 
 
 def banner_charter(style: Style) -> Piece:

@@ -38,6 +38,9 @@ type Clip struct {
 	// Step, for stairs, is the share of the clip's cycle at which a foot
 	// is planted on a step at the height of the floor the stairs stand on.
 	Step float32
+	// Backward plays the clip backwards: coming down stairs with the clip
+	// for climbing them.
+	Backward bool
 }
 
 // Model describes a character model file: a skinned glTF holding the mesh

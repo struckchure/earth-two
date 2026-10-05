@@ -777,11 +777,11 @@ ROOF = 0.3  # a roof tile's thickness, top at z = 0
 
 def charter_roof(style: Style) -> Piece:
     """2×2 m of flat Charter roof, its top at z = 0: pale stone pavers on a
-    bed of navy-painted slab, laid half a metre square with fine joints, a
-    bronze drain in one in four; underneath, the white plaster ceiling of
-    the room below. Walked on: one box collider. The game draws a slab."""
+    bed of navy-painted slab, laid half a metre square with fine joints;
+    underneath, the white plaster ceiling of the room below. One stone all
+    over (a roof is tiled with it by the dozen, and a pattern would repeat
+    tile by tile). Walked on: one box collider. The game draws a slab."""
     p = Piece("charter_roof", "kit", "2 × 2 m flat roof, top at 0", budget=200)
-    r = rng(style, p.name)
     p.collider((GRID, GRID, ROOF), (0, 0, -ROOF / 2))
     p.span((-H, -H, -ROOF + 0.02), (H, H, -0.03), "Charter navy")
     p.span((-H + 0.005, -H + 0.005, -ROOF), (H - 0.005, H - 0.005, -ROOF + 0.02), "Charter white")
@@ -789,13 +789,7 @@ def charter_roof(style: Style) -> Piece:
     for i in range(4):
         for j in range(4):
             x0, y0 = -H + i * 0.5, -H + j * 0.5
-            shade = r.choice(["Charter stone", "Charter stone", "Charter white"])
-            p.span((x0 + g / 2, y0 + g / 2, -0.03), (x0 + 0.5 - g / 2, y0 + 0.5 - g / 2, 0), shade)
-    if r.random() < 0.25:
-        p.cyl(0.07, 0.012, (0.25, 0.25, 0.0), "Brass", segments=12)
-        with p.painted():
-            for k in range(4):
-                p.span((0.25 - 0.05, 0.25 - 0.04 + k * 0.025, 0.011), (0.25 + 0.05, 0.25 - 0.03 + k * 0.025, 0.015), "Ink")
+            p.span((x0 + g / 2, y0 + g / 2, -0.03), (x0 + 0.5 - g / 2, y0 + 0.5 - g / 2, 0), "Charter stone")
     with p.lowpoly():
         p.span((-H, -H, -ROOF), (H, H, 0), "Charter stone")
     return p

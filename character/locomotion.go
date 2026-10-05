@@ -101,6 +101,9 @@ const (
 	// there (never faster than it took off).
 	airSteer = 10 * math.Pi / 180
 	airAccel = 2
+	// stairsWalk and stairsRun are as fast as a character goes on stairs,
+	// across the ground: a step at a time, at about the capture's pace.
+	stairsWalk, stairsRun = .9, 1.8
 	// pullUp is how many times quicker than it speeds up a character brakes
 	// for an action: from a run to below a walk in about a third of a
 	// second.
@@ -152,6 +155,13 @@ func locomote(
 				move = rl.Vector3Scale(dir, l*share)
 			}
 		})
+		if body != nil && body.stairs != 0 && cc.Grounded {
+			top := float32(stairsWalk)
+			if in.Run {
+				top = stairsRun
+			}
+			speed = min(speed, top)
+		}
 		want := rl.Vector3Scale(move, speed)
 		if traversal.Land > 0 {
 			want = rl.Vector3{} // taking the landing from a wall kick

@@ -60,7 +60,16 @@ var makehuman = map[character.Anim]character.Clip{
 	character.LadderExit:    {Name: "Traversal_LadderExit"},
 	character.LadderEnter:   {Name: "Traversal_Ladder"},
 	character.Fall:          {Name: "Traversal_Fall"},
+	// Mixamo's Ascending Stairs, its feet stretched to the kit's steps; going
+	// down plays it backwards.
+	character.StairsUp:   {Name: "Traversal_StairsUp", Step: stairStep},
+	character.StairsDown: {Name: "Traversal_StairsUp", Step: stairStep, Backward: true},
 }
+
+// stairStep is where in the stair clip's cycle a foot lands on a step's
+// edge: the left foot lands 0.175 of the way in, 0.22 m above the ground
+// under the body (tools/makehuman/traversal.py).
+const stairStep = .54
 
 // people are the character models in assets/characters (see CREDITS.txt).
 // They're made in metres, so they keep their own heights.
@@ -176,13 +185,13 @@ func startingOutfit(w *character.Wardrobe) character.Outfit {
 // HULL_* and PADS_* in tools/world/landfall.py, in the game's frame.
 var floored = []rl.Rectangle{
 	{X: -40, Y: -12, Width: 48, Height: 32},
-	{X: 14, Y: -20, Width: 48, Height: 60},
+	{X: 26, Y: -24, Width: 40, Height: 64},
 }
 
 // arrival is where the player starts, and comes back to: on the Pads at
 // the foot of the drifter's ramp, where new players arrive. It's SPAWN in
 // tools/world/landfall.py, in the game's frame.
-var arrival = rl.Vector3{X: 44, Z: 30}
+var arrival = rl.Vector3{X: 54, Z: 30}
 
 // respawn puts characters that fell off the edge of the world back where
 // the player arrives.

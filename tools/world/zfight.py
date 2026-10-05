@@ -67,6 +67,11 @@ def fights(obj: bpy.types.Object, gap: float = GAP) -> list[tuple]:
                 # The same colour fighting itself looks the same either way.
                 if part[a] == part[b] or a.material_index == b.material_index or a.normal.dot(b.normal) < 0.999:
                     continue
+                # Plane offsets are measured from the origin: far from it,
+                # nearly parallel faces can look closer than they are. So
+                # measure b's corners from a's plane.
+                if max(abs(a.normal.dot(v.co - a.verts[0].co)) for v in b.verts) > gap:
+                    continue
                 area = _overlap(a, b)
                 if area > 1e-5:
                     found.append((tuple(round(c, 3) for c in a.calc_center_median()), round(db - da, 4), area))
