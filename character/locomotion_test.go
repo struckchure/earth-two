@@ -194,3 +194,25 @@ func TestEaseEasesIn(t *testing.T) {
 		t.Errorf("within snap: %v, want there", got)
 	}
 }
+
+func TestRelativeMovement(t *testing.T) {
+	near := func(a, b rl.Vector3) bool { return rl.Vector3Distance(a, b) < 1e-5 }
+	ahead, left := rl.Vector3{Z: -1}, rl.Vector3{X: -1}
+	// Unset, and looking down -Z, the keys go as they say.
+	for _, forward := range []rl.Vector3{{}, {Z: -1}} {
+		if got := relative(ahead, forward); !near(got, ahead) {
+			t.Errorf("W looking %v goes %v", forward, got)
+		}
+	}
+	// Looking down +X, W goes +X and A goes -Z.
+	if got := relative(ahead, rl.Vector3{X: 1}); !near(got, rl.Vector3{X: 1}) {
+		t.Errorf("W looking +X goes %v", got)
+	}
+	if got := relative(left, rl.Vector3{X: 1}); !near(got, rl.Vector3{Z: -1}) {
+		t.Errorf("A looking +X goes %v", got)
+	}
+	// Looking down at a slant only its heading counts.
+	if got := relative(ahead, rl.Vector3{X: 1, Y: -2}); !near(got, rl.Vector3{X: 1}) {
+		t.Errorf("W looking down at +X goes %v", got)
+	}
+}

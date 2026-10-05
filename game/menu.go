@@ -11,10 +11,10 @@ import (
 	"github.com/struckchure/illusion/window"
 )
 
-// The menus: the game opens on the title screen, Esc pauses it, and C opens
-// the wardrobe. Screens stack, so Esc (or Back) returns to whichever screen
-// opened the one in front. Up/Down (W/S) move between choices and Enter
-// picks one, or point and click.
+// The menus: the game opens on the title screen, Esc pauses it, M opens
+// the map (see maps.go), and the wardrobe is in both menus. Screens stack, so Esc (or Back) returns to
+// whichever screen opened the one in front. Up/Down (W/S) move between
+// choices and Enter picks one, or point and click.
 
 // screen is what's in front of the game.
 type screen uint8
@@ -25,6 +25,7 @@ const (
 	paused
 	dressing
 	controlsHelp
+	mapping // the full map (see maps.go)
 )
 
 type action uint8
@@ -155,18 +156,19 @@ func (m *menu) press(w *character.Wardrobe, o *character.Outfit) bool {
 
 // nav is a frame's menu keys.
 type nav struct {
-	up, down, left, right, enter, back, wardrobe bool
+	up, down, left, right, enter, back, mapKey bool
 }
 
 func readNav(k *input.Keys) nav {
 	return nav{
-		up:       k.AnyJustPressed(rl.KeyUp, rl.KeyW),
-		down:     k.AnyJustPressed(rl.KeyDown, rl.KeyS),
-		left:     k.AnyJustPressed(rl.KeyLeft, rl.KeyA),
-		right:    k.AnyJustPressed(rl.KeyRight, rl.KeyD),
-		enter:    k.AnyJustPressed(rl.KeyEnter, rl.KeyKpEnter, rl.KeySpace),
-		back:     k.AnyJustPressed(rl.KeyEscape, rl.KeyBackspace),
-		wardrobe: k.JustPressed(rl.KeyC),
+		up:    k.AnyJustPressed(rl.KeyUp, rl.KeyW),
+		down:  k.AnyJustPressed(rl.KeyDown, rl.KeyS),
+		left:  k.AnyJustPressed(rl.KeyLeft, rl.KeyA),
+		right: k.AnyJustPressed(rl.KeyRight, rl.KeyD),
+		enter: k.AnyJustPressed(rl.KeyEnter, rl.KeyKpEnter, rl.KeySpace),
+		back:  k.AnyJustPressed(rl.KeyEscape, rl.KeyBackspace),
+		// mapKey opens the full map in play and closes it.
+		mapKey: k.JustPressed(rl.KeyM),
 	}
 }
 
@@ -177,12 +179,18 @@ func (m *menu) navigate(n nav, w *character.Wardrobe, o *character.Outfit) bool 
 	case s == playing && n.back:
 		m.open(paused)
 		return false
-	case s == playing && n.wardrobe:
-		m.open(dressing)
+	case s == playing && n.mapKey:
+		m.open(mapping)
 		return false
 	case s == playing:
 		return false
-	case n.back, s == dressing && n.wardrobe:
+	case s == mapping:
+		// It has no choices: M or Esc closes it.
+		if n.mapKey || n.back {
+			m.back()
+		}
+		return false
+	case n.back:
 		m.back()
 		return false
 	}

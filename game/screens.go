@@ -8,6 +8,7 @@ import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/earth-two/character"
 	"github.com/struckchure/illusion"
+	"github.com/struckchure/illusion/physics"
 	"github.com/struckchure/illusion/render"
 	"github.com/struckchure/illusion/transform"
 	"github.com/struckchure/illusion/window"
@@ -19,6 +20,8 @@ var bindings = []struct {
 	does string
 }{
 	{[]string{"WASD", "Arrows"}, "Walk"},
+	{[]string{"Mouse"}, "Look around"},
+	{[]string{"M"}, "Map"},
 	{[]string{"Shift"}, "Run"},
 	{[]string{"Space"}, "Jump / vault / mantle / wall kick"},
 	{[]string{"Ctrl"}, "Slide while running"},
@@ -27,7 +30,6 @@ var bindings = []struct {
 	{[]string{"E"}, "Interact"},
 	{[]string{"F"}, "Punch"},
 	{[]string{"Q"}, "Pick up"},
-	{[]string{"C"}, "Wardrobe"},
 	{[]string{"Esc"}, "Menu"},
 }
 
@@ -122,7 +124,7 @@ func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illu
 		}
 	})
 	x, y := p.px(20), height-p.px(48)
-	for _, h := range []struct{ key, does string }{{"Esc", "Menu"}, {"C", "Wardrobe"}} {
+	for _, h := range []struct{ key, does string }{{"Esc", "Menu"}} {
 		x += p.keycap(h.key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
 		p.text(h.does, rl.Vector2{X: x + 1, Y: y + p.px(4) + 1}, 15, semibold, rl.NewColor(0, 0, 0, 110))
 		p.text(h.does, rl.Vector2{X: x, Y: y + p.px(4)}, 15, semibold, colText)
@@ -133,8 +135,7 @@ func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illu
 // Camera shots, relative to the player's capsule centre: where the camera
 // sits, and what it looks at.
 var (
-	behind = shot{offset: cameraOffset, look: rl.Vector3{Y: 1}}
-	front  = shot{offset: rl.Vector3{Y: 0.25, Z: 3.1}, look: rl.Vector3{Y: 0.05}}
+	front = shot{offset: rl.Vector3{Y: 0.25, Z: 3.1}, look: rl.Vector3{Y: 0.05}}
 )
 
 type shot struct{ offset, look rl.Vector3 }
@@ -172,30 +173,33 @@ func follow(
 	players *illusion.Query2Where[transform.Transform, character.MotionSamples, illusion.With[character.Player]],
 	cameras *illusion.Query2[transform.Transform, render.Camera3d],
 	m *illusion.Res[menu],
-	t *illusion.Res[illusion.Time],
+	clk *clock,
 	win *illusion.Res[window.Window],
 	aim *illusion.Local[aiming],
-	fixed *illusion.Res[illusion.FixedTime],
+	p *physics.Physics,
+	o *illusion.Res[orbit],
 ) {
-	_, player, samples, ok := players.Single()
+	t, fixed := &clk.time, &clk.fixed
+	e, player, samples, ok := players.Single()
 	if !ok {
 		return
 	}
 	mu, ww := m.Get(), win.Get()
 	s := mu.screen()
-	sh := behind
+	sh := o.Get().shot()
+	lag := float32(playLag)
 	switch {
 	case s == dressing:
-		sh = front
+		sh, lag = front, cameraLag
 	case mu.onTitle():
-		sh = orbiting(mu.orbit)
+		sh, lag = orbiting(mu.orbit), cameraLag
 	}
 	x := float32(0)
 	if s != playing && ww.Width > 0 {
 		l := layoutFor(s, float32(ww.Width), float32(ww.Height), uiScale(ww))
 		x = min((l.panel.X+l.panel.Width)/float32(ww.Width), 0.6)
 	}
-	k := float32(1 - math.Exp(float64(-cameraLag*t.Get().DeltaSecs())))
+	k := float32(1 - math.Exp(float64(-lag*t.Get().DeltaSecs())))
 	position := samples.Position(player.Translation, fixed.Get().Overstep())
 	cameras.Each(func(_ ecs.Entity, tr *transform.Transform, cam *render.Camera3d) {
 		fovy := cam.Fovy
@@ -210,7 +214,19 @@ func follow(
 			a.at, a.set = target, true
 		}
 		a.at = rl.Vector3Lerp(a.at, target, k)
+		look := a.at
 		tr.Translation = rl.Vector3Lerp(tr.Translation, eye, k)
-		tr.LookAt(a.at, transform.Up)
+		if s == playing || s == mapping {
+			// Pulled in short of a wall in the way; easing back out, once
+			// it's clear, as it eases anywhere.
+			look = clearAbove(p, position, a.at, e)
+			tr.Translation = springArm(p, look, tr.Translation, e)
+			// Never skimming the ground: on a slope, a dune between it and
+			// the player would hide their legs.
+			if floor := groundHeight(tr.Translation.X, tr.Translation.Z) + groundLevel + cameraClearance; tr.Translation.Y < floor {
+				tr.Translation.Y = floor
+			}
+		}
+		tr.LookAt(look, transform.Up)
 	})
 }

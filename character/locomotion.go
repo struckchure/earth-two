@@ -17,10 +17,29 @@ type Controls struct {
 	Enabled bool
 }
 
+// View is a resource: the way the player's camera faces, on the XZ plane.
+// The keys move the player relative to it, W away from the camera and A to
+// its left. Unset, it faces -Z.
+type View struct {
+	Forward rl.Vector3
+}
+
+// relative is dir, given as on the keys (-Z ahead, +X right), turned to go
+// the same way relative to forward.
+func relative(dir, forward rl.Vector3) rl.Vector3 {
+	forward.Y = 0
+	if rl.Vector3Length(forward) < 1e-6 {
+		return dir
+	}
+	forward = rl.Vector3Normalize(forward)
+	right := rl.Vector3{X: -forward.Z, Z: forward.X}
+	return rl.Vector3Add(rl.Vector3Scale(right, dir.X), rl.Vector3Scale(forward, -dir.Z))
+}
+
 // playerInput turns the keyboard into the player's Intent: WASD or the
-// arrows move, Shift runs, Space jumps, E interacts, F punches and Q picks
-// up. With Controls off, the player stands still.
-func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *illusion.Res[input.Keys], controls *illusion.Res[Controls]) {
+// arrows move (relative to the View), Shift runs, Space jumps, E interacts,
+// F punches and Q picks up. With Controls off, the player stands still.
+func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *illusion.Res[input.Keys], controls *illusion.Res[Controls], view *illusion.Res[View]) {
 	if !controls.Get().Enabled {
 		q.Each(func(_ ecs.Entity, in *Intent) { *in = Intent{} })
 		return
@@ -40,7 +59,7 @@ func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *i
 		dir.Z++
 	}
 	if dir != (rl.Vector3{}) {
-		dir = rl.Vector3Normalize(dir)
+		dir = relative(rl.Vector3Normalize(dir), view.Get().Forward)
 	}
 	act := Idle
 	switch {

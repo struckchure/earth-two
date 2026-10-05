@@ -3,8 +3,8 @@
 // builds it for the browser.
 //
 // It opens on the title screen (see menu.go). In play, WASD or the arrow
-// keys walk, Shift runs, Space jumps, E interacts, F punches, Q picks up, C
-// opens the wardrobe (see wardrobe.go) and Esc pauses.
+// keys walk, Shift runs, Space jumps, E interacts, F punches, Q picks up and
+// Esc pauses; the wardrobe (see wardrobe.go) is in the menus.
 package game
 
 import (
@@ -12,6 +12,7 @@ import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/earth-two/character"
 	"github.com/struckchure/earth-two/shading"
+	"github.com/struckchure/earth-two/world"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/asset"
 	"github.com/struckchure/illusion/defaults"
@@ -22,14 +23,13 @@ import (
 )
 
 const (
-	groundSize = 40
+	// groundSize is the side of the square of ground, centred on the
+	// Hull: Landfall and the Fringe round it.
+	groundSize = 360
 	// cameraLag is how quickly the camera catches up with the player; higher
 	// is tighter.
 	cameraLag = 5
 )
-
-// cameraOffset is where the camera sits relative to the player.
-var cameraOffset = rl.Vector3{Y: 3.5, Z: 6}
 
 // makehuman is the clip table for the people tools/makehuman builds, all
 // retargeted onto MakeHuman's game engine rig: Mixamo's motion capture for
@@ -70,8 +70,11 @@ var people = []character.Model{
 }
 
 // Run starts the game and blocks until its window closes.
-func Run() {
-	illusion.New().
+func Run() { build(newMenu()).Run() }
+
+// build is the game, opening on m.
+func build(m *menu) *illusion.App {
+	return illusion.New().
 		AddPlugins(
 			defaults.Plugins(defaults.Config{
 				Window:    window.Config{Title: "Earth Two", Resizable: true, HighDPI: true, MSAA: true, VSync: true, KeepEscape: true},
@@ -79,11 +82,14 @@ func Run() {
 			}),
 			physics.Plugin{},
 			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass},
+			world.Plugin{Manifest: "world/world.json", Outline: shading.OutlinePass},
 			shading.Plugin{
-				ShadowColor:  rl.NewColor(185, 165, 240, 255),
-				Softness:     0.03,
-				MidBand:      0.45,
-				RimColor:     rl.NewColor(120, 95, 60, 255),
+				ShadowColor: rl.NewColor(185, 165, 240, 255),
+				Softness:    0.03,
+				MidBand:     0.45,
+				// No rim light: it follows the camera, so it reads as a
+				// light carried round with the player.
+				RimColor:     rl.NewColor(0, 0, 0, 255),
 				RimPower:     3,
 				RimThreshold: 0.35,
 				OutlineColor: rl.NewColor(60, 40, 55, 255),
@@ -92,48 +98,60 @@ func Run() {
 		).
 		InsertResource(
 			illusion.R(&render.ClearColor{Color: rl.NewColor(250, 196, 120, 255)}),
-			illusion.R(&render.AmbientLight{Color: rl.NewColor(225, 228, 245, 255), Brightness: 0.45}),
-			illusion.R(newMenu()),
+			// The fill from the dusty sky: dimmer than the sun, and violet.
+			illusion.R(&render.AmbientLight{Color: rl.NewColor(206, 186, 222, 255), Brightness: 0.32}),
+			illusion.R(m),
+			illusion.R(newOrbit()),
 			illusion.R(&uiFonts{}),
 		).
-		AddSystems(illusion.Startup, illusion.Fn6(setup)).
+		AddSystems(illusion.Startup, illusion.Fn7(setup)).
 		AddSystems(illusion.Update,
-			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn4(lockControls), illusion.Fn5(faceCamera), illusion.Fn7(follow)),
+			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn7(cull), illusion.Fn3(moveSky)),
 			illusion.Fn1(respawn),
 		).
-		AddSystems(illusion.Render, illusion.Chain(illusion.Fn4(hud), illusion.Fn5(drawMenus)).InSet(render.Draw2D)).
-		Run()
+		AddSystems(illusion.Render, illusion.Chain(illusion.Fn4(hud), illusion.Fn6(drawMaps), illusion.Fn5(drawMenus)).InSet(render.Draw2D))
 }
 
 func setup(
 	cmd *illusion.Commands,
 	meshes *illusion.Res[asset.Assets[render.Mesh]],
 	materials *illusion.Res[asset.Assets[render.StandardMaterial]],
-	textures *asset.Loader[render.Texture],
 	roster *illusion.Res[character.Roster],
 	wardrobe *illusion.Res[character.Wardrobe],
+	kit *illusion.Res[world.Kit],
+	textures *illusion.Res[asset.Assets[render.Texture]],
 ) {
 	m, mat := meshes.Get(), materials.Get()
+	setClipPlanes()
 	cmd.Spawn(
 		illusion.C(render.Camera3d{}),
-		illusion.C(transform.FromTranslation(cameraOffset).LookingAt(rl.Vector3{}, transform.Up)),
+		illusion.C(transform.FromTranslation(newOrbit().shot().offset).LookingAt(rl.Vector3{}, transform.Up)),
 	)
-	// A low evening sun.
+	// The sun, TRAPPIST-1, low over Landfall, and the sky round it (see
+	// sky.go).
 	cmd.Spawn(
-		illusion.C(render.DirectionalLight{Color: rl.NewColor(160, 142, 118, 255)}),
-		illusion.C(transform.Identity().LookingAt(rl.Vector3{X: -2, Y: -2, Z: -1}, transform.Up)),
+		illusion.C(render.DirectionalLight{Color: sunlight}),
+		illusion.C(transform.Identity().LookingAt(rl.Vector3Negate(sunFrom), transform.Up)),
 	)
+	spawnSky(cmd, m, mat, textures.Get())
+	// The red ground under Landfall and out across the Fringe (see
+	// terrain.go). Floors have no colliders of their own: this is what
+	// everyone walks on.
 	cmd.Spawn(
-		illusion.C(render.Mesh3d{Mesh: m.Add(render.Plane(groundSize, groundSize))}),
-		// Loaded from assets/checker.png, which web builds bundle into the page.
-		illusion.C(render.MeshMaterial3d{Material: mat.Add(render.StandardMaterial{BaseColor: rl.White, Texture: textures.MustLoad("checker.png")})}),
+		illusion.C(render.Mesh3d{Mesh: m.Add(render.Mesh{Mesh: terrainMesh()})}),
+		illusion.C(render.MeshMaterial3d{Material: mat.Add(render.StandardMaterial{BaseColor: rl.NewColor(150, 82, 58, 255)})}),
 		illusion.C(transform.Identity()),
-		illusion.C(physics.Static),
-		illusion.C(physics.Cuboid(groundSize, 1, groundSize).WithOffset(rl.Vector3{Y: -0.5})),
 	)
-
-	traversalCourse(cmd, m, mat)
-	roster.Get().Spawn(cmd, 0, rl.Vector3{}, illusion.C(character.Player{}), illusion.C(startingOutfit(wardrobe.Get())))
+	cmd.Spawn(illusion.C(transform.Identity()), illusion.C(physics.Static), illusion.C(terrainCollider()))
+	placed, err := world.Layout(assetRoot(), "world/landfall.json")
+	if err != nil {
+		panic(err)
+	}
+	if err := spawnOnTerrain(cmd, kit.Get(), placed); err != nil {
+		panic(err)
+	}
+	cmd.InsertResource(illusion.R(newWorldMap(kit.Get(), placed)))
+	roster.Get().Spawn(cmd, 0, arrival, illusion.C(character.Player{}), illusion.C(startingOutfit(wardrobe.Get())))
 }
 
 // startingOutfit is what the player first wears: whichever of these the
@@ -153,12 +171,25 @@ func startingOutfit(w *character.Wardrobe) character.Outfit {
 	return o
 }
 
-// respawn puts characters that fell off the edge of the world back in the
-// middle.
+// floored is where Landfall's floors cover the ground, on the XZ plane (X
+// across, Y for the game's Z): the Hull's deck and the Pads' tiles. They're
+// HULL_* and PADS_* in tools/world/landfall.py, in the game's frame.
+var floored = []rl.Rectangle{
+	{X: -40, Y: -12, Width: 48, Height: 32},
+	{X: 14, Y: -20, Width: 48, Height: 60},
+}
+
+// arrival is where the player starts, and comes back to: on the Pads at
+// the foot of the drifter's ramp, where new players arrive. It's SPAWN in
+// tools/world/landfall.py, in the game's frame.
+var arrival = rl.Vector3{X: 44, Z: 30}
+
+// respawn puts characters that fell off the edge of the world back where
+// the player arrives.
 func respawn(q *illusion.Query3Where[transform.Transform, physics.CharacterController, character.Traversal, illusion.With[character.Character]]) {
 	q.Each(func(_ ecs.Entity, tr *transform.Transform, cc *physics.CharacterController, traversal *character.Traversal) {
 		if tr.Translation.Y < -20 {
-			tr.Translation = rl.Vector3{Y: 2}
+			tr.Translation = rl.Vector3Add(arrival, rl.Vector3{Y: 2})
 			cc.Velocity = rl.Vector3{}
 			cc.Walk = rl.Vector3{}
 			cc.Controlled = false

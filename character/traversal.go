@@ -23,6 +23,33 @@ const (
 	slideRelease = .875
 )
 
+// A slide goes the way the character was running, and steers at most
+// slideSteer either side of that, turning at most slideTurn radians a
+// second. Pulling back further than slideBack from the way it's going
+// doesn't steer it: it can't turn round.
+const (
+	slideSteer = 45 * math.Pi / 180
+	slideTurn  = 1.5
+	slideBack  = 120 * math.Pi / 180
+)
+
+// steerSlide is the way a slide going along current, which started heading
+// the yaw heading, goes after dt seconds of wanting to go move.
+func steerSlide(current rl.Vector3, heading float32, move rl.Vector3, dt float32) rl.Vector3 {
+	move = horizontal(move)
+	if move == (rl.Vector3{}) {
+		return current
+	}
+	yaw := float32(math.Atan2(float64(current.X), float64(current.Z)))
+	to := float32(math.Atan2(float64(move.X), float64(move.Z)))
+	if abs(wrapAngle(to-yaw)) > slideBack {
+		return current
+	}
+	want := heading + clamp(wrapAngle(to-heading), -slideSteer, slideSteer)
+	yaw += clamp(wrapAngle(want-yaw), -slideTurn*dt, slideTurn*dt)
+	return rl.Vector3{X: float32(math.Sin(float64(yaw))), Z: float32(math.Cos(float64(yaw)))}
+}
+
 // TraversalConfig contains distances, seconds and speeds used by every character.
 type TraversalConfig struct {
 	LowHeight, SlideMin, SlideSpeed, SlideTime, RollDistance, RollTime float32
@@ -59,6 +86,7 @@ type Traversal struct {
 	Hint                             string
 	Phase, RungSpacing               float32 // climb cycles, driven by distance, not animation time
 	ExitTop                          bool
+	heading                          float32 // the way a slide started, as a yaw: it steers only so far from it
 }
 
 func (s *Traversal) active() bool { return s.Mode != Idle }
@@ -309,7 +337,7 @@ func traverse(
 						floor = min(c.RunSpeed, s.Speed)
 					}
 					speed = floor + (s.Speed-floor)*max(0, 1-s.Elapsed/s.Duration)
-					s.Direction = direction(rl.Vector3Lerp(s.Direction, dir, min(dt*1.5, .1)))
+					s.Direction = steerSlide(s.Direction, s.heading, in.Move, dt)
 				}
 				// Reserve the pose's leading foot/shoulder as well as capsule
 				// travel, so a fast burst stops before its limbs reach a wall.
@@ -483,6 +511,10 @@ func traverse(
 				s.Mode = Slide
 				s.Duration = cfg.SlideTime
 				s.Speed = max(cfg.SlideSpeed, rl.Vector3Length(horizontal(cc.Velocity)))
+				// The way it's running, whatever it wants: it can't slide
+				// off the other way.
+				dir = direction(horizontal(cc.Velocity))
+				s.heading = float32(math.Atan2(float64(dir.X), float64(dir.Z)))
 			}
 			s.Direction = dir
 			s.Elapsed = 0

@@ -11,8 +11,8 @@ import (
 )
 
 // The wardrobe changes what the player looks like: the body, the skin tone
-// and what they wear in each slot. C opens it in play, or pick it from a
-// menu (see menu.go). The player turns to the camera, which swings round to
+// and what they wear in each slot. Pick it from the title screen or the
+// pause menu (see menu.go). The player turns to the camera, which swings round to
 // their front; Up/Down pick a row and Left/Right change it, or click its
 // arrows.
 

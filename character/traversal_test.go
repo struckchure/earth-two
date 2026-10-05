@@ -155,6 +155,51 @@ func TestSprintingSlideRunsOn(t *testing.T) {
 	}
 }
 
+func TestSlideCannotTurnRound(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		move rl.Vector3 // held from the slide on
+	}{
+		{"pulling back", rl.Vector3{Z: -1}},
+		{"pulling back and to the side", rl.Vector3Normalize(rl.Vector3{X: 1, Z: -1})},
+		{"steering hard to the side", rl.Vector3{X: 1}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newTraversalHarness(t, rl.Vector3{}, nil)
+			h.cc.Walk, h.cc.Velocity.Z = rl.Vector3{Z: 4.6}, 4.6
+			h.in.Run, h.in.Move, h.in.Slide = true, tt.move, true
+			h.tick(1)
+			if h.s.Mode != Slide {
+				t.Fatalf("slide mode=%v", h.s.Mode)
+			}
+			if h.s.Direction.Z < .99 {
+				t.Fatalf("slide started going %v, want the way it was running", h.s.Direction)
+			}
+			for h.s.Mode == Slide {
+				if h.cc.Walk.Z < 0 {
+					t.Fatalf("slide went backwards: %v", h.cc.Walk)
+				}
+				if a := math.Atan2(float64(h.s.Direction.X), float64(h.s.Direction.Z)); math.Abs(a) > slideSteer+1e-3 {
+					t.Fatalf("slide steered %v°, past %v°", a*180/math.Pi, slideSteer*180/math.Pi)
+				}
+				h.tick(1)
+			}
+		})
+	}
+}
+
+func TestSlideSteersToTheSide(t *testing.T) {
+	h := newTraversalHarness(t, rl.Vector3{}, nil)
+	h.cc.Walk, h.cc.Velocity.Z = rl.Vector3{Z: 4.6}, 4.6
+	h.in.Run, h.in.Move, h.in.Slide = true, rl.Vector3{Z: 1}, true
+	h.tick(1)
+	h.in.Move = rl.Vector3Normalize(rl.Vector3{X: 1, Z: 1})
+	h.tick(20)
+	if h.s.Mode != Slide || h.s.Direction.X <= .2 {
+		t.Fatalf("slide did not steer right: %v, going %v", h.s.Mode, h.s.Direction)
+	}
+}
+
 func TestLowCeilingAndBlockedRoll(t *testing.T) {
 	h := newTraversalHarness(t, rl.Vector3{}, func(cmd *illusion.Commands) {
 		staticBox(cmd, rl.Vector3{Z: 1, Y: 1.2}, rl.Vector3{X: 3, Y: .2, Z: 1.4})

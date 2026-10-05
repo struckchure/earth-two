@@ -46,6 +46,11 @@ const (
 	// Fall loops after a jump's clip reaches touchdown in the air: falling
 	// from higher than it jumped, legs swinging, until it lands.
 	Fall
+	// StairsUp and StairsDown walk (or run) up and down stairs, a foot on
+	// each step: their clips' cycles are set by how high the feet are, not
+	// by time (see stairPhase).
+	StairsUp
+	StairsDown
 )
 
 // Airborne reports whether a is a jump, or the fall after one.
@@ -98,6 +103,10 @@ func (a Anim) String() string {
 		return "crouch"
 	case Fall:
 		return "fall"
+	case StairsUp:
+		return "stairs up"
+	case StairsDown:
+		return "stairs down"
 	}
 	return "unknown"
 }
@@ -157,6 +166,12 @@ type State struct {
 	air     float32 // seconds off the ground
 	turn    float32 // how fast the body is turning, in radians per second
 	resume  float32 // seconds left counting as moving on after an action
+	// stairs is which way it's going on stairs (1 up, -1 down, 0 not), and
+	// stairsLeft how much longer it counts as on them since it last was,
+	// so a moment off the slope at the top or bottom step doesn't flicker
+	// to a walk and back.
+	stairs     int8
+	stairsLeft float32
 	// rightPunch is whether the next punch is with the right hand.
 	rightPunch bool
 

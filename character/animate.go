@@ -3,6 +3,7 @@ package character
 import (
 	"math"
 
+	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/asset"
@@ -26,6 +27,15 @@ const (
 	// pivot is how fast (radians per second) a body turns before it steps
 	// round rather than swivelling on the spot.
 	pivot = 1
+	// stairCycle is how far up a stair clip's cycle climbs: two steps, a
+	// foot on each. The kit's stairs are twelve 0.3 m steps up a 3.6 m
+	// deck (tools/world/hull_kit.py), so a deck is six whole cycles.
+	stairCycle = 0.6
+	// A slope counts as stairs from stairsFrom to stairsTo off level (the
+	// stairs' ramp is 33°), and it stays stairs for stairsHold after.
+	stairsFrom = 18 * math.Pi / 180
+	stairsTo   = 50 * math.Pi / 180
+	stairsHold = .15
 	// fallFade is how long the fall's leg swing takes to fade in out of the
 	// jump's pose.
 	fallFade = .3
@@ -90,6 +100,45 @@ func pickAnim(m motion, c Character, current Anim, acting bool) Anim {
 		return Walk
 	}
 	return Idle
+}
+
+// onStairs is which way a character standing on ground with normal n and
+// going at velocity v is going on stairs: 1 up, -1 down, 0 not on any (on
+// the level, too steep, or not going anywhere).
+func onStairs(n, v rl.Vector3) int8 {
+	slope := math.Acos(float64(clamp(n.Y, -1, 1)))
+	if slope < stairsFrom || slope > stairsTo || math.Hypot(float64(v.X), float64(v.Z)) < moving {
+		return 0
+	}
+	// The normal leans downhill.
+	if v.X*n.X+v.Z*n.Z < 0 {
+		return 1
+	}
+	return -1
+}
+
+// stairsAnim is the clip for going dir on stairs (1 up, -1 down), or Idle
+// for none.
+func stairsAnim(dir int8) Anim {
+	switch dir {
+	case 1:
+		return StairsUp
+	case -1:
+		return StairsDown
+	}
+	return Idle
+}
+
+// stairPhase is how far through its cycle a stair clip is, 0 to 1, with
+// the feet at height y, going up or down: a cycle a stairCycle, a foot
+// planted at step's share of it on each step's edge.
+func stairPhase(y float32, up bool, step float32) float32 {
+	climbed := y / stairCycle
+	if !up {
+		climbed = -climbed
+	}
+	p := climbed + step
+	return p - float32(math.Floor(float64(p)))
 }
 
 // canAct reports whether a character can start an action: on the ground,
@@ -317,7 +366,18 @@ func animate(
 		m.Resuming = heading && st.resume > 0
 		m.Pivoting = heading && abs(st.turn) > pivot
 
-		if next := pickAnim(m, *c, st.Current, acting); next != st.Current {
+		// On stairs, its walk or run climbs (or comes down) them a foot on
+		// each step, if it has the clips.
+		if dir := onStairs(cc.GroundNormal, cc.Velocity); cc.Grounded && dir != 0 {
+			st.stairs, st.stairsLeft = dir, stairsHold
+		} else if st.stairsLeft = max(0, st.stairsLeft-dt); st.stairsLeft == 0 {
+			st.stairs = 0
+		}
+		next := pickAnim(m, *c, st.Current, acting)
+		if stairs := stairsAnim(st.stairs); stairs != Idle && skin.Has(stairs) && (next == Walk || next == Run) {
+			next = stairs
+		}
+		if next != st.Current {
 			landing := st.Current.Airborne() && m.Grounded
 			rolled := st.Current == Roll || st.Current == Slide
 			st.Current = next
@@ -338,6 +398,14 @@ func animate(
 		// Match the stride to the ground speed, so feet don't slide, and a
 		// jump's clip to its airtime.
 		switch st.Current {
+		case StairsUp, StairsDown:
+			// Set by how high the feet are, so a foot lands on each step
+			// whatever the pace.
+			if d, ok := sk.duration(skin, skin.clip(st.Current).Name); ok {
+				feet := samples.Position(samples.current, fixed.Get().Overstep()).Y - cc.Height/2
+				p.ManualTime = true
+				p.Seek(stairPhase(feet, st.Current == StairsUp, skin.clip(st.Current).Step) * d)
+			}
 		case Walk:
 			p.Speed = clamp(m.Speed/c.WalkSpeed, 0.6, 1.6)
 		case Run:

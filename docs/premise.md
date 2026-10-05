@@ -9,6 +9,12 @@ supply ships stopped. The colonists kept going on their own. Nobody here says
 "Earth Two" any more except on paper. The colonists call the planet **the
 Red**, after the red soil and the dust that gets into everything.
 
+The Red is a real planet: **TRAPPIST-1e**, 40.7 light-years from Earth in
+Aquarius. It's the fourth of seven planets round TRAPPIST-1, a small, cool red
+dwarf, and one of the most Earth-like planets known: a little smaller than
+Earth, in its star's habitable zone. Its six neighbours are close enough to
+see as discs in the sky, and they wander along beside the sun.
+
 What replaced the company is **the Exchange**, a public registry where anyone
 can file a contract and anyone with a licence can enforce one. Legal means
 "filed". Illegal means "off the books". See [The Exchange](exchange.md).

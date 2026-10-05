@@ -35,6 +35,9 @@ type Clip struct {
 	// Loop, for jumps, loops the clip for as long as the character is
 	// airborne: an in-air cycle.
 	Loop bool
+	// Step, for stairs, is the share of the clip's cycle at which a foot
+	// is planted on a step at the height of the floor the stairs stand on.
+	Step float32
 }
 
 // Model describes a character model file: a skinned glTF holding the mesh

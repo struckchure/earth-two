@@ -10,7 +10,7 @@ PORT ?= 8080
 # a module that isn't in the cache yet has no directory to list.
 ILLUSION = $(shell go mod download github.com/struckchure/illusion 2>/dev/null; go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
-.PHONY: run build web serve test characters people wardrobe traversal-animations paint bindpose clean
+.PHONY: run build web serve test characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
 
 run:
 	go run ./cmd/desktop
@@ -75,6 +75,22 @@ SRC ?=
 bindpose:
 	@test -n "$(SRC)" || { echo 'set SRC to the .glb files to prepare'; exit 1; }
 	go run ./tools/bindpose -o assets/characters $(SRC)
+
+# The world's pieces: the Hull kit and the props, their colliders and the
+# Hull test block's layout, all into assets/world (see tools/world). It
+# builds with the choices in tools/world/style.json.
+world:
+	"$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/world/build.py
+
+# Unfinished: the pieces as modelled, without the bake. Seconds, for trying
+# things; make world is what the game should ship.
+world-fast:
+	"$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/world/build.py -- --fast
+
+# Only the layouts (tools/world/build.py's LAYOUTS), against the pieces
+# already in assets/world.
+world-layouts:
+	"$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/world/build.py -- --layouts
 
 clean:
 	rm -rf build

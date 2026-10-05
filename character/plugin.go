@@ -23,7 +23,7 @@ type Plugin struct {
 
 func (pl Plugin) Build(app *illusion.App) {
 	// PreStartup, so Startup systems can spawn characters.
-	app.InsertResource(illusion.R(&Controls{Enabled: true}))
+	app.InsertResource(illusion.R(&Controls{Enabled: true}), illusion.R(&View{}))
 	app.AddSystems(illusion.PreStartup, illusion.Fn5(func(
 		cmd *illusion.Commands,
 		models *asset.Loader[render.Model],
@@ -60,7 +60,7 @@ func (pl Plugin) Build(app *illusion.App) {
 	app.AddSystems(illusion.FixedUpdate, illusion.Chain(illusion.Fn8(traverse), illusion.Fn4(locomote)))
 	app.AddSystems(illusion.FixedPostUpdate, illusion.Fn1(rememberMotion).After(physics.Writeback))
 	app.AddSystems(illusion.Update, illusion.Chain(
-		illusion.Fn3(playerInput),
+		illusion.Fn4(playerInput),
 		illusion.Fn8(dress),
 		illusion.Fn6(clothe),
 		illusion.Fn5(face),

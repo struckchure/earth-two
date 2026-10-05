@@ -48,7 +48,9 @@ Esc goes back. In play:
 
 | Key | Does |
 |---|---|
-| WASD / arrows | Walk |
+| WASD / arrows | Walk, relative to the camera |
+| Mouse | Look around (in the browser, while a button is held); moving, the camera swings round behind you |
+| M | Open or close the map (drag to move it, scroll to zoom) |
 | Shift | Run |
 | Space | Jump; vault/mantle an obstacle ahead; kick away from a nearby wall in the air |
 | Ctrl | Slide while running (at least 3 m/s); Space jumps out |
@@ -57,8 +59,18 @@ Esc goes back. In play:
 | E | Interact |
 | F | Punch |
 | Q | Pick up |
-| C | Open or close the wardrobe |
 | Esc | Pause: Resume, Wardrobe, Controls, Main menu, Quit |
+
+In play, a minimap in the bottom right shows the way round you, north up,
+and a compass along the top shows the way the camera looks. M opens the
+full map of Landfall and the Fringe, which pauses the game like the menus.
+Both maps are drawn from the layout (`game/maps.go`), so they follow it.
+
+Landfall stands on terrain (`game/terrain.go`): level inside the dome,
+along the roads and under the Fringe's farms, salvage fields, camp and wind
+farm, and rolling into dunes and ridges elsewhere, up to hills round the edge
+of the world. It's one heightfield for the drawn ground and its collider, and
+the layout's pieces are stood on it where they're placed.
 
 The menus (`game/menu.go`, drawn by `game/screens.go`) stack, so Esc or
 Back returns to whichever screen opened the one in front. The HUD is just
@@ -197,8 +209,8 @@ files); see `assets/characters/CREDITS.txt`.
 
 ### The wardrobe
 
-C opens the wardrobe (`game/wardrobe.go`), as does Wardrobe on the title
-screen and the pause menu: the player stops and turns to the camera, which swings round to their front, and its rows change the body
+Wardrobe on the title screen or the pause menu opens the wardrobe
+(`game/wardrobe.go`): the player stops and turns to the camera, which swings round to their front, and its rows change the body
 (man or woman), the skin tone, hair, glasses, top, bottom, outfit (a
 one-piece: suits, overalls, dresses) and shoes. Up/Down (W/S) pick a row
 and Left/Right (A/D) change it, or click its arrows; changes show at once.
@@ -417,6 +429,91 @@ go run ./tools/bindpose -check assets/characters/model.glb   # every joint shoul
 
 Then add it to `people` with its clip names.
 
+## The world
+
+Everything in the world is built in Blender Python in `tools/world/`, one
+module for each part of the world in the docs. `kit.py` holds the palette
+and the piece builder; the modules are:
+
+| Module | Pieces |
+| --- | --- |
+| `hull_kit.py` | The Hull's middle decks: deck floor, an upper-deck slab, hull walls (one with a viewport), a bulkhead door, ribs, catwalk, railing, stairs, ladder, pipes, a low duct |
+| `props.py` | The Hull's market: crates, a drum, an Exchange terminal, a market stall, a tarp, a work lamp, a status light, the Exchange's public board |
+| `hull_decks.py` | The Crew's air plant (scrubbers, fans, pumps, the repair-run valve station, generators, a console), the Stacks' rooms (bunks, cots, lockers, curtains, a numbered cabin door), warehouses (racking, pallets, a roller door), food and parts stalls |
+| `exchange.py` | The Exchange floor: the Registrars' counter and desks, filing cabinets, a row of terminals, queue rails, the floor bell, archive shelves, the seal, a stamp station, an arbitration table |
+| `charter_row.py` | Charter Row: white-and-navy facade walls, windows, doors and pilasters, a glasshouse, planters, hedges, a guard booth, iron gates and fences, lamps, an office (desk, chair, safe, bookshelf), a fountain |
+| `pads.py` | The Pads: pad tiles, shipping containers (one open to walk into), a gantry crane, fuel tanks, floodlight towers, a loader, a Quiet Book front, a drifter-day trade table, barriers |
+| `domes.py` | The dome line: dome walls and frames, strut anchors, the South gate, a boom barrier, the checkpoint booth, a scanner arch, an airlock door, a mask station |
+| `fringe.py` | The Fringe: rocks, dust drifts, quiver trees, a dead tree, dry brush, a wind turbine, a patched greenhouse, crop beds, the wrecked terraformer, scrap, a salvage rig, a caravan cart, tents, a cistern, fences, a filter cache |
+| `items.py` | What's carried: marks, scrip and filters; contracts, filings, ledgers, land claims and seals (and a forged one); water, food and Earth coffee; power cells, parts, valves and a Corvane data core; medicine, seeds, electronics, wine; tools |
+| `weapons.py` | Earth guns, lasers, a katana, a machete, a knife, a stun baton, armour, ammo, cell packs, a rack |
+| `vehicles.py` | Haulers (flatbed and tanker), a bike, a trike, a car under a tarp, the drifter *Patience* and the Receivership's shuttle |
+
+Real-world objects (drums, rocks, tools, furniture, lamps, food) are built
+on Poly Haven's CC0 models (`polyhaven.py`), fetched once into
+`build/polyhaven/`. Credits are in `assets/world/CREDITS.txt`. Sci-fi and
+story pieces are modelled. How to make a piece, and the standard it has to
+meet, is in `tools/world/GUIDE.md`.
+
+`make world` builds every piece into `assets/world/`, each module in its own
+process. Every piece gets the finish (`finish.py`):
+
+1. Organic parts are roughened and hard edges bevelled.
+2. The piece is baked onto one texture: ambient occlusion, worn edges, grime,
+   red dust (as much as its district has) and painted decals. Sourced
+   models bake from their own textures.
+3. A piece tiled by the hundred (a floor, a wall, a fence) is baked onto a
+   low-poly stand-in of a few boxes. The deck floor is 12 triangles that
+   still show its grating.
+
+That makes a piece one material and one draw call. The build takes a while;
+`make world-fast` builds unfinished pieces in seconds, for trying things.
+
+It writes a `.glb` for each piece and `world.json`, which gives each piece's
+model, kind (`kit`, `prop`, `item` or `vehicle`), category, triangle
+budget, collider boxes and ladders. It also writes the layouts:
+`hull_block.json`, the Hull test block where the game starts, and
+`landfall.json`. `make world-layouts` rewrites just those. The `world`
+package loads `world.json` and places pieces with their colliders and
+ladders.
+
+The conventions every piece keeps (see the guide for the rest):
+
+- Pieces are made in metres at real size. Each stands on its origin (the
+  middle of its footprint), and its front faces the game's +Z, the way the
+  characters face. Vehicles point their noses that way.
+- Guns and blades lie on their side with the muzzle or tip along +X.
+- The architecture is on a 2 m grid with a 3.6 m deck height, exactly.
+- Floors (deck plates, pad tiles) have no collider of their own: a level
+  stands on one ground box under them. Upper decks use `deck_slab`.
+- Items have no colliders. Anything big enough to walk into has box
+  colliders, sized for traversal (0.35–1 m to vault, up to 1.8 m to mantle).
+- Nothing is stacked closer than a centimetre: paint is baked in, never
+  layered.
+
+Checking pieces:
+
+- `world`'s tests check that every collider is inside its model, the
+  kinds, the triangle budgets, and every move in the test block. That last
+  check runs a character under physics with no window: it vaults a crate,
+  mantles the tall one, slides under the duct, climbs the ladder, walks up
+  the stairs and wall-kicks up the corridor.
+- To look a module over:
+
+  ```sh
+  "$BLENDER_PYTHON" tools/world/sheet.py fringe fringe.png --finish
+  "$BLENDER_PYTHON" tools/world/zfight.py fringe
+  go run ./tools/shot shot.png assets 0 2 6 0 1 0 world/drum.glb@0,0
+  ```
+
+  `sheet.py` renders a contact sheet; `zfight.py` finds surfaces that would
+  flicker; `tools/shot` draws pieces in the game's own renderer.
+
+`scenes/world.py` shows the test block, or any one part of the world piece
+by piece, in the Blender harness's 3D pane, unfinished. Its Shape Lab can
+change how much is repainted, the fabrics and the variation; a normal run
+saves those choices to `tools/world/style.json` for `make world`.
+
 ## CI
 
 `.github/workflows/ci.yml` vets, tests and builds the game for Linux, macOS
@@ -430,6 +527,8 @@ requests. Each run uploads the builds as artifacts.
   resources work.
 - `character/` is the character system (see above).
 - `shading/` is the toon shader and the outlines.
+- `world/` places the world's pieces; `tools/world/` builds them (see above).
+- `tools/shot/` draws world pieces in the game's renderer, for looking them over.
 - `tools/paint/` gives the characters' textures a painted look.
 - `tools/bindpose/` prepares skinned glTF characters for raylib.
 - `tools/mixamo/` puts Mixamo animations on our characters (Blender scripts).

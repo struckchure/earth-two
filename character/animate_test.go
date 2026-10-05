@@ -1,6 +1,7 @@
 package character
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -202,5 +203,44 @@ func TestWallKickAnimationSelectionAndRecovery(t *testing.T) {
 	app.Tick(time.Second / 60)
 	if state.Current != WallLand || player.Clip() != "Traversal_WallLand" || player.ManualTime {
 		t.Fatalf("landing did not play: %v %q", state.Current, player.Clip())
+	}
+}
+
+func TestOnStairs(t *testing.T) {
+	// The stairs' ramp, rising north (-Z): its normal leans south (+Z).
+	ramp := rl.Vector3Normalize(rl.Vector3{Y: .84, Z: .54})
+	for _, tt := range []struct {
+		name string
+		n, v rl.Vector3
+		want int8
+	}{
+		{"climbing", ramp, rl.Vector3{Z: -1.6}, 1},
+		{"coming down", ramp, rl.Vector3{Z: 1.6}, -1},
+		{"standing on them", ramp, rl.Vector3{}, 0},
+		{"on the level", rl.Vector3{Y: 1}, rl.Vector3{Z: -1.6}, 0},
+		{"a gentle ramp", rl.Vector3Normalize(rl.Vector3{Y: 1, Z: .15}), rl.Vector3{Z: -1.6}, 0},
+		{"a wall", rl.Vector3{Z: 1}, rl.Vector3{Z: -1.6}, 0},
+	} {
+		if got := onStairs(tt.n, tt.v); got != tt.want {
+			t.Errorf("%s: onStairs = %d, want %d", tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestStairPhase(t *testing.T) {
+	// A foot is planted on a step's edge at the clip's step share, at the
+	// floor and every cycle up.
+	for _, y := range []float32{0, stairCycle, 3.6} {
+		if got := stairPhase(y, true, .25); math.Abs(float64(got-.25)) > 1e-4 {
+			t.Errorf("climbing at %v: phase %v, want .25", y, got)
+		}
+	}
+	// Halfway up a cycle, halfway through it; coming down, it runs the
+	// other way.
+	if got := stairPhase(stairCycle/2, true, 0); math.Abs(float64(got-.5)) > 1e-4 {
+		t.Errorf("climbing half a cycle: %v, want .5", got)
+	}
+	if up, down := stairPhase(.1, true, 0), stairPhase(.1, false, 0); math.Abs(float64(up+down-1)) > 1e-4 {
+		t.Errorf("up %v and down %v at the same height should run opposite ways", up, down)
 	}
 }

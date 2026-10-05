@@ -65,9 +65,12 @@ func TestMenuMainMenuAndQuit(t *testing.T) {
 func TestMenuWardrobeKeys(t *testing.T) {
 	m := &menu{}
 	w, o := menuWardrobe(), &character.Outfit{}
-	m.navigate(nav{wardrobe: true}, w, o)
+	// In play, there's no key for it: it's in the pause menu.
+	m.navigate(nav{back: true}, w, o)
+	m.navigate(nav{down: true}, w, o) // Resume, to Wardrobe
+	m.navigate(nav{enter: true}, w, o)
 	if m.screen() != dressing {
-		t.Fatalf("C in play: %v, want the wardrobe", m.screen())
+		t.Fatalf("Wardrobe in the pause menu: %v, want the wardrobe", m.screen())
 	}
 	top := rowSlots + int(character.Top)
 	m.top().focus = top
@@ -86,13 +89,8 @@ func TestMenuWardrobeKeys(t *testing.T) {
 		t.Fatalf("focus %d, want Done (%d)", m.top().focus, rowCount)
 	}
 	m.navigate(nav{enter: true}, w, o)
-	if m.screen() != playing {
-		t.Errorf("Done: %v, want playing", m.screen())
-	}
-	m.navigate(nav{wardrobe: true}, w, o)
-	m.navigate(nav{wardrobe: true}, w, o)
-	if m.screen() != playing {
-		t.Errorf("C twice: %v, want playing", m.screen())
+	if m.screen() != paused {
+		t.Errorf("Done: %v, want back in the pause menu", m.screen())
 	}
 }
 

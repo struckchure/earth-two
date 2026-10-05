@@ -1,0 +1,2377 @@
+{
+ "pieces": {
+  "deck_floor": {
+   "model": "world/deck_floor.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 200,
+   "colliders": []
+  },
+  "deck_slab": {
+   "model": "world/deck_slab.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 200,
+   "colliders": [
+    {
+     "center": [0.0, -0.15, 0.0],
+     "size": [2.0, 0.3, 2.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "hull_wall": {
+   "model": "world/hull_wall.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "hull_wall_port": {
+   "model": "world/hull_wall_port.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "bulkhead_door": {
+   "model": "world/bulkhead_door.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [-0.8, 1.8, 0.0],
+     "size": [0.4, 3.6, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.8, 1.8, 0.0],
+     "size": [0.4, 3.6, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 2.9, 0.0],
+     "size": [1.2, 1.4, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "rib_pillar": {
+   "model": "world/rib_pillar.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [0.4, 3.6, 0.4],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "catwalk": {
+   "model": "world/catwalk.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 3.525, 0.0],
+     "size": [2.0, 0.15, 1.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "railing": {
+   "model": "world/railing.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 0.475, 0.0],
+     "size": [2.0, 0.95, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "stairs": {
+   "model": "world/stairs.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 1500,
+   "colliders": [
+    {
+     "center": [0.0, 3.525, -2.75],
+     "size": [1.2, 0.15, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.7163, 0.1952],
+     "size": [1.2, 0.2, 6.5734],
+     "rotation": [0.28574, 0.0, 0.0, 0.95831]
+    }
+   ]
+  },
+  "ladder": {
+   "model": "world/ladder.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 1500,
+   "colliders": [
+    {
+     "center": [-0.24, 1.82, 0.0],
+     "size": [0.07, 3.64, 0.07],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.24, 1.82, 0.0],
+     "size": [0.07, 3.64, 0.07],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "ladders": [
+    {
+     "bottom": [0.0, 0.0, 0.37],
+     "top": [0.0, 3.64, 0.37],
+     "facing": [0.0, 0.0, -1.0],
+     "bottomExit": [0.0, 0.0, 1.02],
+     "topExit": [0.0, 3.6, -0.63],
+     "width": 0.64
+    }
+   ]
+  },
+  "pipe_run": {
+   "model": "world/pipe_run.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 800,
+   "colliders": []
+  },
+  "low_duct": {
+   "model": "world/low_duct.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 1500,
+   "colliders": [
+    {
+     "center": [0.0, 1.325, 0.0],
+     "size": [2.0, 0.5, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "crate": {
+   "model": "world/crate.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.45, 0.0],
+     "size": [1.2, 0.9, 0.9],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "crate_tall": {
+   "model": "world/crate_tall.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.8, 0.0],
+     "size": [1.2, 1.6, 0.9],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "drum": {
+   "model": "world/drum.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.45, 0.0],
+     "size": [0.6, 0.9, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["barrel_03"]
+  },
+  "terminal_kiosk": {
+   "model": "world/terminal_kiosk.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.875, 0.0],
+     "size": [0.6, 1.75, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "market_stall": {
+   "model": "world/market_stall.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 0.45, 0.71],
+     "size": [1.96, 0.9, 0.58],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.8, -0.725],
+     "size": [1.9, 1.6, 0.35],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["bananas", "plastic_crate_02", "food_apple_01", "lemon", "food_apple_01", "lemon", "food_apple_01", "lemon", "yellow_onion", "sweet_potato", "yellow_onion", "sweet_potato", "pot_enamel_01", "brass_pot_01"]
+  },
+  "tarp_awning": {
+   "model": "world/tarp_awning.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 30000,
+   "colliders": []
+  },
+  "work_lamp": {
+   "model": "world/work_lamp.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": []
+  },
+  "status_light": {
+   "model": "world/status_light.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": []
+  },
+  "exchange_board": {
+   "model": "world/exchange_board.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 1.45, 0.0],
+     "size": [3.0, 2.9, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "air_scrubber": {
+   "model": "world/air_scrubber.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 1.5, 0.0],
+     "size": [2.0, 3.0, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "air_fan": {
+   "model": "world/air_fan.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 1.45, 0.0],
+     "size": [2.7, 2.9, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "pump_unit": {
+   "model": "world/pump_unit.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.55, 0.0],
+     "size": [1.6, 1.1, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["old_military_compressor"]
+  },
+  "valve_station": {
+   "model": "world/valve_station.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 1.3, -0.15],
+     "size": [1.4, 2.6, 0.35],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "junction_box": {
+   "model": "world/junction_box.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": []
+  },
+  "power_conduit": {
+   "model": "world/power_conduit.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": []
+  },
+  "generator": {
+   "model": "world/generator.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 1.05, 0.0],
+     "size": [1.2, 2.1, 0.9],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "water_tank": {
+   "model": "world/water_tank.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 1.375, 0.0],
+     "size": [1.7, 2.75, 1.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "control_console": {
+   "model": "world/control_console.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 0.475, 0.1],
+     "size": [1.8, 0.95, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.8, -0.3],
+     "size": [1.8, 1.6, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["retro_multimeter"]
+  },
+  "hazard_barrier": {
+   "model": "world/hazard_barrier.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.475, 0.0],
+     "size": [1.6, 0.95, 0.4],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "bunk_bed": {
+   "model": "world/bunk_bed.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.85, 0.0],
+     "size": [2.05, 1.7, 0.95],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "cot": {
+   "model": "world/cot.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.225, 0.0],
+     "size": [1.9, 0.45, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "locker": {
+   "model": "world/locker.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.95, 0.0],
+     "size": [0.5, 1.9, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "folding_table": {
+   "model": "world/folding_table.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.375, 0.0],
+     "size": [1.2, 0.75, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "stool": {
+   "model": "world/stool.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": [],
+   "sources": ["metal_stool_02"]
+  },
+  "curtain_partition": {
+   "model": "world/curtain_partition.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 1.05, 0.0],
+     "size": [2.0, 2.1, 0.15],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "cabin_door": {
+   "model": "world/cabin_door.glb",
+   "kind": "kit",
+   "category": "Hull decks",
+   "budget": 4000,
+   "colliders": [
+    {
+     "center": [-0.755, 1.8, 0.0],
+     "size": [0.51, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.755, 1.8, 0.0],
+     "size": [0.51, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 2.85, 0.0],
+     "size": [1.0, 1.5, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "laundry_line": {
+   "model": "world/laundry_line.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": []
+  },
+  "cooker": {
+   "model": "world/cooker.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 35000,
+   "colliders": [
+    {
+     "center": [0.0, 0.34, 0.0],
+     "size": [0.6, 0.68, 0.45],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["vintage_electric_kettle", "small_lpg_tank"]
+  },
+  "storage_rack": {
+   "model": "world/storage_rack.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 45000,
+   "colliders": [
+    {
+     "center": [0.0, 1.5, 0.0],
+     "size": [2.0, 3.0, 1.1],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["plastic_container", "plastic_crate_02", "cardboard_box_01"]
+  },
+  "pallet": {
+   "model": "world/pallet.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 20000,
+   "colliders": []
+  },
+  "roller_door": {
+   "model": "world/roller_door.glb",
+   "kind": "kit",
+   "category": "Hull decks",
+   "budget": 4000,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "food_stall": {
+   "model": "world/food_stall.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 45000,
+   "colliders": [
+    {
+     "center": [0.0, 0.45, 0.71],
+     "size": [1.96, 0.9, 0.58],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.4, -0.525],
+     "size": [1.9, 0.8, 0.65],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["plastic_crate_02", "brass_pot_01", "pot_enamel_01"]
+  },
+  "parts_stall": {
+   "model": "world/parts_stall.glb",
+   "kind": "prop",
+   "category": "Hull decks",
+   "budget": 45000,
+   "colliders": [
+    {
+     "center": [0.0, 0.45, 0.71],
+     "size": [1.96, 0.9, 0.58],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.05, -0.85],
+     "size": [1.9, 2.1, 0.1],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["plastic_crate_02", "plastic_crate_02", "can_rusted", "screwdrivers_02", "adjustable_wrench", "combination_wrench", "pliers", "old_tyre"]
+  },
+  "registrar_counter": {
+   "model": "world/registrar_counter.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 40000,
+   "colliders": [
+    {
+     "center": [0.0, 0.475, 0.0],
+     "size": [4.0, 0.95, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-1.3, 1.325, 0.0],
+     "size": [0.99, 0.75, 0.09],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [1.3, 1.325, 0.0],
+     "size": [0.99, 0.75, 0.09],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "registrar_desk": {
+   "model": "world/registrar_desk.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 24000,
+   "colliders": [
+    {
+     "center": [0.0, 0.38, 0.0],
+     "size": [1.6, 0.76, 0.8],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["metal_office_desk"]
+  },
+  "filing_cabinets": {
+   "model": "world/filing_cabinets.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 40000,
+   "colliders": [
+    {
+     "center": [0.0, 1.0, 0.0],
+     "size": [2.0, 2.0, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "terminal_row": {
+   "model": "world/terminal_row.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 0.41, 0.0],
+     "size": [3.24, 0.82, 0.74],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.095, -0.2],
+     "size": [3.2, 0.55, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "queue_rail": {
+   "model": "world/queue_rail.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.45, 0.0],
+     "size": [2.0, 0.9, 0.16],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "floor_bell": {
+   "model": "world/floor_bell.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 0.06, 0.0],
+     "size": [1.6, 0.12, 0.8],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.16, 0.0],
+     "size": [1.5, 0.08, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-0.68, 1.4, 0.0],
+     "size": [0.15, 2.4, 0.15],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.68, 1.4, 0.0],
+     "size": [0.15, 2.4, 0.15],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.865, 0.0],
+     "size": [0.84, 0.83, 0.84],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "archive_shelves": {
+   "model": "world/archive_shelves.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 36000,
+   "colliders": [
+    {
+     "center": [0.0, 1.3, 0.0],
+     "size": [2.0, 2.6, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "registrar_seal_emblem": {
+   "model": "world/registrar_seal_emblem.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 20000,
+   "colliders": []
+  },
+  "waiting_bench": {
+   "model": "world/waiting_bench.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.24, 0.0],
+     "size": [1.8, 0.48, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.69, -0.2],
+     "size": [1.8, 0.42, 0.1],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["painted_wooden_bench"]
+  },
+  "pendant_lamp": {
+   "model": "world/pendant_lamp.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 20000,
+   "colliders": [],
+   "sources": ["hanging_industrial_lamp"]
+  },
+  "stamp_station": {
+   "model": "world/stamp_station.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.525, 0.0],
+     "size": [1.0, 1.05, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["stationery_supplies"]
+  },
+  "arbitration_table": {
+   "model": "world/arbitration_table.glb",
+   "kind": "prop",
+   "category": "The Exchange",
+   "budget": 60000,
+   "colliders": [
+    {
+     "center": [0.0, 0.38, 0.0],
+     "size": [2.4, 0.76, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-0.7, 0.475, 0.82],
+     "size": [0.48, 0.95, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.475, 0.82],
+     "size": [0.48, 0.95, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.7, 0.475, 0.82],
+     "size": [0.48, 0.95, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-0.45, 0.475, -0.82],
+     "size": [0.48, 0.95, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.45, 0.475, -0.82],
+     "size": [0.48, 0.95, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["dining_table"]
+  },
+  "charter_wall": {
+   "model": "world/charter_wall.glb",
+   "kind": "kit",
+   "category": "Charter Row",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "charter_window": {
+   "model": "world/charter_window.glb",
+   "kind": "kit",
+   "category": "Charter Row",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "charter_door": {
+   "model": "world/charter_door.glb",
+   "kind": "kit",
+   "category": "Charter Row",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.075, 0.385],
+     "size": [1.7, 0.15, 0.47],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "charter_pillar": {
+   "model": "world/charter_pillar.glb",
+   "kind": "kit",
+   "category": "Charter Row",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [0.6, 3.6, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "glasshouse": {
+   "model": "world/glasshouse.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 45000,
+   "colliders": [
+    {
+     "center": [-1.125, 0.3, 0.0],
+     "size": [1.35, 0.6, 2.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [1.125, 0.3, 0.0],
+     "size": [1.35, 0.6, 2.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.2, -1.425],
+     "size": [4.0, 2.4, 0.15],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-1.925, 1.2, 0.0],
+     "size": [0.15, 2.4, 3.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-1.25, 1.2, 1.425],
+     "size": [1.5, 2.4, 0.15],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [1.925, 1.2, 0.0],
+     "size": [0.15, 2.4, 3.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [1.25, 1.2, 1.425],
+     "size": [1.5, 2.4, 0.15],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "planter": {
+   "model": "world/planter.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.36, 0.0],
+     "size": [1.2, 0.72, 0.45],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["planter_box_02"]
+  },
+  "hedge": {
+   "model": "world/hedge.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.475, 0.0],
+     "size": [2.02, 0.95, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "potted_tree": {
+   "model": "world/potted_tree.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.33, 0.0],
+     "size": [0.75, 0.66, 0.75],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["potted_plant_01"]
+  },
+  "guard_booth": {
+   "model": "world/guard_booth.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 1.27, 0.0],
+     "size": [1.5, 2.54, 1.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "iron_gate": {
+   "model": "world/iron_gate.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 1.15, 0.0],
+     "size": [2.0, 2.3, 0.35],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["large_iron_gate"]
+  },
+  "iron_fence": {
+   "model": "world/iron_fence.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 0.95, 0.0],
+     "size": [2.02, 1.9, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "street_lamp": {
+   "model": "world/street_lamp.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 12000,
+   "colliders": [
+    {
+     "center": [0.0, 1.55, 0.0],
+     "size": [0.36, 3.1, 0.36],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["street_lamp_01"]
+  },
+  "stone_bench": {
+   "model": "world/stone_bench.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.225, 0.0],
+     "size": [1.8, 0.45, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "office_desk": {
+   "model": "world/office_desk.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.38, 0.0],
+     "size": [1.64, 0.76, 0.84],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "office_chair": {
+   "model": "world/office_chair.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.5, 0.0],
+     "size": [0.45, 1.0, 0.58],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["dining_chair_02"]
+  },
+  "safe": {
+   "model": "world/safe.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.55, 0.0],
+     "size": [0.8, 1.1, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "bookshelf": {
+   "model": "world/bookshelf.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 1.1, 0.0],
+     "size": [1.2, 2.2, 0.4],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["wooden_bookshelf_worn"]
+  },
+  "fountain": {
+   "model": "world/fountain.glb",
+   "kind": "prop",
+   "category": "Charter Row",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 0.24, 0.0],
+     "size": [2.5, 0.48, 0.9],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.24, 0.0],
+     "size": [2.5, 0.48, 0.9],
+     "rotation": [0.0, 0.38268, 0.0, 0.92388]
+    },
+    {
+     "center": [0.0, 0.24, 0.0],
+     "size": [2.5, 0.48, 0.9],
+     "rotation": [0.0, 0.70711, 0.0, 0.70711]
+    },
+    {
+     "center": [0.0, 0.24, 0.0],
+     "size": [2.5, 0.48, 0.9],
+     "rotation": [0.0, 0.92388, 0.0, 0.38268]
+    },
+    {
+     "center": [0.0, 0.625, 0.0],
+     "size": [0.6, 1.25, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "pad_tile": {
+   "model": "world/pad_tile.glb",
+   "kind": "kit",
+   "category": "The Pads",
+   "budget": 200,
+   "colliders": []
+  },
+  "shipping_container": {
+   "model": "world/shipping_container.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 300,
+   "colliders": [
+    {
+     "center": [0.0, 1.3, 0.0],
+     "size": [6.1, 2.6, 2.44],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "container_open": {
+   "model": "world/container_open.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 3000,
+   "colliders": [
+    {
+     "center": [0.0, 0.075, 0.0],
+     "size": [6.1, 0.15, 2.44],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.3, 1.16],
+     "size": [6.1, 2.6, 0.12],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.3, -1.16],
+     "size": [6.1, 2.6, 0.12],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 2.53, 0.0],
+     "size": [6.1, 0.14, 2.44],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-2.99, 1.3, 0.0],
+     "size": [0.12, 2.6, 2.44],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [2.4727, 1.3, -1.3641],
+     "size": [0.08, 2.24, 1.065],
+     "rotation": [0.0, 0.65606, 0.0, 0.75471]
+    },
+    {
+     "center": [2.4727, 1.3, 1.3641],
+     "size": [0.08, 2.24, 1.065],
+     "rotation": [0.0, 0.75471, 0.0, 0.65606]
+    }
+   ]
+  },
+  "gantry_crane": {
+   "model": "world/gantry_crane.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 60000,
+   "colliders": [
+    {
+     "center": [-7.0, 0.45, 0.0],
+     "size": [0.7, 0.9, 5.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-7.0, 5.25, 1.6],
+     "size": [0.6, 8.7, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-7.0, 5.25, -1.6],
+     "size": [0.6, 8.7, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [7.0, 0.45, 0.0],
+     "size": [0.7, 0.9, 5.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [7.0, 5.25, 1.6],
+     "size": [0.6, 8.7, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [7.0, 5.25, -1.6],
+     "size": [0.6, 8.7, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["overhead_crane"]
+  },
+  "fuel_tank": {
+   "model": "world/fuel_tank.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 60000,
+   "colliders": [
+    {
+     "center": [0.0, 1.5, 0.0],
+     "size": [6.4, 3.0, 2.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.55, 1.7],
+     "size": [1.1, 1.1, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "floodlight_tower": {
+   "model": "world/floodlight_tower.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 0.65, 0.0],
+     "size": [2.2, 1.3, 1.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.8, 4.88, 0.0],
+     "size": [0.3, 7.16, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["portable_generator", "security_light", "security_light", "security_light", "security_light"]
+  },
+  "cargo_net_pile": {
+   "model": "world/cargo_net_pile.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.625, 0.0],
+     "size": [1.24, 1.25, 1.06],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["plastic_crate_02", "plastic_crate_02", "plastic_crate_02", "wooden_military_crate"]
+  },
+  "loader": {
+   "model": "world/loader.glb",
+   "kind": "vehicle",
+   "category": "The Pads",
+   "budget": 40000,
+   "colliders": [
+    {
+     "center": [0.0, 1.125, 0.0],
+     "size": [1.3, 2.25, 2.15],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "quiet_book_shack": {
+   "model": "world/quiet_book_shack.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 1.3, -1.19],
+     "size": [3.0, 2.6, 0.12],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-1.44, 1.3, 0.0],
+     "size": [0.12, 2.6, 2.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [1.44, 1.3, 0.0],
+     "size": [0.12, 2.6, 2.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 0.475, 1.05],
+     "size": [2.88, 0.95, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["small_lpg_tank"]
+  },
+  "trade_table": {
+   "model": "world/trade_table.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.4, 0.0],
+     "size": [2.0, 0.8, 0.92],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["painted_wooden_table", "wine_bottles_01", "medical_box", "vintage_radio_transceiver", "seeding_tray_01", "russian_food_cans_01", "russian_food_cans_01", "wooden_military_crate", "plastic_crate_02"]
+  },
+  "pad_beacon": {
+   "model": "world/pad_beacon.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 8000,
+   "colliders": []
+  },
+  "concrete_barrier": {
+   "model": "world/concrete_barrier.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 1500,
+   "colliders": [
+    {
+     "center": [0.0, 0.4, 0.0],
+     "size": [2.96, 0.8, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["concrete_road_barrier", "concrete_road_barrier"]
+  },
+  "bollard": {
+   "model": "world/bollard.glb",
+   "kind": "prop",
+   "category": "The Pads",
+   "budget": 4000,
+   "colliders": [
+    {
+     "center": [0.0, 0.5, 0.0],
+     "size": [0.22, 1.0, 0.22],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "dome_wall": {
+   "model": "world/dome_wall.glb",
+   "kind": "kit",
+   "category": "Domes and gate",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 0.3, 0.0],
+     "size": [4.0, 0.6, 0.8],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 2.8, -0.5895],
+     "size": [4.0, 4.5552, 0.2],
+     "rotation": [-0.13053, 0.0, 0.0, 0.99144]
+    }
+   ]
+  },
+  "dome_frame": {
+   "model": "world/dome_frame.glb",
+   "kind": "kit",
+   "category": "Domes and gate",
+   "budget": 800,
+   "colliders": []
+  },
+  "dome_strut_anchor": {
+   "model": "world/dome_strut_anchor.glb",
+   "kind": "kit",
+   "category": "Domes and gate",
+   "budget": 600,
+   "colliders": [
+    {
+     "center": [0.0, 0.25, 0.0],
+     "size": [1.2, 0.5, 1.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "south_gate": {
+   "model": "world/south_gate.glb",
+   "kind": "kit",
+   "category": "Domes and gate",
+   "budget": 60000,
+   "colliders": [
+    {
+     "center": [-3.25, 3.25, 0.0],
+     "size": [1.5, 6.5, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [3.25, 3.25, 0.0],
+     "size": [1.5, 6.5, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 5.25, 0.0],
+     "size": [5.0, 2.5, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-3.575, 2.03, 0.7],
+     "size": [2.65, 3.94, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [3.575, 2.03, 0.7],
+     "size": [2.65, 3.94, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "boom_barrier": {
+   "model": "world/boom_barrier.glb",
+   "kind": "prop",
+   "category": "Domes and gate",
+   "budget": 10000,
+   "colliders": [
+    {
+     "center": [0.0, 0.55, 0.0],
+     "size": [0.5, 1.1, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [2.25, 1.0, 0.32],
+     "size": [4.0, 0.1, 0.1],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "checkpoint_booth": {
+   "model": "world/checkpoint_booth.glb",
+   "kind": "prop",
+   "category": "Domes and gate",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 1.3, 0.0],
+     "size": [2.4, 2.6, 2.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "scanner_arch": {
+   "model": "world/scanner_arch.glb",
+   "kind": "prop",
+   "category": "Domes and gate",
+   "budget": 10000,
+   "colliders": [
+    {
+     "center": [-0.7, 1.15, 0.0],
+     "size": [0.4, 2.3, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.7, 1.15, 0.0],
+     "size": [0.4, 2.3, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 2.45, 0.0],
+     "size": [1.8, 0.3, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-1.35, 0.5, 0.05],
+     "size": [0.34, 1.0, 0.34],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "airlock_door": {
+   "model": "world/airlock_door.glb",
+   "kind": "kit",
+   "category": "Domes and gate",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [-0.8, 1.8, 0.0],
+     "size": [0.4, 3.6, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.8, 1.8, 0.0],
+     "size": [0.4, 3.6, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 2.9, 0.0],
+     "size": [1.2, 1.4, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.625, 1.1, 0.0],
+     "size": [0.65, 2.16, 0.1],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "mask_station": {
+   "model": "world/mask_station.glb",
+   "kind": "prop",
+   "category": "Domes and gate",
+   "budget": 25000,
+   "colliders": [
+    {
+     "center": [0.0, 1.25, 0.15],
+     "size": [0.9, 1.3, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "rock_small": {
+   "model": "world/rock_small.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 2500,
+   "colliders": [
+    {
+     "center": [0.0, 0.35, 0.0],
+     "size": [1.1, 0.7, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["namaqualand_boulder_06"]
+  },
+  "rock_large": {
+   "model": "world/rock_large.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 6000,
+   "colliders": [
+    {
+     "center": [-0.4, 0.775, 0.0],
+     "size": [2.7, 1.55, 2.1],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [2.05, 0.35, 0.55],
+     "size": [1.4, 0.7, 0.75],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["namaqualand_boulder_03", "namaqualand_boulder_05"]
+  },
+  "rock_spire": {
+   "model": "world/rock_spire.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 10000,
+   "colliders": [
+    {
+     "center": [0.0, 1.2, 0.0],
+     "size": [2.8, 2.4, 2.8],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.15, 3.6, -0.05],
+     "size": [1.6, 2.4, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["namaqualand_boulder_04", "namaqualand_boulder_03", "namaqualand_boulder_06", "namaqualand_boulders_01"]
+  },
+  "dust_mound": {
+   "model": "world/dust_mound.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 600,
+   "colliders": []
+  },
+  "wind_turbine": {
+   "model": "world/wind_turbine.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 60000,
+   "colliders": [
+    {
+     "center": [0.0, 6.2, 0.0],
+     "size": [0.8, 12.4, 0.8],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "greenhouse": {
+   "model": "world/greenhouse.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 28000,
+   "colliders": [
+    {
+     "center": [-1.95, 0.8, 0.0],
+     "size": [0.2, 1.6, 6.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [1.95, 0.8, 0.0],
+     "size": [0.2, 1.6, 6.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.0, -3.0],
+     "size": [4.0, 2.0, 0.1],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "crop_bed": {
+   "model": "world/crop_bed.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 12000,
+   "colliders": [
+    {
+     "center": [0.0, 0.2, 0.0],
+     "size": [4.0, 0.4, 1.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "irrigation_pipe": {
+   "model": "world/irrigation_pipe.glb",
+   "kind": "kit",
+   "category": "The Fringe",
+   "budget": 4000,
+   "colliders": []
+  },
+  "wrecked_terraformer": {
+   "model": "world/wrecked_terraformer.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 120000,
+   "colliders": [
+    {
+     "center": [0.0, 1.9, 0.0],
+     "size": [9.0, 3.8, 7.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-2.4, 4.3, 0.0],
+     "size": [3.6, 1.0, 6.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [2.4, 5.0, 0.0],
+     "size": [3.0, 2.4, 3.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [12.6589, 1.816, -0.6],
+     "size": [3.2, 15.0, 3.2],
+     "rotation": [0.0, 0.0, -0.74314, 0.66913]
+    }
+   ]
+  },
+  "terraformer_debris": {
+   "model": "world/terraformer_debris.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 1.0, 0.0],
+     "size": [3.2, 2.0, 2.0],
+     "rotation": [0.0, 0.15643, 0.0, 0.98769]
+    }
+   ]
+  },
+  "scrap_pile": {
+   "model": "world/scrap_pile.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.55, 0.0],
+     "size": [2.2, 1.1, 1.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["old_tyre", "rusted_wheel_rim_01", "can_rusted", "can_rusted", "rusted_spade_01"]
+  },
+  "salvage_frame": {
+   "model": "world/salvage_frame.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": [],
+   "sources": ["rusted_spade_01"]
+  },
+  "caravan_cart": {
+   "model": "world/caravan_cart.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.65, 0.0],
+     "size": [1.4, 1.3, 2.4],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["metal_jerrycan_green"]
+  },
+  "fringer_tent": {
+   "model": "world/fringer_tent.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.75, 0.0],
+     "size": [2.0, 1.5, 2.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["wooden_lantern_01"]
+  },
+  "camp_stove": {
+   "model": "world/camp_stove.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.2, 0.0],
+     "size": [0.85, 0.4, 0.85],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["stone_fire_pit", "pot_enamel_01"]
+  },
+  "water_tank_fringe": {
+   "model": "world/water_tank_fringe.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 1.65, 0.0],
+     "size": [1.8, 3.3, 1.8],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "wire_fence": {
+   "model": "world/wire_fence.glb",
+   "kind": "kit",
+   "category": "The Fringe",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 0.6, 0.0],
+     "size": [4.0, 1.2, 0.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "signpost": {
+   "model": "world/signpost.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": []
+  },
+  "filter_cache": {
+   "model": "world/filter_cache.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.075, 0.0],
+     "size": [1.0, 0.15, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "windsock": {
+   "model": "world/windsock.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 20000,
+   "colliders": []
+  },
+  "quiver_tree": {
+   "model": "world/quiver_tree.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 8000,
+   "colliders": [
+    {
+     "center": [0.0, 1.1, 0.0],
+     "size": [0.35, 2.2, 0.35],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["quiver_tree_01"]
+  },
+  "dead_tree": {
+   "model": "world/dead_tree.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 6000,
+   "colliders": [
+    {
+     "center": [0.0, 0.3, 0.0],
+     "size": [3.4, 0.6, 0.6],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["dead_tree_trunk_02"]
+  },
+  "dry_brush": {
+   "model": "world/dry_brush.glb",
+   "kind": "prop",
+   "category": "The Fringe",
+   "budget": 3000,
+   "colliders": []
+  },
+  "mark_chit": {
+   "model": "world/mark_chit.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "mark_stack": {
+   "model": "world/mark_stack.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "scrip_bundle": {
+   "model": "world/scrip_bundle.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "filter_cartridge": {
+   "model": "world/filter_cartridge.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "filter_case": {
+   "model": "world/filter_case.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "contract_paper": {
+   "model": "world/contract_paper.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "sealed_filing": {
+   "model": "world/sealed_filing.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "ledger_book": {
+   "model": "world/ledger_book.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "land_claim": {
+   "model": "world/land_claim.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "registrar_stamp": {
+   "model": "world/registrar_stamp.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "forged_seal": {
+   "model": "world/forged_seal.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "rebreather": {
+   "model": "world/rebreather.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "water_canister": {
+   "model": "world/water_canister.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["metal_jerrycan"]
+  },
+  "grain_sack": {
+   "model": "world/grain_sack.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "produce_crate": {
+   "model": "world/produce_crate.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["plastic_crate_02", "lemon", "lemon", "sweet_potato", "food_apple_01", "lemon", "yellow_onion", "yellow_onion", "sweet_potato", "lemon", "yellow_onion", "yellow_onion", "sweet_potato", "lemon", "yellow_onion", "sweet_potato", "sweet_potato"]
+  },
+  "protein_pack": {
+   "model": "world/protein_pack.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "coffee_tin": {
+   "model": "world/coffee_tin.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "power_cell": {
+   "model": "world/power_cell.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "terraformer_part": {
+   "model": "world/terraformer_part.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "salvage_scrap": {
+   "model": "world/salvage_scrap.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["rusted_wheel_rim_02"]
+  },
+  "valve": {
+   "model": "world/valve.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "data_core": {
+   "model": "world/data_core.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "medkit": {
+   "model": "world/medkit.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["medical_box"]
+  },
+  "seed_case": {
+   "model": "world/seed_case.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "electronics_box": {
+   "model": "world/electronics_box.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["cardboard_box_01", "circuit_board"]
+  },
+  "wine_bottle": {
+   "model": "world/wine_bottle.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["wine_bottles_01"]
+  },
+  "wrench": {
+   "model": "world/wrench.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["combination_wrench"]
+  },
+  "toolbox": {
+   "model": "world/toolbox.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["metal_toolbox"]
+  },
+  "crowbar": {
+   "model": "world/crowbar.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["crowbar_01"]
+  },
+  "flashlight": {
+   "model": "world/flashlight.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["small_plastic_torch"]
+  },
+  "radio": {
+   "model": "world/radio.glb",
+   "kind": "item",
+   "category": "Items",
+   "budget": 8000,
+   "colliders": []
+  },
+  "earth_pistol": {
+   "model": "world/earth_pistol.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["service_pistol"]
+  },
+  "earth_rifle": {
+   "model": "world/earth_rifle.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["bolt_action_rifle_7_62"]
+  },
+  "shotgun": {
+   "model": "world/shotgun.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": []
+  },
+  "laser_pistol": {
+   "model": "world/laser_pistol.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": []
+  },
+  "laser_rifle": {
+   "model": "world/laser_rifle.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": []
+  },
+  "katana": {
+   "model": "world/katana.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["antique_katana_01"]
+  },
+  "machete": {
+   "model": "world/machete.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["machete"]
+  },
+  "knife": {
+   "model": "world/knife.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": []
+  },
+  "stun_baton": {
+   "model": "world/stun_baton.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": []
+  },
+  "armour_vest": {
+   "model": "world/armour_vest.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": []
+  },
+  "ammo_box": {
+   "model": "world/ammo_box.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": [],
+   "sources": ["ammo_box"]
+  },
+  "laser_cell_pack": {
+   "model": "world/laser_cell_pack.glb",
+   "kind": "item",
+   "category": "Weapons",
+   "budget": 8000,
+   "colliders": []
+  },
+  "weapon_rack": {
+   "model": "world/weapon_rack.glb",
+   "kind": "prop",
+   "category": "Weapons",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.95, 0.0],
+     "size": [1.4, 1.9, 0.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["bolt_action_rifle_7_62", "bolt_action_rifle_7_62", "ammo_box", "ammo_box"]
+  },
+  "hauler": {
+   "model": "world/hauler.glb",
+   "kind": "vehicle",
+   "category": "Vehicles",
+   "budget": 60000,
+   "colliders": [
+    {
+     "center": [0.0, 1.875, 3.07],
+     "size": [1.85, 2.55, 2.6],
+     "rotation": [0.0, -0.70711, 0.0, 0.70711]
+    },
+    {
+     "center": [0.0, 0.95, -0.95],
+     "size": [6.1, 0.7, 2.6],
+     "rotation": [0.0, -0.70711, 0.0, 0.70711]
+    },
+    {
+     "center": [0.0, 1.6502, -1.3],
+     "size": [5.6, 1.1003, 2.4],
+     "rotation": [0.0, -0.70711, 0.0, 0.70711]
+    }
+   ]
+  },
+  "hauler_tanker": {
+   "model": "world/hauler_tanker.glb",
+   "kind": "vehicle",
+   "category": "Vehicles",
+   "budget": 60000,
+   "colliders": [
+    {
+     "center": [0.0, 1.875, 3.07],
+     "size": [1.85, 2.55, 2.6],
+     "rotation": [0.0, -0.70711, 0.0, 0.70711]
+    },
+    {
+     "center": [0.0, 2.05, -0.95],
+     "size": [6.1, 2.3, 2.1],
+     "rotation": [0.0, -0.70711, 0.0, 0.70711]
+    }
+   ]
+  },
+  "bike": {
+   "model": "world/bike.glb",
+   "kind": "vehicle",
+   "category": "Vehicles",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 0.6, 0.0],
+     "size": [2.1, 1.0, 0.6],
+     "rotation": [0.0, -0.70711, 0.0, 0.70711]
+    }
+   ]
+  },
+  "trike": {
+   "model": "world/trike.glb",
+   "kind": "vehicle",
+   "category": "Vehicles",
+   "budget": 30000,
+   "colliders": [
+    {
+     "center": [0.0, 1.0, -0.15],
+     "size": [2.3, 1.1, 1.2],
+     "rotation": [0.0, -0.70711, 0.0, 0.70711]
+    }
+   ],
+   "sources": ["metal_jerrycan_green", "metal_jerrycan_green", "plastic_crate_02"]
+  },
+  "drifter_patience": {
+   "model": "world/drifter_patience.glb",
+   "kind": "vehicle",
+   "category": "Vehicles",
+   "budget": 150000,
+   "colliders": [
+    {
+     "center": [-8.2, 6.2, -2.0],
+     "size": [2.5, 2.5, 20.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [8.2, 6.2, -2.0],
+     "size": [2.5, 2.5, 20.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-7.6, 0.3, 11.0],
+     "size": [2.0, 0.6, 2.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-6.8, 1.5, 11.0],
+     "size": [0.7, 3.0, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-7.6, 0.3, -12.0],
+     "size": [2.0, 0.6, 2.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-6.8, 1.5, -12.0],
+     "size": [0.7, 3.0, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [7.6, 0.3, 11.0],
+     "size": [2.0, 0.6, 2.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [6.8, 1.5, 11.0],
+     "size": [0.7, 3.0, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [7.6, 0.3, -12.0],
+     "size": [2.0, 0.6, 2.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [6.8, 1.5, -12.0],
+     "size": [0.7, 3.0, 0.7],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 1.7125, 19.2015],
+     "size": [8.0, 0.2, 7.4303],
+     "rotation": [0.25021, 0.0, 0.0, 0.96819]
+    },
+    {
+     "center": [0.0, 3.3, 6.0],
+     "size": [9.6, 0.6, 20.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-5.9, 5.9, 6.0],
+     "size": [2.2, 5.8, 20.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [5.9, 5.9, 6.0],
+     "size": [2.2, 5.8, 20.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 9.4, 6.0],
+     "size": [14.0, 1.2, 20.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 6.5, -10.5],
+     "size": [14.0, 7.0, 13.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 11.15, 10.25],
+     "size": [6.0, 2.3, 8.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [0.0, 6.8, -18.0],
+     "size": [12.0, 5.6, 2.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "receivership_shuttle": {
+   "model": "world/receivership_shuttle.glb",
+   "kind": "vehicle",
+   "category": "Vehicles",
+   "budget": 60000,
+   "colliders": [
+    {
+     "center": [-2.4, 1.0, 4.5],
+     "size": [1.0, 2.0, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [-2.4, 1.0, -5.5],
+     "size": [1.0, 2.0, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [2.4, 1.0, 4.5],
+     "size": [1.0, 2.0, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [2.4, 1.0, -5.5],
+     "size": [1.0, 2.0, 1.0],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    },
+    {
+     "center": [4.6391, 1.036, 0.0],
+     "size": [4.219, 0.15, 2.0],
+     "rotation": [0.0, 0.0, -0.27085, 0.96262]
+    },
+    {
+     "center": [0.0, 4.2, -0.4],
+     "size": [5.6, 4.4, 14.5],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "covered_car": {
+   "model": "world/covered_car.glb",
+   "kind": "prop",
+   "category": "Vehicles",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.65, 0.0],
+     "size": [1.7, 1.3, 4.2],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ],
+   "sources": ["covered_car"]
+  }
+ }
+}

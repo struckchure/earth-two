@@ -1,0 +1,614 @@
+{
+ "pieces": [
+  {
+   "piece": "deck_floor",
+   "at": [-7.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-7.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-7.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-7.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-7.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-7.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-5.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-5.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-5.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-5.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-5.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-5.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-3.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-3.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-3.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-3.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-3.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-3.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-1.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-1.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-1.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-1.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-1.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [-1.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [1.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [1.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [1.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [1.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [1.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [1.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [3.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [3.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [3.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [3.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [3.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [3.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [5.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [5.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [5.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [5.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [5.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [5.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [7.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [7.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [7.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [7.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [7.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [7.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [9.0, 0.0, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [9.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [9.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [9.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [9.0, 0.0, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_floor",
+   "at": [9.0, 0.0, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall",
+   "at": [-7.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall_port",
+   "at": [-5.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall",
+   "at": [-3.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall",
+   "at": [-1.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall_port",
+   "at": [1.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall",
+   "at": [3.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall",
+   "at": [5.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall_port",
+   "at": [7.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall",
+   "at": [9.0, 0.0, -6.0],
+   "turns": 0
+  },
+  {
+   "piece": "hull_wall",
+   "at": [-8.0, 0.0, 5.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [8.0, 0.0, 5.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [10.0, 0.0, 5.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [-8.0, 0.0, 3.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [8.0, 0.0, 3.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [10.0, 0.0, 3.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [-8.0, 0.0, 1.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [8.0, 0.0, 1.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [10.0, 0.0, 1.0],
+   "turns": 1
+  },
+  {
+   "piece": "bulkhead_door",
+   "at": [-8.0, 0.0, -1.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [8.0, 0.0, -1.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [10.0, 0.0, -1.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [-8.0, 0.0, -3.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [8.0, 0.0, -3.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [10.0, 0.0, -3.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [-8.0, 0.0, -5.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [8.0, 0.0, -5.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_wall",
+   "at": [10.0, 0.0, -5.0],
+   "turns": 1
+  },
+  {
+   "piece": "catwalk",
+   "at": [-5.0, 0.0, -5.25],
+   "turns": 0
+  },
+  {
+   "piece": "catwalk",
+   "at": [-3.0, 0.0, -5.25],
+   "turns": 0
+  },
+  {
+   "piece": "railing",
+   "at": [-3.0, 3.6, -4.75],
+   "turns": 0
+  },
+  {
+   "piece": "catwalk",
+   "at": [-1.0, 0.0, -5.25],
+   "turns": 0
+  },
+  {
+   "piece": "railing",
+   "at": [-1.0, 3.6, -4.75],
+   "turns": 0
+  },
+  {
+   "piece": "catwalk",
+   "at": [1.0, 0.0, -5.25],
+   "turns": 0
+  },
+  {
+   "piece": "railing",
+   "at": [1.0, 3.6, -4.75],
+   "turns": 0
+  },
+  {
+   "piece": "catwalk",
+   "at": [3.0, 0.0, -5.25],
+   "turns": 0
+  },
+  {
+   "piece": "railing",
+   "at": [3.0, 3.6, -4.75],
+   "turns": 0
+  },
+  {
+   "piece": "catwalk",
+   "at": [5.0, 0.0, -5.25],
+   "turns": 0
+  },
+  {
+   "piece": "railing",
+   "at": [5.0, 3.6, -4.75],
+   "turns": 0
+  },
+  {
+   "piece": "catwalk",
+   "at": [7.0, 0.0, -5.25],
+   "turns": 0
+  },
+  {
+   "piece": "rib_pillar",
+   "at": [-6.0, 0.0, -4.85],
+   "turns": 0
+  },
+  {
+   "piece": "rib_pillar",
+   "at": [0.0, 0.0, -4.85],
+   "turns": 0
+  },
+  {
+   "piece": "rib_pillar",
+   "at": [4.0, 0.0, -4.85],
+   "turns": 0
+  },
+  {
+   "piece": "ladder",
+   "at": [-5.0, 0.0, -4.37],
+   "turns": 0
+  },
+  {
+   "piece": "stairs",
+   "at": [7.0, 0.0, -1.65],
+   "turns": 0
+  },
+  {
+   "piece": "market_stall",
+   "at": [-3.0, 0.0, -4.85],
+   "turns": 0
+  },
+  {
+   "piece": "market_stall",
+   "at": [2.0, 0.0, -4.85],
+   "turns": 0
+  },
+  {
+   "piece": "terminal_kiosk",
+   "at": [-1.1, 0.0, -5.3],
+   "turns": 0
+  },
+  {
+   "piece": "terminal_kiosk",
+   "at": [0.7, 0.0, -5.3],
+   "turns": 0
+  },
+  {
+   "piece": "rebreather",
+   "at": [2.4, 0.9, -4.15],
+   "turns": 0
+  },
+  {
+   "piece": "status_light",
+   "at": [-4.5, 2.9, -5.85],
+   "turns": 0
+  },
+  {
+   "piece": "status_light",
+   "at": [2.6, 2.9, -5.85],
+   "turns": 0
+  },
+  {
+   "piece": "pipe_run",
+   "at": [7.85, 0.0, 5.0],
+   "turns": 3
+  },
+  {
+   "piece": "pipe_run",
+   "at": [7.85, 0.0, 3.0],
+   "turns": 3
+  },
+  {
+   "piece": "crate",
+   "at": [1.0, 0.0, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "filter_cartridge",
+   "at": [1.3, 0.9, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "crate",
+   "at": [3.5, 0.0, 1.8],
+   "turns": 1
+  },
+  {
+   "piece": "drum",
+   "at": [-0.8, 0.0, 2.2],
+   "turns": 0
+  },
+  {
+   "piece": "crate_tall",
+   "at": [5.0, 0.0, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "crate",
+   "at": [5.0, 0.0, 4.4],
+   "turns": 0
+  },
+  {
+   "piece": "crate_tall",
+   "at": [-4.45, 0.0, -1.0],
+   "turns": 1
+  },
+  {
+   "piece": "crate_tall",
+   "at": [-1.55, 0.0, -1.0],
+   "turns": 1
+  },
+  {
+   "piece": "low_duct",
+   "at": [-3.0, 0.0, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "exchange_board",
+   "at": [-7.6, 0.0, 3.0],
+   "turns": 1
+  },
+  {
+   "piece": "tarp_awning",
+   "at": [-3.5, 0.0, 4.6],
+   "turns": 0
+  },
+  {
+   "piece": "drum",
+   "at": [-4.4, 0.0, 4.4],
+   "turns": 0
+  },
+  {
+   "piece": "drum",
+   "at": [-3.7, 0.0, 4.9],
+   "turns": 0
+  },
+  {
+   "piece": "work_lamp",
+   "at": [-6.0, 0.0, 5.2],
+   "turns": 0
+  },
+  {
+   "piece": "work_lamp",
+   "at": [6.0, 0.0, 5.3],
+   "turns": 0
+  }
+ ]
+}

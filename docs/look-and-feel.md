@@ -6,8 +6,11 @@ wrong world.
 
 ## Sky and light
 
-The air is thin and dusty, so the sky is pale ochre by day and violet at dusk,
-with a sun that looks small and hard. The light inside the domes is filtered and
+The air is thin and dusty, so the sky is pale ochre by day and violet at dusk.
+The sun is TRAPPIST-1, a red dwarf: orange-red, and four times the size the
+Sun looks from Earth, because the Red orbits so close to it. It hangs low over
+Landfall. Beside it the Red's neighbour planets show as discs along the sky,
+dark when they're between the Red and the sun, lit when they're beyond it. The light inside the domes is filtered and
 warm. Indoors in the Hull it's sodium-orange work lamps and cold blue status
 lights. Dust storms are the main weather and should turn the lighting brown and
 close.
