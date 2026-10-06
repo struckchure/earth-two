@@ -109,6 +109,7 @@ Esc goes back. In play:
 | R | Roll in the movement direction, or forward when stationary |
 | W/S or Up/Down on a ladder | Climb/descend; release to hold; Space jumps off |
 | E | Interact; beside a vehicle, get in; in one, get out (once it's slow); at a bench, stool, chair or bunk, sit down (E or move to get up); at a machine, kneel and work on it (move to stop) |
+| H | While driving, toggle the vehicle's headlamps |
 | F | Punch |
 | Q | Pick up |
 | T / G | Talk / dance, until pressed again or until you do anything else |
@@ -153,6 +154,12 @@ to stand at, once it's going slower than 4 m/s; on its side or roof, holding
 R for a second rights it. The camera follows the vehicle instead, further
 back for a bigger one, swinging round behind it as it goes. The HUD shows
 the speed and the gear.
+
+Vehicles have forward-facing headlamps that automatically light the road
+while driving at night, switching off at dawn or when the driver exits.
+H toggles the current vehicle's lamps. Lamps explicitly switched on stay
+on after exiting until switched off again; a manual off suppresses the
+automatic lights for the current drive. The driving HUD shows their state.
 
 They're Jolt's wheeled vehicles (illusion's `physics.Vehicle`, and its
 motorcycle controller for the bike): each wheel finds the ground by itself
@@ -399,8 +406,9 @@ The look is painterly realistic: realistic people and objects, lit in soft
 bands as if painted. `shading/` draws everything with a toon shader and
 outlines only bodies and clothes; its settings are the `shading.Plugin`
 values in `game/game.go`. Light falls in soft-edged bands with
-violet-tinted shadows, except on the ground, which is lit smoothly
-(`shading.Smooth`). The fill comes from the sky above and the red soil
+violet-tinted shaded faces, except on the ground, which is lit smoothly
+(`shading.Smooth`). Cast shadows darken towards black; lamps can still
+light them. The fill comes from the sky above and the red soil
 below. Light zones change it where the docs say the light isn't the open
 air's: filtered and warm under the dome, and the sodium lamps' fill inside
 the Hull. Colours brighter than white roll off rather than clip, and haze

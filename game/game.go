@@ -115,8 +115,8 @@ func build(m *menu) *illusion.App {
 			vehicle.Plugin{},
 			testPlugin{},
 			shading.Plugin{
-				// Violet, but light enough that what's in shadow still
-				// reads.
+				// Violet, but light enough that shaded faces still read.
+				// Cast shadows darken this fill towards black.
 				ShadowColor: rl.NewColor(205, 190, 235, 255),
 				// Wide enough that the bands blend like brushwork rather
 				// than cut like a cel.

@@ -25,6 +25,10 @@ type Drivable struct {
 	// Home is where it was parked to begin with, for when it's lost off the
 	// edge of the world.
 	Home transform.Transform
+	// Headlamps is the current power state. Automatic lamps follow the
+	// driver and the night; lamps explicitly switched on stay on when parked.
+	Headlamps  bool
+	lightsMode headlampMode
 
 	steer    float32 // the steering as eased toward the keys
 	still    float32 // seconds at rest with nobody in it
@@ -88,6 +92,7 @@ func Spawn(cmd *illusion.Commands, name string, spec *Spec, model asset.Handle[r
 	root.WithChildren(func(c *illusion.ChildBuilder) {
 		shell := c.Spawn(append([]illusion.Component{illusion.C(Shell{}), illusion.C(transform.Identity())}, look(model)...)...)
 		shell.WithChildren(func(c *illusion.ChildBuilder) {
+			spawnHeadlamps(c, spec)
 			for i, w := range spec.Wheels {
 				c.Spawn(append([]illusion.Component{illusion.C(WheelOf{Index: i}), illusion.C(parkedWheel(w))},
 					look(wheel(w.Piece))...)...)
@@ -132,9 +137,10 @@ type Driving struct {
 	// Pose is the vehicle's drawn pose this frame.
 	Pose transform.Transform
 	// Camera is how far behind to follow.
-	Camera float32
-	Speed  float32 // m/s, forward
-	Gear   int
+	Camera    float32
+	Speed     float32 // m/s, forward
+	Gear      int
+	Headlamps bool
 }
 
 // Active reports whether the player is driving.
@@ -154,7 +160,7 @@ const Reach = 2.5
 type Plugin struct{}
 
 func (Plugin) Build(app *illusion.App) {
-	app.InsertResource(illusion.R(&Prompt{}), illusion.R(&Driving{}))
+	app.InsertResource(illusion.R(&Prompt{}), illusion.R(&Driving{}), illusion.R(&LightCycle{}))
 	app.AddSystems(illusion.Update, illusion.Chain(
 		illusion.Fn8(steer),
 		illusion.Fn8(offer),
@@ -162,4 +168,6 @@ func (Plugin) Build(app *illusion.App) {
 		illusion.Fn3(tyres),
 	).After(character.Input).Before(character.Act))
 	app.AddSystems(illusion.FixedUpdate, illusion.Fn4(settle))
+	app.AddSystems(illusion.PostUpdate, illusion.Fn7(updateHeadlamps).Before(transform.Propagate))
+	app.AddSystems(illusion.Render, illusion.Fn6(drawHeadlamps).InSet(render.Draw3D))
 }
