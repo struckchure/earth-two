@@ -224,6 +224,7 @@ def trike(style: Style) -> Piece:
     for y in (-0.065, 0.065):
         p.lathe([(0.0, 0.0), (0.04, 0.0), (0.045, 0.02), (0.0, 0.03)], (1.322, y, 0.475), "Hull dark", rot=(0, 90, 0), segments=12)
         p.cyl(0.032, 0.012, (1.35, y, 0.475), "Sodium lamp", rot=(0, 90, 0), segments=12)
+        p.headlamp((1.356, y, 0.475), radius=0.032)
     for s in (-1, 1):
         p.seam([nose.side(x, 0.58, s) for x in (0.35, 0.6, 0.85, 1.1)])
         # A flash of the trim colour down each flank.
@@ -358,6 +359,8 @@ def buggy(style: Style) -> Piece:
     p.seat((0.4, -0.62, 0.1), exits=[(1.9, -0.4, 0), (-1.9, -0.4, 0), (0, 2.8, 0)])
     p.chassis((2.3, 4.2, 1.1), (0, 0, 0.95))
     p.drive("buggy")
+    for x in (-0.68, 0.68):
+        p.headlamp((x, -1.845, 0.8))
     # The rack over the engine cover, on posts down to it.
     top = 1.38
     p.span((-0.6, 1.0, top), (0.6, 1.85, top + 0.03), "Grating")
@@ -394,6 +397,7 @@ def bike(style: Style) -> Piece:
            grips=[(0.24, -0.36, 0.82), (-0.24, -0.36, 0.82)], pegs=[(0.2, 0.1, 0.32), (-0.2, 0.1, 0.32)])
     p.chassis((0.4, 1.7, 0.6), (0, 0, 0.65))
     p.drive("bike")
+    p.headlamp((0, -0.53, 0.85))
     p.span((-0.36, 0.35, 0.52), (-0.24, 0.8, 0.78), "Canvas")
     p.span((-0.37, 0.34, 0.72), (-0.23, 0.81, 0.8), "Fabric olive")
     p.collider((0.45, 2.0, 0.9), (0, 0, 0.5))
@@ -416,6 +420,8 @@ def _hauler(name: str, note: str, style: Style) -> tuple[Piece, "random.Random",
     p.seat((0.6, -2.55, 1.35), exits=[(2.2, -2.3, 0), (-2.2, -2.3, 0), (0, -5.0, 0)], pose="inside")
     p.chassis((2.7, 7.8, 2.3), (0, 0, 2.25))
     p.drive("truck")
+    for x in (-0.9, 0.9):
+        p.headlamp((x, -3.67, 1.4), radius=0.065)
     z = 3.24
     p.span((-1.05, -1.25, z), (1.05, 2.35, z + 0.05), "Grating")
     for s in (-1, 1):
@@ -492,6 +498,8 @@ def rover(style: Style) -> Piece:
     p.chassis((1.9, 3.7, 1.8), (0, 0.82, 1.5))
     p.chassis((2.2, 4.8, 0.6), (0, 0.5, 1.05))
     p.drive("rover")
+    for x in (-0.9, 0.9):
+        p.headlamp((x, -1.895, 1.05))
     for s in (-1, 1):
         for y in (0.15, 0.85, 1.55):
             p.cyl(0.17, 0.06, (s * 0.93, y, 1.6), "Hull dark", rot=(0, 90, 0), segments=12)

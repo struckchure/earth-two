@@ -32,6 +32,7 @@ func (a *poseAssets) InitParam(w *ecs.World) {
 type limbContact struct {
 	upper, middle, end int
 	tips               []contactPoint
+	probes             []contactPoint
 	radius             float32
 	leg                bool
 	offset             rl.Vector3
@@ -48,6 +49,7 @@ type contactRig struct {
 	offset     rl.Vector3 // world-space posture clearance, released smoothly
 	position   rl.Vector3
 	positioned bool
+	planes     []contactPlane // scratch reused between limbs and frames
 }
 type contactCache struct{ rigs map[ecs.Entity]*contactRig }
 type contactPlane struct{ point, normal rl.Vector3 }
@@ -97,6 +99,7 @@ func makeContactRig(model asset.Handle[render.Model], bones []rl.BoneInfo) *cont
 					limb.tips = append(limb.tips, contactPoint{i, size})
 				}
 			}
+			limb.probes = append([]contactPoint{{limb.middle, limb.radius}}, limb.tips...)
 			r.limbs = append(r.limbs, limb)
 		}
 	}
@@ -195,9 +198,8 @@ func fitPoseToWorld(
 				limb.offset = rl.Vector3{}
 				continue
 			}
-			probes := append([]contactPoint{{limb.middle, limb.radius}}, limb.tips...)
-			var planes []contactPlane
-			for _, probe := range probes {
+			planes := rig.planes[:0]
+			for _, probe := range limb.probes {
 				point := rl.Vector3Transform(rig.pose[probe.bone].Translation, matrix)
 				from := origin
 				from.Y = point.Y
@@ -236,6 +238,7 @@ func fitPoseToWorld(
 				}
 			}
 			corrected = fitLimb(rig.pose, model.Skeleton.GetBones(), limb, planes, climbing, clock.Get().DeltaSecs()) || corrected
+			rig.planes = planes
 		}
 		if corrected {
 			player.Pose = rig.pose

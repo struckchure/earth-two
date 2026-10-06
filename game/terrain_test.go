@@ -1,11 +1,129 @@
 package game
 
 import (
+	"math"
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/struckchure/earth-two/world"
 )
+
+func TestTerrainSamplesMatchHeightAndNormal(t *testing.T) {
+	calls := 0
+	height := func(x, z float32) float32 {
+		calls++
+		return x*.2 - z*.3
+	}
+	const cells = 4
+	samples := sampleTerrain(9800, -1800, 256, cells, height)
+	if calls != (cells+3)*(cells+3) {
+		t.Fatalf("evaluated grid %d times, want one height per point including the normal's border", calls)
+	}
+	for j := 0; j <= cells; j++ {
+		for i := 0; i <= cells; i++ {
+			x, z := float32(9800-128+i*64), float32(-1800-128+j*64)
+			s := samples[j*(cells+1)+i]
+			if s.height != height(x, z) {
+				t.Fatalf("grid (%d,%d): height %v, want %v", i, j, s.height, height(x, z))
+			}
+			want := terrainNormal(height, x, z, 64)
+			if rl.Vector3Distance(s.normal, want) > 1e-6 || math.Abs(float64(rl.Vector3Length(s.normal)-1)) > 1e-6 {
+				t.Fatalf("grid (%d,%d): normal %v, want %v", i, j, s.normal, want)
+			}
+		}
+	}
+	// Check the real nonlinear terrain too, at the arrival and canyon country.
+	for _, at := range []rl.Vector2{{X: arrival.X, Y: arrival.Z}, havenAt} {
+		ci, cj := chunkOf(at.X, at.Y)
+		center := chunkCentre(ci, cj)
+		grid := sampleTerrain(center.X, center.Y, chunkSize, chunkCells, drawnHeight)
+		for _, index := range [][2]int{{0, 0}, {chunkCells, chunkCells}, {chunkCells / 2, chunkCells / 2}, {7, 19}} {
+			x := center.X - chunkSize/2 + float32(index[0])*chunkSize/chunkCells
+			z := center.Y - chunkSize/2 + float32(index[1])*chunkSize/chunkCells
+			s := grid[index[1]*(chunkCells+1)+index[0]]
+			if s.height != drawnHeight(x, z) || rl.Vector3Distance(s.normal, terrainNormal(drawnHeight, x, z, chunkSize/chunkCells)) > 1e-6 {
+				t.Fatalf("cached terrain differs at %v,%v", x, z)
+			}
+		}
+	}
+}
+
+func BenchmarkTerrainSampling(b *testing.B) {
+	b.Run("per_triangle_vertex", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			// GenMeshPlane emits six vertices per cell, including duplicates.
+			for z := range chunkCells {
+				for x := range chunkCells {
+					for _, v := range [6][2]int{{x, z}, {x, z + 1}, {x + 1, z}, {x + 1, z}, {x, z + 1}, {x + 1, z + 1}} {
+						wx, wz := float32(10000-128+v[0]*4), float32(-1600-128+v[1]*4)
+						drawnHeight(wx, wz)
+						terrainNormal(drawnHeight, wx, wz, 4)
+					}
+				}
+			}
+		}
+	})
+	b.Run("shared_grid", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			sampleTerrain(10000, -1600, chunkSize, chunkCells, drawnHeight)
+		}
+	})
+}
+
+func terrainTileVertices(cells int) []float32 {
+	points, indices := grid(0, 0, tileSize, cells, func(float32, float32) float32 { return 0 })
+	vertices := make([]float32, 0, len(indices)*3)
+	for _, index := range indices {
+		p := points[index]
+		vertices = append(vertices, p.X, p.Y, p.Z)
+	}
+	return vertices
+}
+
+func tileHeights(samples []terrainSample) []float32 {
+	heights := make([]float32, len(samples))
+	for i, sample := range samples {
+		heights[i] = sample.height
+	}
+	return heights
+}
+
+func TestCachedTileMaskMatchesTerrain(t *testing.T) {
+	const cells = 64
+	cx, cz := float32(9216), float32(-1024)
+	vertices := terrainTileVertices(cells)
+	heights := tileHeights(sampleTerrain(cx, cz, tileSize, cells, drawnHeight))
+	for _, window := range []rl.Rectangle{detailWindow(35, -4), detailWindow(39, -8), detailWindow(0, 0)} {
+		sink := sinkUnder(window)
+		writeTileHeights(vertices, cx, cz, tileSize, cells, heights, sink)
+		for i := 0; i < len(vertices); i += 3 {
+			x, z := cx+vertices[i], cz+vertices[i+2]
+			want := groundLevel + drawnHeight(x, z) - sink(x, z)
+			if vertices[i+1] != want {
+				t.Fatalf("tile masking changed height at %v,%v: %v vs %v", x, z, vertices[i+1], want)
+			}
+		}
+	}
+}
+
+func BenchmarkTerrainTileMask(b *testing.B) {
+	const cells = 64
+	cx, cz := float32(9216), float32(-1024)
+	vertices := terrainTileVertices(cells)
+	heights := tileHeights(sampleTerrain(cx, cz, tileSize, cells, drawnHeight))
+	sink := sinkUnder(detailWindow(35, -4))
+	b.Run("rebuild", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			samples := sampleTerrain(cx, cz, tileSize, cells, drawnHeight)
+			writeTileHeights(vertices, cx, cz, tileSize, cells, tileHeights(samples), sink)
+		}
+	})
+	b.Run("cached", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			writeTileHeights(vertices, cx, cz, tileSize, cells, heights, sink)
+		}
+	})
+}
 
 func TestTerrainIsLevelWhereItMatters(t *testing.T) {
 	for _, tt := range []struct {

@@ -2,6 +2,7 @@ package game
 
 import (
 	"math"
+	"slices"
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -9,6 +10,83 @@ import (
 	"github.com/struckchure/earth-two/world"
 	"github.com/struckchure/illusion/render"
 )
+
+func loadMapForTest(t testing.TB) *worldMap {
+	t.Helper()
+	k, err := world.Load("../assets", "world/world.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	placed, err := world.Layout("../assets", "world/landfall.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return newWorldMap(k, placed)
+}
+
+// Reference the original draw selection, including its layering order.
+func visibleMapMarks(f mapFrame, marks []mark) []mark {
+	var out []mark
+	reach := float32(math.Hypot(float64(f.screen.Width), float64(f.screen.Height))) / 2 / f.scale
+	for _, mk := range marks {
+		if f.turned() {
+			half := rl.Vector2{X: mk.r.Width / 2, Y: mk.r.Height / 2}
+			centre := rl.Vector2{X: mk.r.X + half.X, Y: mk.r.Y + half.Y}
+			if rl.Vector2Distance(centre, f.at)-rl.Vector2Length(half) > reach {
+				continue
+			}
+		} else {
+			a := f.toScreen(rl.Vector2{X: mk.r.X, Y: mk.r.Y})
+			r := clip(rl.Rectangle{X: a.X, Y: a.Y, Width: mk.r.Width * f.scale, Height: mk.r.Height * f.scale}, f.screen)
+			if r.Width <= 0 || r.Height <= 0 {
+				continue
+			}
+		}
+		out = append(out, mk)
+	}
+	return out
+}
+
+func TestIndexedMapPreservesDrawSelection(t *testing.T) {
+	m := loadMapForTest(t)
+	for _, at := range []rl.Vector2{{}, padsAt, holdAt, havenAt, {X: -256, Y: 256}, {X: 5600, Y: -500}, {X: 16300, Y: -16300}} {
+		for _, scale := range []float32{150. / minimapRange, .01, .5, 8} {
+			for _, angle := range []float64{0, .3, math.Pi / 2, math.Pi} {
+				f := mapFrame{screen: rl.Rectangle{X: 16, Y: 16, Width: 150, Height: 150}, at: at, scale: scale,
+					up: rl.Vector2{X: float32(math.Sin(angle)), Y: -float32(math.Cos(angle))}}
+				reach := float32(math.Hypot(150, 150)) / 2 / scale
+				got := visibleMapMarks(f, m.marksNear(at, reach+1/scale))
+				want := visibleMapMarks(f, m.marks)
+				if !slices.Equal(got, want) {
+					t.Fatalf("draw selection changed at %v, scale %v, angle %v: %d marks vs %d", at, scale, angle, len(got), len(want))
+				}
+			}
+		}
+	}
+}
+
+var benchmarkMapCount int
+
+func BenchmarkMinimapSelection(b *testing.B) {
+	m := loadMapForTest(b)
+	for _, place := range []struct {
+		name string
+		at   rl.Vector2
+	}{{"Pads", padsAt}, {"Landfall", rl.Vector2{}}, {"Fringe", rl.Vector2{X: 4200, Y: -300}}} {
+		f := mapFrame{screen: rl.Rectangle{Width: 150, Height: 150}, at: place.at, scale: 150. / minimapRange, up: rl.Vector2{X: .6, Y: -.8}}
+		reach := float32(math.Hypot(150, 150)) / 2 / f.scale
+		b.Run(place.name+"/linear", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				benchmarkMapCount = len(visibleMapMarks(f, m.marks))
+			}
+		})
+		b.Run(place.name+"/indexed", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				benchmarkMapCount = len(visibleMapMarks(f, m.marksNear(f.at, reach+1/f.scale)))
+			}
+		})
+	}
+}
 
 func TestMapKey(t *testing.T) {
 	m := &menu{}

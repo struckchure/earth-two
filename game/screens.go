@@ -30,6 +30,7 @@ var bindings = []struct {
 	{[]string{"R"}, "Roll"},
 	{[]string{"W / S"}, "Climb ladder (move toward to attach)"},
 	{[]string{"E"}, "Interact"},
+	{[]string{"H"}, "Vehicle headlamps on / off"},
 	{[]string{"F"}, "Punch"},
 	{[]string{"Q"}, "Pick up"},
 	{[]string{"T / G"}, "Talk / dance"},
@@ -132,6 +133,11 @@ func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illu
 	keys := []struct{ key, does string }{{"Esc", "Menu"}}
 	if driving.Get().Active() {
 		keys = append(keys, struct{ key, does string }{"E", "Get out"}, struct{ key, does string }{"Space", "Hand brake"})
+		lamps := "Headlamps off"
+		if driving.Get().Headlamps {
+			lamps = "Headlamps on"
+		}
+		keys = append(keys, struct{ key, does string }{"H", lamps})
 	}
 	x, y := p.px(20), height-p.px(48)
 	for _, h := range keys {

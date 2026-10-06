@@ -33,16 +33,10 @@ import (
 const (
 	worldSize             = 32768
 	chunkSize, chunkCells = 256, 64
-	tileSize, tileCells   = 2048, 64
-	detailRadius          = 3 // chunks each way round the player drawn in detail
+	tileSize              = 2048
 	colliderRadius        = 1 // chunks each way round the player that collide
-	chunkTexels           = 128
-	tileTexels            = 64
 	// tileSink is how far the tiles drop where chunks cover them.
 	tileSink = 8
-	// chunksPerFrame is how many chunks are rebuilt a frame when the
-	// player moves on, so it doesn't stall.
-	chunksPerFrame = 2
 	// groundLevel is how far below 0 the ground's surface is: the deck's
 	// floors stand on it, their tops at 0.
 	groundLevel = -.05
@@ -372,19 +366,69 @@ func terrainNormal(height func(x, z float32) float32, x, z, e float32) rl.Vector
 // shape sets mesh m (raylib's plane, size across, centred on its own
 // origin) to the ground round (cx, cz) from height, sunk by sink, and
 // uploads it.
-func shape(m rl.Mesh, cx, cz, size float32, cells int, height func(x, z float32) float32, sink func(x, z float32) float32) {
+func shape(m rl.Mesh, cx, cz, size float32, cells int, height func(x, z float32) float32, sink func(x, z float32) float32) []terrainSample {
 	count := int(m.VertexCount)
 	vertices := unsafe.Slice(m.Vertices, 3*count)
 	normals := unsafe.Slice(m.Normals, 3*count)
 	step := size / float32(cells)
+	samples := sampleTerrain(cx, cz, size, cells, height)
 	for i := range count {
 		x, z := cx+vertices[3*i], cz+vertices[3*i+2]
-		vertices[3*i+1] = groundLevel + height(x, z) - sink(x, z)
-		n := terrainNormal(height, x, z, step)
+		// GenMeshPlane repeats vertices for neighbouring triangles. Reuse
+		// each grid point's noise and normal instead of evaluating it six times.
+		gx := max(0, min(cells, int(math.Round(float64((vertices[3*i]+size/2)/step)))))
+		gz := max(0, min(cells, int(math.Round(float64((vertices[3*i+2]+size/2)/step)))))
+		s := samples[gz*(cells+1)+gx]
+		vertices[3*i+1] = groundLevel + s.height - sink(x, z)
+		n := s.normal
 		normals[3*i], normals[3*i+1], normals[3*i+2] = n.X, n.Y, n.Z
 	}
 	rl.UpdateMeshBuffer(m, 0, floatBytes(vertices), 0)
 	rl.UpdateMeshBuffer(m, 2, floatBytes(normals), 0)
+	return samples
+}
+
+// writeTileHeights changes only the detail window's masking of a tile.
+// Its unsunk heights and normals are static; no noise or normal rebuild is
+// needed when the player moves. The cache has one height per grid point.
+func writeTileHeights(vertices []float32, cx, cz, size float32, cells int, heights []float32, sink func(x, z float32) float32) {
+	step := size / float32(cells)
+	for i := 0; i < len(vertices); i += 3 {
+		x, z := vertices[i], vertices[i+2]
+		gx := max(0, min(cells, int(math.Round(float64((x+size/2)/step)))))
+		gz := max(0, min(cells, int(math.Round(float64((z+size/2)/step)))))
+		vertices[i+1] = groundLevel + heights[gz*(cells+1)+gx] - sink(cx+x, cz+z)
+	}
+}
+
+type terrainSample struct {
+	height float32
+	normal rl.Vector3
+}
+
+func sampleTerrain(cx, cz, size float32, cells int, height func(x, z float32) float32) []terrainSample {
+	n := cells + 1
+	step := size / float32(cells)
+	// One extra row on each edge supplies the normal's neighbouring heights.
+	// Neighbours are other grid points, so each height is evaluated only once.
+	stride := n + 2
+	heights := make([]float32, stride*stride)
+	for j := range stride {
+		for i := range stride {
+			x, z := cx-size/2+float32(i-1)*step, cz-size/2+float32(j-1)*step
+			heights[j*stride+i] = height(x, z)
+		}
+	}
+	out := make([]terrainSample, n*n)
+	for j := range n {
+		for i := range n {
+			p := (j+1)*stride + i + 1
+			dx := heights[p+1] - heights[p-1]
+			dz := heights[p+stride] - heights[p-stride]
+			out[j*n+i] = terrainSample{heights[p], rl.Vector3Normalize(rl.Vector3{X: -dx, Y: 2 * step, Z: -dz})}
+		}
+	}
+	return out
 }
 
 func floatBytes(f []float32) []byte {
@@ -442,8 +486,9 @@ type chunkSlot struct {
 type bodySlot struct{ ci, cj int }
 
 type tileSlot struct {
-	cx, cz float32
-	mesh   rl.Mesh
+	cx, cz  float32
+	mesh    rl.Mesh
+	heights []float32 // unsunk heights, once per grid point
 }
 
 // detailWindow is the square the detail covers round chunk (ci, cj), on the XZ
@@ -476,7 +521,11 @@ func spawnTerrain(cmd *illusion.Commands, meshes *asset.Assets[render.Mesh], mat
 	for tz := -h + tileSize/2; tz < h; tz += tileSize {
 		for tx := -h + tileSize/2; tx < h; tx += tileSize {
 			m := rl.GenMeshPlane(tileSize, tileSize, tileCells, tileCells)
-			shape(m, tx, tz, tileSize, tileCells, drawnHeight, sink)
+			samples := shape(m, tx, tz, tileSize, tileCells, drawnHeight, sink)
+			heights := make([]float32, len(samples))
+			for i, s := range samples {
+				heights[i] = s.height
+			}
 			mat := mats.Add(render.StandardMaterial{BaseColor: shading.Smooth, Texture: textures.Add(paint(tx, tz, tileSize, tileTexels))})
 			cmd.Spawn(
 				illusion.C(render.Mesh3d{Mesh: meshes.Add(render.Mesh{Mesh: m})}),
@@ -485,7 +534,7 @@ func spawnTerrain(cmd *illusion.Commands, meshes *asset.Assets[render.Mesh], mat
 				illusion.C(terrainTile{}),
 				illusion.C(render.NotShadowCaster{}),
 			)
-			t.tiles = append(t.tiles, tileSlot{cx: tx, cz: tz, mesh: m})
+			t.tiles = append(t.tiles, tileSlot{cx: tx, cz: tz, mesh: m, heights: heights})
 		}
 	}
 	slot := 0
@@ -635,12 +684,15 @@ func absInt(v int) int {
 // where it was (old).
 func (t *terrain) resink(old rl.Rectangle) {
 	win := detailWindow(t.ci, t.cj)
+	sink := sinkUnder(win)
 	overlaps := func(r rl.Rectangle, cx, cz float32) bool {
 		return r.X < cx+tileSize/2 && r.X+r.Width > cx-tileSize/2 && r.Y < cz+tileSize/2 && r.Y+r.Height > cz-tileSize/2
 	}
 	for _, tile := range t.tiles {
 		if overlaps(win, tile.cx, tile.cz) || overlaps(old, tile.cx, tile.cz) {
-			shape(tile.mesh, tile.cx, tile.cz, tileSize, tileCells, drawnHeight, sinkUnder(win))
+			vertices := unsafe.Slice(tile.mesh.Vertices, 3*int(tile.mesh.VertexCount))
+			writeTileHeights(vertices, tile.cx, tile.cz, tileSize, tileCells, tile.heights, sink)
+			rl.UpdateMeshBuffer(tile.mesh, 0, floatBytes(vertices), 0)
 		}
 	}
 }

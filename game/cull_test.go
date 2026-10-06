@@ -41,3 +41,37 @@ func TestBigPiecesAreSeenFurther(t *testing.T) {
 		t.Errorf("sight caps at %v, want %v", sight(1000), sightMax)
 	}
 }
+
+func TestDetailChunkBounds(t *testing.T) {
+	at := rl.Vector3{X: 9800, Z: -1800}
+	b := chunkSphere(at)
+	for _, x := range []float32{-chunkSize / 2, chunkSize / 2} {
+		for _, z := range []float32{-chunkSize / 2, chunkSize / 2} {
+			for _, height := range []float32{-66, 200} {
+				corner := rl.Vector3Add(at, rl.Vector3{X: x, Y: height, Z: z})
+				if rl.Vector3Distance(corner, b.center) > b.radius {
+					t.Fatalf("chunk bounds clip terrain corner %v", corner)
+				}
+			}
+		}
+	}
+	v := view{ahead: rl.Vector3{Z: -1}, up: rl.Vector3{Y: 1}, right: rl.Vector3{X: 1}, tanV: .4142, aspect: 2}
+	v.prepare()
+	for _, tt := range []struct {
+		z       float32
+		visible bool
+	}{{-chunkSize, true}, {chunkSize, false}} {
+		b := chunkSphere(rl.Vector3{Z: tt.z})
+		if got := v.sees(b.center, b.radius, clipFar); got != tt.visible {
+			t.Errorf("chunk at Z=%v: visible %v, want %v", tt.z, got, tt.visible)
+		}
+	}
+}
+
+func BenchmarkViewSees(b *testing.B) {
+	v := view{ahead: rl.Vector3{Z: -1}, up: rl.Vector3{Y: 1}, right: rl.Vector3{X: 1}, tanV: .4142, aspect: 2}
+	v.prepare()
+	for i := 0; i < b.N; i++ {
+		v.sees(rl.Vector3{X: float32(i % 100), Z: -100}, 4, drawDistance)
+	}
+}

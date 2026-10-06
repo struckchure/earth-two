@@ -9,6 +9,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/earth-two/shading"
+	"github.com/struckchure/earth-two/vehicle"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/render"
 	"github.com/struckchure/illusion/transform"
@@ -153,7 +154,9 @@ func (weatherPlugin) Build(app *illusion.App) {
 	app.InsertResource(illusion.R(newWeather()), illusion.R(newDaylight()))
 	app.ConfigureSets(illusion.Render, dustSet.After(render.End2D).Before(render.Draw2D))
 	// The sun where it is this hour (daylight.go), then the weather on it.
-	app.AddSystems(illusion.Update, illusion.Chain(illusion.Fn5(turnSun), illusion.Fn6(blow)))
+	app.AddSystems(illusion.Update, illusion.Chain(illusion.Fn5(turnSun), illusion.Fn6(blow), illusion.Fn2(func(day *illusion.Res[daylight], lights *illusion.Res[vehicle.LightCycle]) {
+		lights.Get().Night = day.Get().night > .01 || day.Get().dusk > .75
+	})))
 	app.AddSystems(illusion.Render, illusion.Fn4(drawDust).InSet(dustSet))
 	// The stars, over the sky and behind the world (stars.go).
 	app.ConfigureSets(illusion.Render, starSet.After(render.Draw3D).Before(render.End3D))

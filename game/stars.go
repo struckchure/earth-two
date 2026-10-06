@@ -156,7 +156,7 @@ func drawStars(
 	if d.night < .01 {
 		return
 	}
-	_, eye, _, ok := cameras.Single()
+	_, eye, camera, ok := cameras.Single()
 	if !ok {
 		return
 	}
@@ -171,12 +171,25 @@ func drawStars(
 	t := w.Get().t
 	up := rl.Vector3RotateByQuaternion(transform.Up, eye.Rotation)
 	right := rl.Vector3RotateByQuaternion(rl.Vector3{X: 1}, eye.Rotation)
+	// The catalogue covers the whole sky. Reject stars outside the camera
+	// before issuing draw calls (each call crosses into JavaScript on web).
+	fovy := camera.Fovy
+	if fovy == 0 {
+		fovy = 45
+	}
+	v := view{ahead: eye.Forward(), up: up, right: right,
+		tanV:   float32(math.Tan(float64(fovy) * math.Pi / 360)),
+		aspect: float32(rl.GetScreenWidth()) / max(1, float32(rl.GetScreenHeight()))}
+	v.prepare()
 	// A dot's size: about a pixel, at their distance.
 	px := float32(starsRadius) * .00055
 	for i := range min(len(stars), starBudget) {
 		s := &stars[i]
 		dir := rl.Vector3RotateByQuaternion(s.dir, turn)
 		if dir.Y < -.02 {
+			continue
+		}
+		if !v.sees(rl.Vector3Scale(dir, starsRadius), px*5, starsRadius+px*5) {
 			continue
 		}
 		low := smoothstep(.02, .3, dir.Y)

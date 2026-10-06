@@ -39,6 +39,55 @@ sources change. To use them with a direct Go command, run `make deps` first,
 then set `GOWORK="$PWD/build/deps/native.work"` for that command. Browser builds
 continue to use illusion's upstream build script.
 
+The browser uses lighter rendering budgets in `game/budget_js.go`: a canvas
+at CSS pixel resolution (rather than the display's full pixel ratio), no
+MSAA, 1024-pixel shadows, a coarser distant terrain mesh, smaller terrain
+textures, and fewer detail and scatter cells. Near terrain geometry and
+collision resolution keep their original accuracy. The desktop budgets
+are in `game/budget_gl.go`.
+
+Desktop keeps HighDPI, MSAA, 4096-pixel shadows with the full filter, full
+terrain detail/textures and cloth simulation. Its performance improvements
+reuse static distant-terrain heights, index nearby minimap footprints,
+reuse contact-probe buffers, and draw only the live particle triangles.
+The shader skips transparency-pattern work on opaque surfaces, preserving
+the same coverage for glass and hair. These avoid redundant work without
+lowering graphics settings.
+Desktop has no software FPS cap; VSync paces it to the display instead of
+illusion's default 60 FPS target. Physics continues at its fixed 60 Hz.
+
+`EARTH_TWO_TOUR_STATS=1 EARTH_TWO_HOUR=11 go run ./tools/tour` runs the
+desktop tour at a fixed time of day and prints mean FPS and mean/p95 frame
+time from the last 60 frames at each view. It uses the normal desktop
+graphics settings and VSync. CPU-only comparisons can be run with
+`go test ./game -run '^$' -bench 'BenchmarkMinimapSelection|BenchmarkTerrainTileMask' -benchmem`.
+
+The web build animates clothing with the skeleton instead of running the
+cloth solver, and uses four shadow-map reads per lit pixel rather than
+sixteen. Terrain chunks and stars outside the camera view are skipped.
+Terrain rebuilds share height and normal samples between triangles to
+avoid repeated noise calculations when crossing chunk boundaries.
+F7 cycles shadows through Full, Low and Off while playing; F1 shows the
+current setting in the test panel. Off skips the shadow pass entirely for
+devices where it costs too much.
+
+For frame measurements, open `/?benchmark=1`. It starts play at the Pads
+at 11:00 in clear weather, warms up for 60 frames, then reports FPS, mean
+and p95 frame time, CPU time and rendering time every five seconds. CPU
+and rendering times measure work submitted by the app, including driver
+stalls, rather than GPU execution time alone. On headless hosts without a
+working display clock, `/?benchmark=1&timers=1` measures uncapped,
+timer-driven frame throughput; its FPS is not display-paced browser FPS.
+Normal play installs neither the timing systems nor the benchmark overlay.
+
+`make web` also generates `.gz` sidecars for the JavaScript, WebAssembly and
+bundled assets. `cmd/web` serves those when the browser accepts gzip, with
+the original content types and conditional revalidation on reload. Other
+static hosts must enable gzip encoding for these sidecars or compress the
+originals themselves; otherwise they serve the larger original files.
+The asset pack is still downloaded and loaded in full before play; these
+changes reduce rendering work and transfer size, but do not stream assets.
+
 ### Deploying the browser build
 
 `railpack.json` builds and serves the browser build with
@@ -68,6 +117,7 @@ Esc goes back. In play:
 | R | Roll in the movement direction, or forward when stationary |
 | W/S or Up/Down on a ladder | Climb/descend; release to hold; Space jumps off |
 | E | Interact; beside a vehicle, get in; in one, get out (once it's slow); at a bench, stool, chair or bunk, sit down (E or move to get up); at a machine, kneel and work on it (move to stop) |
+| H | While driving, toggle the vehicle's headlamps |
 | F | Punch |
 | Q | Pick up |
 | T / G | Talk / dance, until pressed again or until you do anything else |
@@ -112,6 +162,12 @@ to stand at, once it's going slower than 4 m/s; on its side or roof, holding
 R for a second rights it. The camera follows the vehicle instead, further
 back for a bigger one, swinging round behind it as it goes. The HUD shows
 the speed and the gear.
+
+Vehicles have forward-facing headlamps that automatically light the road
+while driving at night, switching off at dawn or when the driver exits.
+H toggles the current vehicle's lamps. Lamps explicitly switched on stay
+on after exiting until switched off again; a manual off suppresses the
+automatic lights for the current drive. The driving HUD shows their state.
 
 They're Jolt's wheeled vehicles (illusion's `physics.Vehicle`, and its
 motorcycle controller for the bike): each wheel finds the ground by itself
@@ -358,8 +414,9 @@ The look is painterly realistic: realistic people and objects, lit in soft
 bands as if painted. `shading/` draws everything with a toon shader and
 outlines only bodies and clothes; its settings are the `shading.Plugin`
 values in `game/game.go`. Light falls in soft-edged bands with
-violet-tinted shadows, except on the ground, which is lit smoothly
-(`shading.Smooth`). The fill comes from the sky above and the red soil
+violet-tinted shaded faces, except on the ground, which is lit smoothly
+(`shading.Smooth`). Cast shadows darken towards black; lamps can still
+light them. The fill comes from the sky above and the red soil
 below. Light zones change it where the docs say the light isn't the open
 air's: filtered and warm under the dome, and the sodium lamps' fill inside
 the Hull. Colours brighter than white roll off rather than clip, and haze

@@ -299,7 +299,9 @@ func drawEffects(fx *illusion.Res[effects], view *illusion.Res[render.View3D]) {
 	}
 	rl.UpdateMeshBuffer(*e.mesh, 0, floatBytes(e.verts[:12*used]), 0)
 	rl.UpdateMeshBuffer(*e.mesh, 3, e.cols[:16*used], 0)
-	rl.DrawMesh(*e.mesh, e.mat, rl.MatrixIdentity())
+	if n > 0 {
+		rl.DrawMesh(particleDrawMesh(*e.mesh, n), e.mat, rl.MatrixIdentity())
+	}
 }
 
 // quads writes the particles into the mesh's arrays, far to near, and

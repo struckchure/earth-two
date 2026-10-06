@@ -105,18 +105,18 @@ func build(m *menu) *illusion.App {
 	return illusion.New().
 		AddPlugins(
 			defaults.Plugins(defaults.Config{
-				Window:    window.Config{Title: "Earth Two", Resizable: true, HighDPI: true, MSAA: true, VSync: true, KeepEscape: true},
+				Window:    window.Config{Title: "Earth Two", Resizable: true, HighDPI: useHighDPI, MSAA: useMSAA, VSync: true, TargetFPS: targetFPS, KeepEscape: true},
 				AssetRoot: assetRoot(),
 			}),
 			physics.Plugin{},
-			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass},
+			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass, DisableCloth: !simulateCloth},
 			// Outlines on people only: the world is painted, not inked.
 			world.Plugin{Manifest: "world/world.json"},
 			vehicle.Plugin{},
 			testPlugin{},
 			shading.Plugin{
-				// Violet, but light enough that what's in shadow still
-				// reads.
+				// Violet, but light enough that shaded faces still read.
+				// Cast shadows darken this fill towards black.
 				ShadowColor: rl.NewColor(205, 190, 235, 255),
 				// Wide enough that the bands blend like brushwork rather
 				// than cut like a cel.
@@ -146,13 +146,14 @@ func build(m *menu) *illusion.App {
 			weatherPlugin{},
 			// The sounds, and the dust and sparks (sound.go).
 			cuesPlugin{},
+			performancePlugin{},
 		).
 		InsertResource(
 			illusion.R(&render.ClearColor{Color: rl.NewColor(250, 196, 120, 255)}),
 			// The fill from the dusty sky: dimmer than the sun, and violet.
 			illusion.R(&render.AmbientLight{Color: rl.NewColor(206, 186, 222, 255), Brightness: 0.26}),
 			// The sun's shadows, round what the camera looks at.
-			illusion.R(&render.Shadows{Size: 4096, Range: shadowRange}),
+			illusion.R(&render.Shadows{Size: shadowSize, Range: shadowRange}),
 			illusion.R(m),
 			illusion.R(newOrbit()),
 			illusion.R(&vehicle.Ground{}),
