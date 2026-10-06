@@ -23,8 +23,19 @@ A piece is good when it reads as a real, used object at arm's length:
   up. That only works if the shape has edges and crevices to catch it.
 - **Real objects from real models.** Anything that exists on Earth (drums,
   rocks, tools, furniture, food, lamps) starts from a Poly Haven model:
-  `Sourced` for a whole piece, `p.source(...)` for a part of one. Sci-fi
-  and story pieces are modelled.
+  `Sourced` for a whole piece, `p.source(...)` for a part of one. Most
+  vehicles and ships start from CC-BY Sketchfab models
+  (`asset="sketchfab:<uid>"`, see `sketchfab.py` and `docs/vehicles.md`),
+  repainted (`paint`), stripped of what doesn't belong (`drop`) and given
+  the story's parts. Other sci-fi and story pieces are modelled.
+- **Bodywork is lofted, not cut from plate.** A `prism` is flat on both
+  faces and square at its edges, which is right for a bracket and wrong for
+  a bonnet. `p.loft` takes cross-sections along X (`kit.section` draws a
+  rounded box that can crown, lean in, bulge and keel) and gives a shell
+  that tapers and curves. Its `Shell` gives you points on the surface
+  (`side`, `top`) to lay parts and painted seams (`p.seam`) on. `p.arch`
+  makes wheel arches and fenders, and `kit.rounded` fillets a prism's
+  outline so it reads as pressed, not sawn. See the trike in `vehicles.py`.
 
 ## Conventions
 

@@ -274,8 +274,9 @@ def _shade(mat: bpy.types.Material, wear: float, dust: float, size: float, recol
     textured, bsdf = _textured_base(nt)
     recolour = mat.get("recolour") or recolour  # a sourced part's own
     if textured is None and colour not in kit.PALETTE:
-        # A material from elsewhere with a plain colour.
-        rgb = tuple(bsdf.inputs["Base Color"].default_value[:3]) if bsdf else (0.5, 0.5, 0.5)
+        # A material from elsewhere with a plain colour (repainted, if it's
+        # to be).
+        rgb = kit.PALETTE[recolour] if recolour else (tuple(bsdf.inputs["Base Color"].default_value[:3]) if bsdf else (0.5, 0.5, 0.5))
     else:
         rgb = kit.PALETTE.get(colour, (0.5, 0.5, 0.5))
     for link in list(nt.links):

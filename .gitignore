@@ -9,3 +9,6 @@ __pycache__/
 # The Blender harness's state and its renders: scratch, not source.
 .harness/
 out/
+
+# Local secrets (the Sketchfab API key for tools/world/sketchfab.py).
+.env

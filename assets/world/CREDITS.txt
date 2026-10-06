@@ -1,3 +1,13 @@
+Vehicles and ships built on Sketchfab models (https://sketchfab.com),
+retrofitted for Earth Two: repainted, worn, parts added and taken off.
+
+  "Cyberpunk Bike Concept Design" by Berk Gedik (CC Attribution): https://sketchfab.com/3d-models/cyberpunk-bike-concept-design-99290272e69d4cd8a56af2d2e1274e0d
+  "H500 - Explorer Truck" by Render Blue (CC Attribution): https://sketchfab.com/3d-models/h500-explorer-truck-89ea8e69b87942a881f9b89fd04ec00f
+  "Martian Rover "THOTH"" by Maxim Senchenko (CC Attribution): https://sketchfab.com/3d-models/martian-rover-thoth-e76d2a9172b54a62b89c9f18710d9cbc
+  "Sci - Fi Buggy" by TiyaMakes (CC Attribution): https://sketchfab.com/3d-models/sci-fi-buggy-085bd97876a64eacbc041299ac945e9c
+  "Sci-fi shuttle" by Hrvoje Wächter (CC Attribution): https://sketchfab.com/3d-models/sci-fi-shuttle-d3e5d9303d1d4e8b8a8e30bf22f59a21
+  "Transporter Spaceship" by pirate8888 (CC Attribution): https://sketchfab.com/3d-models/transporter-spaceship-fe581b60c8ea4ea591a24a483f25ddad
+
 World pieces built on Poly Haven models (https://polyhaven.com),
 CC0 1.0: public domain, no credit needed, but here it is.
 

@@ -190,6 +190,127 @@ def game_vec(v) -> list[float]:
     return [round(c, 4) + 0.0 for c in TO_GAME @ Vector(v)]
 
 
+# Shells ----------------------------------------------------------------------
+#
+# A prism is plate: flat on both faces, square at its edges. Bodywork isn't:
+# a bonnet crowns, a cab leans in towards its roof, a fairing tapers to its
+# nose. Piece.loft makes those from cross-sections, which section() and
+# rounded() draw.
+
+def rounded(points, radius, n: int = 3, corners=None) -> list[tuple[float, float]]:
+    """A closed outline with its corners filleted: each corner (all of them,
+    or those whose index is in corners) becomes n points on an arc of
+    radius, cut back as far as its edges allow. A prism's outline rounded
+    reads as pressed or cast, not cut from plate."""
+    pts = [Vector(p) for p in points]
+    out = []
+    k = len(pts)
+    for i, p in enumerate(pts):
+        if corners is not None and i not in corners:
+            out.append((p.x, p.y))
+            continue
+        a, b = pts[i - 1] - p, pts[(i + 1) % k] - p
+        la, lb = a.length, b.length
+        a, b = a.normalized(), b.normalized()
+        cos = max(-0.9999, min(0.9999, a.dot(b)))
+        theta = math.acos(cos)
+        # How far back along each edge the arc starts: no more than 45% of
+        # the shorter edge, so neighbouring fillets never cross.
+        # A sharp corner is still n points (so outlines keep their count),
+        # on a fillet too small to see.
+        t = min(max(radius / math.tan(theta / 2), 0.003), 0.45 * min(la, lb))
+        r = t * math.tan(theta / 2)
+        if n < 2:
+            out.append((p.x, p.y))
+            continue
+        c = p + (a + b).normalized() * (r / math.sin(theta / 2))
+        s, e = p + a * t - c, p + b * t - c
+        sweep = math.atan2(s.x * e.y - s.y * e.x, s.dot(e))
+        a0 = math.atan2(s.y, s.x)
+        for j in range(n):
+            ang = a0 + sweep * j / (n - 1)
+            out.append((c.x + math.cos(ang) * r, c.y + math.sin(ang) * r))
+    return out
+
+
+def section(width, bottom, top, y: float = 0.0, crown: float = 0.0, tumble: float = 0.0, bulge: float = 0.0,
+            keel: float = 0.0, r_top: float = 0.05, r_bottom: float = 0.03, n: int = 3) -> list[tuple[float, float]]:
+    """A cross-section for loft, as (y, z) points: a box width wide from
+    bottom to top, centred on y, with its top crowned up crown in the
+    middle, its sides leaning in by tumble at the top and bulging out by
+    bulge at half height, its bottom dropped keel in the middle, and its
+    corners rounded (r_top, r_bottom; n points each). Every section with
+    the same n has the same points in the same order, so any of them loft
+    together."""
+    h = width / 2
+    ht = h - tumble
+    mid = (bottom + top) / 2
+    poly = [(0.0, bottom - keel), (h * 0.5, bottom - keel * 0.75), (h, bottom), (h - tumble / 2 + bulge, mid),
+            (ht, top), (ht * 0.5, top + crown * 0.75), (0.0, top + crown), (-ht * 0.5, top + crown * 0.75),
+            (-ht, top), (-h + tumble / 2 - bulge, mid), (-h, bottom), (-h * 0.5, bottom - keel * 0.75)]
+    corners = {2: r_bottom, 4: r_top, 8: r_top, 10: r_bottom}
+    out = []
+    for i, p in enumerate(poly):
+        if i in corners:
+            # rounded() on the corner alone, with its neighbours for context.
+            tri = rounded([poly[i - 1], p, poly[(i + 1) % len(poly)]], corners[i], n, corners={1})
+            out.extend(tri[1:-1])
+        else:
+            out.append(p)
+    return [(y + a, b) for a, b in out]
+
+
+class Shell:
+    """What loft made, for laying paint and parts on: points on its surface
+    by station (x, along its length) and height or crosswise position."""
+
+    def __init__(self, sections, m: Matrix):
+        self.sections = sorted(sections, key=lambda s: s[0])
+        self.m = m
+
+    def outline(self, x: float) -> list[Vector]:
+        """The cross-section at x, between the two sections either side."""
+        ss = self.sections
+        x = min(max(x, ss[0][0]), ss[-1][0])
+        for (x0, a), (x1, b) in zip(ss, ss[1:]):
+            if x0 <= x <= x1:
+                t = 0.0 if x1 == x0 else (x - x0) / (x1 - x0)
+                return [Vector(p).lerp(Vector(q), t) for p, q in zip(a, b)]
+        return [Vector(p) for p in ss[-1][1]]
+
+    def _cross(self, x: float, value: float, axis: int, pick) -> tuple[Vector, Vector]:
+        """Where the outline at x crosses y (axis 0) or z (axis 1) = value,
+        the crossing pick chooses, and the outward normal there."""
+        pts = self.outline(x)
+        mid = sum(pts, Vector((0, 0))) / len(pts)
+        # Kept just inside the outline, so a point asked for past its edge
+        # lands on the edge.
+        lo, hi = min(p[axis] for p in pts), max(p[axis] for p in pts)
+        value = min(max(value, lo + 1e-4), hi - 1e-4)
+        hits = []
+        for p, q in zip(pts, pts[1:] + pts[:1]):
+            lo, hi = sorted((p[axis], q[axis]))
+            if lo <= value <= hi and hi - lo > 1e-9:
+                t = (value - p[axis]) / (q[axis] - p[axis])
+                c = p.lerp(q, t)
+                e = q - p
+                nrm = Vector((e.y, -e.x)).normalized()
+                if nrm.dot(c - mid) < 0:
+                    nrm = -nrm
+                hits.append((c, nrm))
+        c, nrm = pick(hits)
+        return (self.m @ Vector((x, c.x, c.y)), (self.m.to_3x3() @ Vector((0, nrm.x, nrm.y))).normalized())
+
+    def side(self, x: float, z: float, s: int) -> tuple[Vector, Vector]:
+        """The point on its flank at station x and height z on side s (+1 or
+        -1 in Y), and the outward normal there."""
+        return self._cross(x, z, 1, lambda hits: max(hits, key=lambda h: s * h[0].x))
+
+    def top(self, x: float, y: float) -> tuple[Vector, Vector]:
+        """The point on its top at station x across at y, and the normal."""
+        return self._cross(x, y, 0, lambda hits: max(hits, key=lambda h: h[0].y))
+
+
 @dataclass
 class Piece:
     """One kit piece or prop, built up from parts in a single bmesh."""
@@ -388,10 +509,11 @@ class Piece:
             faces.append(self.bm.faces.new(rings[-1]))
         self._faces(faces, mat, smooth=True)
 
-    def lathe(self, profile, at, mat: str, rot=(0, 0, 0), segments=16, smooth=True) -> None:
+    def lathe(self, profile, at, mat: str, rot=(0, 0, 0), segments=16, smooth=True, cap=True) -> None:
         """A turned shape round Z: profile is (radius, z) from the bottom up;
-        a radius of 0 closes it to a point, and open ends are capped. Bottles,
-        tanks, domes, shells, lamp shades."""
+        a radius of 0 closes it to a point, and open ends are capped (unless
+        cap is False: a tyre round its rim). Bottles, tanks, domes, shells,
+        lamp shades."""
         m = Matrix.Translation(at) @ _euler(rot)
         segments = _n(segments)
         rings = []
@@ -408,13 +530,13 @@ class Piece:
                 quad = [v for k, v in enumerate(quad) if v not in quad[:k]]
                 if len(quad) >= 3:
                     faces.append(self.bm.faces.new(quad))
-        cap = []
-        if len(rings[0]) > 1:
-            cap.append(self.bm.faces.new(list(reversed(rings[0]))))
-        if len(rings[-1]) > 1:
-            cap.append(self.bm.faces.new(rings[-1]))
+        caps = []
+        if cap and len(rings[0]) > 1:
+            caps.append(self.bm.faces.new(list(reversed(rings[0]))))
+        if cap and len(rings[-1]) > 1:
+            caps.append(self.bm.faces.new(rings[-1]))
         self._faces(faces, mat, smooth=smooth)
-        self._faces(cap, mat, smooth=False)
+        self._faces(caps, mat, smooth=False)
 
     def prism(self, outline, thickness, at, mat: str, rot=(0, 0, 0)) -> None:
         """A flat shape cut from plate: outline is (x, z) points round it,
@@ -430,6 +552,67 @@ class Piece:
             j = (i + 1) % n
             faces.append(self.bm.faces.new((front[i], back[i], back[j], front[j])))
         self._faces(faces, mat, smooth=False)
+
+    def loft(self, sections, mat: str, at=(0, 0, 0), rot=(0, 0, 0), cap: bool = True, smooth: bool = True) -> Shell:
+        """A shell through cross-sections along X: sections is (x, outline)
+        pairs in order along it, each outline (y, z) points round it, all
+        with the same number in the same order (section() draws them).
+        Bonnets, cabs, tanks, fairings, hulls: what a prism leaves
+        flat-sided. Returns the Shell, to lay paint and parts on."""
+        m = Matrix.Translation(at) @ _euler(rot)
+        n = len(sections[0][1])
+        rings = [[self.bm.verts.new(m @ Vector((x, y, z))) for y, z in pts] for x, pts in sections]
+        faces = []
+        for a, b in zip(rings, rings[1:]):
+            for i in range(n):
+                j = (i + 1) % n
+                faces.append(self.bm.faces.new((a[i], a[j], b[j], b[i])))
+        self._faces(faces, mat, smooth=smooth)
+        if cap:
+            self._faces([self.bm.faces.new(list(reversed(rings[0]))), self.bm.faces.new(rings[-1])], mat, smooth=False)
+        return Shell(sections, m)
+
+    def arch(self, centre, radius, width, mat: str, depth: float = 0.06, a0: float = -10, a1: float = 190,
+             segments: int = 10, lip: float = 0.0, side: int = 1) -> None:
+        """A wheel arch or fender: a band round an arc about an axle along Y
+        at centre, radius to its inside, depth thick, width across, from a0
+        to a1 degrees (0 along +X, 90 straight up). lip flares its edge on side
+        (+1 or -1 in Y) out from the wheel."""
+        x, y, z = centre
+        segments = _n(segments)
+        rings = []
+        for i in range(segments + 1):
+            a = math.radians(a0 + (a1 - a0) * i / segments)
+            c, s = math.cos(a), math.sin(a)
+            ring = []
+            for rr, yy in ((radius, y - side * width / 2), (radius + depth, y - side * width / 2),
+                           (radius + depth + lip, y + side * width / 2), (radius + lip, y + side * width / 2)):
+                ring.append(self.bm.verts.new((x + c * rr, yy, z + s * rr)))
+            rings.append(ring)
+        faces = []
+        for a, b in zip(rings, rings[1:]):
+            for j in range(4):
+                faces.append(self.bm.faces.new((a[j], a[(j + 1) % 4], b[(j + 1) % 4], b[j])))
+        faces += [self.bm.faces.new(list(reversed(rings[0]))), self.bm.faces.new(rings[-1])]
+        self._faces(faces, mat, smooth=False)
+
+    def seam(self, points, mat: str = "Hull dark", width: float = 0.014, off: float = 0.006) -> None:
+        """A panel line painted along points, each (point, normal) on a
+        surface (Shell.side and Shell.top give them): a strip width wide off
+        metres proud of it. Paint, so it never flickers."""
+        pts = [(Vector(p), Vector(nrm).normalized()) for p, nrm in points]
+        if len(pts) < 2:
+            return
+        with self.painted():
+            left, right = [], []
+            for i, (p, nrm) in enumerate(pts):
+                d = (pts[min(i + 1, len(pts) - 1)][0] - pts[max(i - 1, 0)][0]).normalized()
+                across = d.cross(nrm).normalized() * width / 2
+                q = p + nrm * off
+                left.append(self.bm.verts.new(q - across))
+                right.append(self.bm.verts.new(q + across))
+            faces = [self.bm.faces.new((left[i], left[i + 1], right[i + 1], right[i])) for i in range(len(pts) - 1)]
+            self._faces(faces, mat, smooth=False)
 
     def _faces(self, faces, mat: str, smooth: bool) -> None:
         i = self._slot(mat)
