@@ -62,7 +62,8 @@ type Kit struct {
 }
 
 // Piece is one piece of the world (architecture, a prop, a carried item or
-// a vehicle), made standing on its origin in metres.
+// a vehicle), made standing on its origin in metres. A lamp has the light
+// it gives.
 type Piece struct {
 	Model     string     `json:"model"`    // relative to the asset root
 	Kind      string     `json:"kind"`     // "kit", "prop", "item", "vehicle" or "wheel" (a vehicle's)
@@ -70,6 +71,7 @@ type Piece struct {
 	Budget    int        `json:"budget"`   // the most triangles it may have
 	Colliders []Collider `json:"colliders"`
 	Ladders   []Ladder   `json:"ladders"`
+	Lights    []Light    `json:"lights"`
 	// Vehicle is how it drives, for a vehicle that can be driven.
 	Vehicle *vehicle.Spec `json:"vehicle"`
 	model   asset.Handle[render.Model]
@@ -91,6 +93,26 @@ type Ladder struct {
 	BottomExit [3]float32 `json:"bottomExit"`
 	TopExit    [3]float32 `json:"topExit"`
 	Width      float32    `json:"width"`
+}
+
+// Light is a render.PointLight in the piece's own frame: where it is, its
+// colour (0 to 1), how bright, and how far it reaches in metres.
+type Light struct {
+	At        [3]float32 `json:"at"`
+	Color     [3]float32 `json:"color"`
+	Intensity float32    `json:"intensity"`
+	Range     float32    `json:"range"`
+}
+
+// In is the light, and where it is, on a piece at at turned by turn.
+func (l Light) In(at rl.Vector3, turn rl.Quaternion) (render.PointLight, rl.Vector3) {
+	c := func(v float32) uint8 { return uint8(math.Round(float64(max(0, min(1, v)) * 255))) }
+	light := render.PointLight{
+		Color:     rl.NewColor(c(l.Color[0]), c(l.Color[1]), c(l.Color[2]), 255),
+		Intensity: l.Intensity,
+		Range:     l.Range,
+	}
+	return light, rl.Vector3Add(at, rl.Vector3RotateByQuaternion(vec(l.At), turn))
 }
 
 // Placement is where a piece goes: at its origin's position, turned turns
@@ -157,9 +179,9 @@ func (k *Kit) look(model asset.Handle[render.Model]) []illusion.Component {
 	return out
 }
 
-// Place spawns a piece: its model, a static body for each of its colliders
-// and its ladders; or, for a vehicle that drives, a vehicle parked there (see
-// vehicle.Spawn).
+// Place spawns a piece: its model, a static body for each of its colliders,
+// its ladders and its lights; or, for a vehicle that drives, a vehicle
+// parked there (see vehicle.Spawn).
 func (k *Kit) Place(cmd *illusion.Commands, p Placement) error {
 	piece, ok := k.Pieces[p.Piece]
 	if !ok {
@@ -189,6 +211,10 @@ func (k *Kit) Place(cmd *illusion.Commands, p Placement) error {
 	}
 	for _, l := range piece.Ladders {
 		cmd.Spawn(illusion.C(l.In(at, turn)))
+	}
+	for _, l := range piece.Lights {
+		light, where := l.In(at, turn)
+		cmd.Spawn(illusion.C(light), illusion.C(transform.FromTranslation(where)))
 	}
 	return nil
 }

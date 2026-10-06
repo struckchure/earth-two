@@ -227,6 +227,7 @@ def sign_exchange(style: Style) -> Piece:
         p.span((s * 1.0 - 0.06, -0.012, 3.64), (s * 1.0 + 0.06, 0, 3.8), "Brass")
         p.cyl(0.11, 0.1, (s * 1.0, -0.46, 3.6), "Brass", radius2=0.04, segments=10)
         p.cyl(0.08, 0.012, (s * 1.0, -0.46, 3.548), "Sodium lamp", segments=10)
+    p.light((0, -0.6, 3.3), intensity=0.9, reach=5)
     _rust(p, [(r.uniform(-0.9, 0.9), z1 - 0.04) for _ in range(4)], -d, r, length=0.25)
     return p
 

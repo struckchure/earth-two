@@ -29,6 +29,9 @@ const (
 	// cameraLag is how quickly the camera catches up with the player; higher
 	// is tighter.
 	cameraLag = 5
+	// shadowRange is half the width of the square round the view where
+	// things cast shadows, in metres.
+	shadowRange = 45
 )
 
 // makehuman is the clip table for the people tools/makehuman builds, all
@@ -95,7 +98,8 @@ func build(m *menu) *illusion.App {
 			shading.Plugin{
 				ShadowColor: rl.NewColor(185, 165, 240, 255),
 				Softness:    0.03,
-				MidBand:     0.45,
+				// Low, so the ground under the low sun is in its full light.
+				MidBand: 0.2,
 				// No rim light: it follows the camera, so it reads as a
 				// light carried round with the player.
 				RimColor:     rl.NewColor(0, 0, 0, 255),
@@ -108,7 +112,9 @@ func build(m *menu) *illusion.App {
 		InsertResource(
 			illusion.R(&render.ClearColor{Color: rl.NewColor(250, 196, 120, 255)}),
 			// The fill from the dusty sky: dimmer than the sun, and violet.
-			illusion.R(&render.AmbientLight{Color: rl.NewColor(206, 186, 222, 255), Brightness: 0.32}),
+			illusion.R(&render.AmbientLight{Color: rl.NewColor(206, 186, 222, 255), Brightness: 0.26}),
+			// The sun's shadows, round what the camera looks at.
+			illusion.R(&render.Shadows{Size: 4096, Range: shadowRange}),
 			illusion.R(m),
 			illusion.R(newOrbit()),
 			illusion.R(&uiFonts{}),
@@ -139,17 +145,19 @@ func setup(
 	// The sun, TRAPPIST-1, low over Landfall, and the sky round it (see
 	// sky.go).
 	cmd.Spawn(
-		illusion.C(render.DirectionalLight{Color: sunlight}),
+		illusion.C(render.DirectionalLight{Color: sunlight, Brightness: sunBrightness}),
 		illusion.C(transform.Identity().LookingAt(rl.Vector3Negate(sunFrom), transform.Up)),
 	)
 	spawnSky(cmd, m, mat, textures.Get())
 	// The red ground under Landfall and out across the Fringe (see
 	// terrain.go). Floors have no colliders of their own: this is what
-	// everyone walks on.
+	// everyone walks on. It takes shadows but casts none: its gentle slopes
+	// would only shade themselves, speckled.
 	cmd.Spawn(
 		illusion.C(render.Mesh3d{Mesh: m.Add(render.Mesh{Mesh: terrainMesh()})}),
 		illusion.C(render.MeshMaterial3d{Material: mat.Add(render.StandardMaterial{BaseColor: rl.NewColor(150, 82, 58, 255)})}),
 		illusion.C(transform.Identity()),
+		illusion.C(render.NotShadowCaster{}),
 	)
 	cmd.Spawn(illusion.C(transform.Identity()), illusion.C(physics.Static), illusion.C(terrainCollider()))
 	placed, err := world.Layout(assetRoot(), "world/landfall.json")

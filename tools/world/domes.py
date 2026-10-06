@@ -270,6 +270,7 @@ def _floodlight(p: Piece, at, aim: float = 30.0) -> None:
     rot = tuple(math.degrees(v) for v in d.to_track_quat("Z", "Y").to_euler())
     p.lathe([(0.0, -0.12), (0.18, -0.12), (0.22, 0.0), (0.22, 0.1), (0.0, 0.1)], tuple(c), "Crew grey", rot=rot, segments=8)
     p.cyl(0.19, 0.02, tuple(c + d * 0.105), "Sodium lamp", rot=rot, segments=8)
+    p.light(tuple(c + d * 0.8), intensity=1.2, reach=12)
     for k in range(4):
         p.torus(0.07 + k * 0.035, 0.007, tuple(c - d * 0.125), "Hull dark", rot=rot, segments=8, sides=2.4)
 

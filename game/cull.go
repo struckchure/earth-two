@@ -25,15 +25,33 @@ type sphere struct {
 	radius float32
 }
 
-// culling is cull's memory: each model's bounds, and which pieces it has
-// hidden.
+// culling is cull's memory: each model's bounds, and how it's told the
+// engine to draw each piece.
 type culling struct {
 	bounds map[asset.Handle[render.Model]]sphere
-	hidden map[ecs.Entity]bool
+	drawn  map[ecs.Entity]drawn
 }
+
+// drawn is how a piece is drawn: to the camera (and into the shadow map),
+// only into the shadow map, or not at all.
+type drawn int
+
+const (
+	seen drawn = iota
+	shadowOnly
+	unseen
+)
+
+// shadowReach is how far from the camera pieces out of view are still drawn
+// into the shadow map, so they throw their shadows into it: past the
+// shadowed square round the view (shadowRange), as the sun is low and the
+// shadows long.
+const shadowReach = 2 * shadowRange
 
 // cull hides the world's pieces the camera can't see, so they're not drawn:
 // those behind it, off the sides of the view, or further than drawDistance.
+// Those out of view but near enough to throw a shadow into it are drawn
+// only into the shadow map.
 // The pieces are the models standing on their own: not posed, not a part
 // of anything (characters and what they wear are left alone). It tells the
 // engine only when one changes.
@@ -66,7 +84,7 @@ func cull(
 	v.right = rl.Vector3CrossProduct(v.ahead, v.up)
 	s := state.Get()
 	if s.bounds == nil {
-		s.bounds, s.hidden = map[asset.Handle[render.Model]]sphere{}, map[ecs.Entity]bool{}
+		s.bounds, s.drawn = map[asset.Handle[render.Model]]sphere{}, map[ecs.Entity]drawn{}
 	}
 	store := models.Get()
 	pieces.Each(func(e ecs.Entity, m *render.Model3d, g *transform.GlobalTransform) {
@@ -87,16 +105,36 @@ func cull(
 			s.bounds[m.Model] = b
 		}
 		center := rl.Vector3Transform(b.center, g.Matrix)
-		hide := !v.sees(center, b.radius)
-		if hide != s.hidden[e] {
-			s.hidden[e] = hide
-			if hide {
-				cmd.Entity(e).Insert(illusion.C(render.Hidden{}))
-			} else {
-				cmd.Entity(e).Remove(ecs.C[render.Hidden]())
-			}
+		switch {
+		case v.sees(center, b.radius):
+			s.show(cmd, e, seen)
+		case rl.Vector3Distance(center, v.at)-b.radius < shadowReach:
+			s.show(cmd, e, shadowOnly)
+		default:
+			s.show(cmd, e, unseen)
 		}
 	})
+}
+
+// show tells the engine how to draw e, if that's changed.
+func (s *culling) show(cmd *illusion.Commands, e ecs.Entity, d drawn) {
+	was := s.drawn[e]
+	if d == was {
+		return
+	}
+	s.drawn[e] = d
+	switch was {
+	case shadowOnly:
+		cmd.Entity(e).Remove(ecs.C[render.ShadowOnly]())
+	case unseen:
+		cmd.Entity(e).Remove(ecs.C[render.Hidden]())
+	}
+	switch d {
+	case shadowOnly:
+		cmd.Entity(e).Insert(illusion.C(render.ShadowOnly{}))
+	case unseen:
+		cmd.Entity(e).Insert(illusion.C(render.Hidden{}))
+	}
 }
 
 // view is what a camera sees: from at, looking ahead, with up and right

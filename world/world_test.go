@@ -257,6 +257,44 @@ func TestQuarterTurn(t *testing.T) {
 	}
 }
 
+// A light turns with its piece, and keeps its colour.
+func TestLightIn(t *testing.T) {
+	l := Light{At: [3]float32{1, 2.5, 0}, Color: [3]float32{1, .5, 0}, Intensity: 2, Range: 6}
+	light, at := l.In(rl.Vector3{X: 10}, rl.QuaternionFromAxisAngle(transform.Up, math.Pi/2))
+	if rl.Vector3Distance(at, rl.Vector3{X: 10, Y: 2.5, Z: -1}) > 1e-5 {
+		t.Errorf("turned light at %v, want (10, 2.5, -1)", at)
+	}
+	if light.Color != rl.NewColor(255, 128, 0, 255) || light.Intensity != 2 || light.Range != 6 {
+		t.Errorf("light %+v", light)
+	}
+}
+
+// The lamps light what's round them, from within their models.
+func TestLampsGiveLight(t *testing.T) {
+	k := kit(t)
+	for _, name := range []string{"pendant_lamp", "work_lamp", "street_lamp", "floodlight_tower", "pad_beacon", "status_light"} {
+		if len(k.Pieces[name].Lights) == 0 {
+			t.Errorf("%s gives no light", name)
+		}
+	}
+	const slack = 0.5
+	for name, p := range k.Pieces {
+		if len(p.Lights) == 0 {
+			continue
+		}
+		lo, hi := meshBounds(t, filepath.Join(assets, p.Model))
+		for i, l := range p.Lights {
+			if l.Range <= 0 || l.Intensity <= 0 {
+				t.Errorf("%s: light %d reaches %v m at %v", name, i, l.Range, l.Intensity)
+			}
+			at := vec(l.At)
+			if at.X < lo.X-slack || at.Y < lo.Y-slack || at.Z < lo.Z-slack || at.X > hi.X+slack || at.Y > hi.Y+slack || at.Z > hi.Z+slack {
+				t.Errorf("%s: light %d at %v, outside the model (%v to %v)", name, i, at, lo, hi)
+			}
+		}
+	}
+}
+
 // A vehicle that drives has its wheel pieces, a seat with somewhere to get
 // out, and a chassis that clears the ground with its suspension right up
 // (as the game's handlings have it: at most 0.3 m of bump).

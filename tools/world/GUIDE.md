@@ -69,6 +69,20 @@ A piece is good when it reads as a real, used object at arm's length:
   stands on one ground box. A floor of boxes side by side has seams that
   catch a slide. Upper decks use `deck_slab`, which has one.
 
+## Lamps
+
+- What glows is painted a `GLOWING` colour (`Sodium lamp`, `Status blue`,
+  `Laser cyan`). The finish gives those faces a second, emissive
+  material, and the game draws them at least as bright as they're
+  painted, in sun or shadow. A sourced lamp's own glowing material (one
+  with emission) counts too.
+- What lights its surroundings says so with `light(at, colour, intensity,
+  reach)`: a point light the game puts at `at`, a little out in front of
+  the lens, reaching `reach` metres. It turns with the piece. Desk and
+  indicator lights reach 2–4 m, pendant and work lamps 6–8 m, street lamps
+  and floodlights 12–18 m. The game lights the scene by the eight that
+  matter most to the camera, and lamps cast no shadows.
+
 ## Never stack surfaces
 
 Two faces of different colours closer than about 5 mm flicker in the game
@@ -120,7 +134,8 @@ from its texture, not its triangles.
    occlusion, edge wear, grime, dust (how much depends on the district:
    Charter Row is clean, the Fringe filthy) and its decals.
 
-A piece ends up as one material and one draw call. Sourced models are baked
+A piece ends up as one material and one draw call, and a second for what
+glows (see Lamps). Sourced models are baked
 from their own textures. `recolour` repaints them a palette colour and keeps
 their wear.
 

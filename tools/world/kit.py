@@ -132,8 +132,9 @@ FABRICS = {
 # The repaint colours a hull plate can be.
 REPAINTS = ["Repaint navy", "Repaint teal", "Repaint oxide", "Repaint green", "Repaint cream", "Crew grey"]
 
-# What's lit: unlit in the game would be nice, but raylib's glTF loader
-# keeps only the base colour, so they're just bright.
+# What glows: finish.bake gives its faces a material of their own that
+# glTF calls emissive, and the game draws them at least as bright as they
+# are, lit or not. What lights its surroundings says so too (Piece.light).
 GLOWING = {"Sodium lamp", "Status blue", "Laser cyan"}
 
 
@@ -328,6 +329,7 @@ class Piece:
     sources: list[dict] = field(default_factory=list)
     _plain: bool = False
     ladders: list[dict] = field(default_factory=list)
+    lights: list[dict] = field(default_factory=list)
     vehicle: dict = field(default_factory=dict)  # how it drives, if it does (see drive)
 
     def _slot(self, mat: str) -> int:
@@ -749,6 +751,14 @@ class Piece:
             "bottomExit": game_vec(bottom_exit), "topExit": game_vec(top_exit), "width": width,
         })
 
+    def light(self, at, colour: str = "Sodium lamp", intensity: float = 1.0, reach: float = 6.0) -> None:
+        """A light the game puts at at: a lamp's, lighting what's within
+        reach metres of it in its colour (a palette name)."""
+        self.lights.append({
+            "at": game_vec(at), "color": [round(c, 4) for c in PALETTE[colour]],
+            "intensity": intensity, "range": reach,
+        })
+
     # Driving: what the game needs to make a vehicle drivable (its vehicle
     # package). The wheels are pieces of their own, so they spin and steer;
     # the chassis is what the body collides with, clear of the ground, since
@@ -794,7 +804,7 @@ class Piece:
         self.vehicle.setdefault("chassis", []).append(_box(size, at, rot))
 
     def turn(self, turns: int) -> None:
-        """Turns everything built so far, colliders and ladders too, by
+        """Turns everything built so far, colliders, ladders and lights too, by
         quarter turns anticlockwise seen from above: for a piece that's
         easier to make lying along X but has to face -Y like the rest."""
         a = turns * math.pi / 2
@@ -810,6 +820,8 @@ class Piece:
         for ladder in self.ladders:
             for k in ("bottom", "top", "facing", "bottomExit", "topExit"):
                 ladder[k] = [round(v, 4) + 0.0 for v in q @ Vector(ladder[k])]
+        for light in self.lights:
+            light["at"] = [round(v, 4) + 0.0 for v in q @ Vector(light["at"])]
         for box in self.vehicle.get("chassis", []):
             box["center"] = [round(v, 4) + 0.0 for v in q @ Vector(box["center"])]
             x, y, z, w = box["rotation"]
@@ -933,6 +945,8 @@ class Piece:
              "budget": self.budget or BUDGET[self.kind], "colliders": self.colliders}
         if self.ladders:
             e["ladders"] = self.ladders
+        if self.lights:
+            e["lights"] = self.lights
         if self.vehicle:
             for w in self.vehicle.get("wheels", []):
                 w["left"] = w["at"][0] > 0.001  # the game's +X is the vehicle's left

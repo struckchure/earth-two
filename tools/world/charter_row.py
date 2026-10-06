@@ -577,6 +577,7 @@ def street_lamp(style: Style) -> Piece:
     post with its ladder bar and a four-sided lantern."""
     p = Sourced("street_lamp", "prop", "lamp post, 3.9 m high", asset="street_lamp_01", res="1k", height=3.9, budget=12000)
     p.collider((0.36, 0.36, 3.1), (0, 0, 1.55))
+    p.light((0, 0, 3.3), intensity=1.2, reach=12)
     return p
 
 

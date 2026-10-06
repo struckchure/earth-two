@@ -375,9 +375,12 @@ def _unwrap(obj: bpy.types.Object) -> None:
 def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object | None = None,
          recolour: str | None = None) -> None:
     """obj unwrapped, its look baked into one texture, and that texture its
-    only material. With high, the look is high's (a more detailed version of
-    the same thing, its crevices and all) baked onto obj."""
+    only material, but for what glows (see _glow). With high, the look is
+    high's (a more detailed version of the same thing, its crevices and all)
+    baked onto obj."""
     shading = high or obj
+    lit = [_glows(m) for m in obj.data.materials] or [False]  # once a material, not once a face
+    glowing = [p.index for p in obj.data.polygons if lit[p.material_index]]
     size = max(obj.dimensions)
     area = sum(p.area for p in obj.data.polygons)
     # Texels: about 220 a metre across the piece, a power of two; twice that
@@ -484,6 +487,84 @@ def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object
         if m.users == 0:
             bpy.data.materials.remove(m)
     _split(obj, final)
+    _glow(obj, final, glowing)
+
+
+def _glows(mat: bpy.types.Material | None) -> bool:
+    """Whether mat glows: a glowing palette colour, or a sourced material
+    that gives off light (a lamp's bulb)."""
+    if mat is None:
+        return False
+    if kit.colour(mat.get("palette", mat.name)) in kit.GLOWING:
+        return True
+    bsdf = mat.node_tree.nodes.get("Principled BSDF") if mat.use_nodes and mat.node_tree else None
+    if bsdf is None or "Emission Strength" not in bsdf.inputs:
+        return False
+    strength = bsdf.inputs["Emission Strength"]
+    colour = bsdf.inputs["Emission Color"]
+    if colour.is_linked and mat.get("sketchfab"):
+        # A Sketchfab model's emissive map: a lamp's is mostly lit; a hull's
+        # is mostly dark with a few lit windows, and the hull doesn't glow.
+        lit = _mostly_lit(colour.links[0].from_node)
+    elif colour.is_linked:
+        lit = True
+    else:
+        lit = max(colour.default_value[:3]) > 0
+    return lit and (strength.is_linked or strength.default_value > 0)
+
+
+def _mostly_lit(node) -> bool:
+    """Whether an emissive map (an image node, or what's behind one) is
+    mostly lit: its average brightness over a third."""
+    import numpy as np
+    image = getattr(node, "image", None)
+    if image is None:
+        return True  # a shader's own emission, not a map: take it as lit
+    w, h = image.size
+    if not w or not h:
+        return False
+    px = np.empty(w * h * image.channels, dtype=np.float32)
+    image.pixels.foreach_get(px)
+    rgb = px.reshape(-1, image.channels)[::97, :3]
+    return float(rgb.max(axis=1).mean()) > 0.33
+
+
+def _glow(obj: bpy.types.Object, final: bpy.types.Material, faces: list[int]) -> None:
+    """The faces of obj that glow given a material of their own: the baked
+    texture, and emissive. raylib's glTF loader only keeps a material's
+    emissive colour if it has an emissive texture, so it has one, plain
+    white, and the game draws those faces at least as bright as they're
+    painted, in light or shadow."""
+    if not faces:
+        return
+    white = bpy.data.images.get("glow white")
+    if white is None:
+        white = bpy.data.images.new("glow white", 4, 4, alpha=False)
+        white.generated_color = (1, 1, 1, 1)
+        white.colorspace_settings.name = "Non-Color"
+        path = Path(tempfile.mkdtemp()) / "glow_white.png"
+        white.filepath_raw = str(path)
+        white.file_format = "PNG"
+        white.save()
+        white.reload()
+        white.pack()
+    glow = final.copy()
+    glow.name = final.name + " glow"
+    nt = glow.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = white
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+    bsdf.inputs["Emission Strength"].default_value = 1
+    # As many slots as keep each under raylib's limit (see _split).
+    polys = obj.data.polygons
+    done, slot = SPLIT, None
+    for i in faces:
+        if done + polys[i].loop_total > SPLIT * 0.9:
+            obj.data.materials.append(glow if slot is None else glow.copy())
+            slot, done = len(obj.data.materials) - 1, 0
+        polys[i].material_index = slot
+        done += polys[i].loop_total
 
 
 # raylib indexes a mesh's vertices with 16 bits: more than 65,535 in one

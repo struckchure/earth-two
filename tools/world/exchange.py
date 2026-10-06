@@ -76,6 +76,7 @@ def _bankers_lamp(p: Piece, at, shade: str) -> None:
     inner = [(c * 0.85, s * 0.8) for c, s in reversed(outer)]
     p.prism(outer + inner, 0.3, (x, sy, sz), shade, rot=(0, 0, 90))
     p.box((0.29, 0.11, 0.006), (x, sy, sz + 0.004), "Sodium lamp")
+    p.light((x, sy, sz - 0.1), intensity=0.7, reach=2)
     for e in (-1, 1):
         p.prism([(math.cos(math.pi * k / n) * 0.08, math.sin(math.pi * k / n) * 0.065) for k in range(n + 1)],
                 0.012, (x + e * 0.156, sy, sz), "Brass", rot=(0, 0, 90))
@@ -478,6 +479,7 @@ def pendant_lamp(style: Style) -> Piece:
     p = Sourced("pendant_lamp", "prop", "lamp hung from 3.6 m to 2.5 m; no collider", asset="hanging_industrial_lamp",
                 res="1k", height=1.08, at=(0, 0, 2.5))
     p.lathe([(0.12, DECK), (0.12, DECK - 0.02), (0.1, DECK - 0.035), (0.04, DECK - 0.05), (0, DECK - 0.05)], (0, 0, 0), "Hull dark", segments=20)
+    p.light((0, 0, 2.35), intensity=1.4, reach=8)
     return p
 
 

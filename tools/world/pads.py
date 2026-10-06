@@ -483,6 +483,7 @@ def floodlight_tower(style: Style) -> Piece:
     p.cyl(0.08, 0.2, (mx, 0, top + 0.06), "Hull dark", segments=8)
     for i, x in enumerate((-0.75, -0.25, 0.25, 0.75)):
         p.source("security_light", at=(mx + x, -0.05, top - 0.42), height=0.42, rot=(-20, 0, 0), res="1k")
+    p.light((mx, -1.2, top - 0.6), intensity=1.5, reach=18)
     with p.painted():
         p.stencil("12", (0.35, -0.508, 1.05), 0.2, "Hull dark")
         _hazard(p, (-1.1, -0.556, 0.43), (1.1, -0.552, 0.55), along="x", n=11)
@@ -737,6 +738,7 @@ def pad_beacon(style: Style) -> Piece:
     _bolts(p, [(0.13 * math.cos(a), 0.13 * math.sin(a), 0.05) for a in (k * math.tau / 4 + 0.4 for k in range(4))], 0.016, 0.025, "Steel")
     p.lathe([(0.075, 0.0), (0.075, 0.06), (0.06, 0.1), (0.06, 0.82), (0.075, 0.85), (0.075, 0.9), (0.0, 0.9)], (0, 0, 0.04), "Hazard yellow", segments=12)
     p.lathe([(0.0, 0.0), (0.07, 0.0), (0.07, 0.1), (0.055, 0.15), (0.0, 0.17)], (0, 0, 0.94), "Sodium lamp", segments=12)
+    p.light((0, 0, 1.05), intensity=0.8, reach=3.5)
     for k in range(2):
         p.torus(0.12, 0.006, (0, 0, 1.0), "Hull dark", rot=(90, 0, k * 90 + 45), segments=10, sides=2.4, arc=180)
     p.torus(0.12, 0.008, (0, 0, 1.0), "Hull dark", segments=12, sides=2.4)

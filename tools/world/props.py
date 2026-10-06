@@ -371,6 +371,7 @@ def work_lamp(style: Style) -> Piece:
         hb((0.36, 0.06, 0.012), (0, 0.15, -0.12 + i * 0.04), "Hull dark")
     hb((0.42, 0.03, 0.32), (0, -0.09, 0), "Hull dark")
     hb((0.33, 0.012, 0.23), (0, -0.106, 0), "Sodium lamp")
+    p.light((0, -0.4, top - 0.05), intensity=1.3, reach=8)
     for i in range(4):
         hb((0.01, 0.02, 0.3), (-0.12 + i * 0.08, -0.13, 0), "Steel")
     hb((0.22, 0.03, 0.03), (0, 0.02, 0.17), "Hull dark")
@@ -393,6 +394,7 @@ def status_light(style: Style) -> Piece:
     p.span((-0.08, -0.07, -0.1), (0.08, -0.012, 0.1), "Crew grey")
     p.lathe([(0.0, 0.0), (0.06, 0.0), (0.058, 0.02), (0.045, 0.045), (0.02, 0.06), (0.0, 0.063)], (0, -0.07, 0.02),
             "Status blue", rot=(90, 0, 0), segments=10)
+    p.light((0, -0.2, 0.02), "Status blue", intensity=0.8, reach=2.5)
     p.torus(0.064, 0.004, (0, -0.1, 0.02), "Steel", rot=(90, 0, 0), segments=8, sides=2)
     p.torus(0.045, 0.004, (0, -0.125, 0.02), "Steel", rot=(90, 0, 0), segments=8, sides=2)
     for i in range(4):
@@ -434,6 +436,7 @@ def exchange_board(style: Style) -> Piece:
         p.tube([(x, -0.1, 2.72), (x, -0.25, 2.85), (x, -0.4, 2.8)], 0.012, "Hull dark", segments=4)
         p.cyl(0.08, 0.08, (x, -0.42, 2.76), "Hull dark", radius2=0.03, segments=8)
         p.cyl(0.07, 0.01, (x, -0.42, 2.71), "Sodium lamp", segments=8)
+    p.light((0, -0.6, 2.5), intensity=0.8, reach=4)
     # The contracts: slips in columns, pinned, some stamped.
     slips = []
     for c in range(9):

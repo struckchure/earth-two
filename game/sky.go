@@ -94,6 +94,10 @@ var (
 	sunlight    = rl.NewColor(255, 182, 128, 255)
 )
 
+// sunBrightness scales sunlight: past white on what faces the sun, so the
+// low sun reads as bright against the shadows.
+const sunBrightness = 1.3
+
 // skyBody is a part of the sky, and where it is from the camera: dir a
 // unit direction, at a distance, scaled to look size across.
 type skyBody struct {
@@ -147,6 +151,7 @@ func skyDays() float64 { return time.Since(skyEpoch).Hours() / 24 }
 type planetSky struct{ i int }
 
 // spawnSky adds the sky: the dome, the sun and its glow, and the planets.
+// None of it casts shadows: it's all far beyond what it would shade.
 func spawnSky(cmd *illusion.Commands, meshes *asset.Assets[render.Mesh], materials *asset.Assets[render.StandardMaterial], textures *asset.Assets[render.Texture]) {
 	ball := render.Sphere(1)
 	sphere := meshes.Add(ball)
@@ -160,6 +165,7 @@ func spawnSky(cmd *illusion.Commands, meshes *asset.Assets[render.Mesh], materia
 		illusion.C(render.MeshMaterial3d{Material: unlit(rl.White, textures.Add(skyTexture(ball.Mesh)))}),
 		illusion.C(transform.Identity()),
 		illusion.C(skyBody{dome: true, size: skyRadius}),
+		illusion.C(render.NotShadowCaster{}),
 	)
 	// The sun: a sphere with its face painted on (skytex.go), its top pole
 	// turned to the camera. Its glare is painted into the dome behind it.
@@ -169,6 +175,7 @@ func spawnSky(cmd *illusion.Commands, meshes *asset.Assets[render.Mesh], materia
 		illusion.C(render.MeshMaterial3d{Material: unlit(rl.White, textures.Add(sphereTexture(ball.Mesh, sunSurface)))}),
 		illusion.C(transform.Identity()),
 		illusion.C(skyBody{dir: sunFrom, distance: sunDistance, size: sunDistance * float32(math.Tan(float64(r))), facing: true}),
+		illusion.C(render.NotShadowCaster{}),
 	)
 	// The neighbours, their surfaces painted on (skytex.go) and lit by the
 	// scene's light, so they show phases.
@@ -179,6 +186,7 @@ func spawnSky(cmd *illusion.Commands, meshes *asset.Assets[render.Mesh], materia
 			illusion.C(transform.Identity()),
 			illusion.C(skyBody{distance: bodyDistance}),
 			illusion.C(planetSky{i}),
+			illusion.C(render.NotShadowCaster{}),
 		)
 	}
 }
