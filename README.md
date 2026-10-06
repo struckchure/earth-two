@@ -381,6 +381,42 @@ menus and saves a frame at each place in `tools/tour/views.json` (the
 Pads, the gate, the Hull, the Exchange, Charter Row, the hold, the haven)
 to `out/tour/`, so the same shots can be compared before and after.
 
+### Sound and effects
+
+The game plays nothing it's told to: the cue systems (`game/sound.go`,
+`cues.go`, `ambience.go`, `drivesound.go`) watch what the game already
+keeps, such as a body's animation, a vehicle's revs, and the menus and the
+map, and play what's changed.
+
+- **Ambience:** a bed for each light zone, so sound and light change in the
+  same place. Wind outside, rising in a storm, the dome's air handlers, the
+  Hull's hum. Over them, the machines, the market and the fountain, each
+  heard from the nearest one.
+- **Feet:** each body's feet are followed on their bones, and a step plays
+  as a foot plants: sand, soil, paving, grating (any kit underfoot) or a
+  rug.
+- **Bodies:** jumps, landings (as hard as the fall), rolls, slides, wall
+  kicks, climbing, punches, sitting, a tool knocking at a machine. E rings
+  the Exchange's floor bell.
+- **Vehicles:** each kind has its own motor (bike, trike, buggy, rover,
+  hauler), pitched by its revs and louder with the throttle. Also tyres,
+  skids, doors and crashes.
+- **Menus:** paperwork. A tick to move, a stamp to choose, a page to open, a
+  pencil on the map, a chime arriving where it's marked.
+
+`EARTH_TWO_CUES=1` prints each cue as it plays.
+
+`game/effects.go` is the dust and the sparks: soft discs facing the camera,
+drawn as one mesh rebuilt each frame. Dust comes from steps, landings, rolls
+and slides on sand and soil, and from wheels on loose ground. Sparks fly
+off metal hit hard.
+
+The sounds are CC0, from Kenney's packs and Freesound. `tools/sounds/fetch.py`
+fetches them as `tools/sounds/sounds.json` lists them, cuts, levels and
+loops them into `assets/sounds/`, and writes `assets/sounds/CREDITS.txt`.
+It needs curl and lame (`brew install lame`). Browsers start sound on the
+first click or key press.
+
 ### The character pipeline
 
 Everything about who the characters are is in one file,
@@ -632,6 +668,7 @@ requests. Each run uploads the builds as artifacts.
 - `shading/` is the toon shader and the outlines.
 - `world/` places the world's pieces; `tools/world/` builds them (see above).
 - `tools/shot/` draws world pieces in the game's renderer, for looking them over.
+- `tools/sounds/` fetches and cuts the game's sounds (see Sound and effects).
 - `tools/paint/` gives the characters' textures a painted look.
 - `tools/bindpose/` prepares skinned glTF characters for raylib.
 - `tools/mixamo/` puts Mixamo animations on our characters (Blender scripts).

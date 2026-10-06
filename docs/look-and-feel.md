@@ -47,6 +47,15 @@ Air handlers humming everywhere in the Hull. Wind and grit outside. Market
 chatter in a mix of accents (it's a colony of many origins). The Exchange's
 floor bell rings when a big contract is filed.
 
+Feet sound like what they're on: grating, sand, paving. Every kind of
+vehicle has a motor of its own: the bike's buzz, the trike's quad engine,
+the buggy's growl, the rover's electric hum, the hauler's diesel. The menus
+sound like paperwork being handled.
+
+Dust is the world's effect. It puffs up from feet and wheels on loose
+ground, and rolls out round a hard landing, pale against the sand it came
+from and drifting on the wind.
+
 ## UI
 
 Square corners on every panel, button and keycap, never rounded. Contract

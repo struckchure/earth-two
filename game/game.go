@@ -142,6 +142,8 @@ func build(m *menu) *illusion.App {
 				Zones: lightZones,
 			},
 			weatherPlugin{},
+			// The sounds, and the dust and sparks (sound.go).
+			cuesPlugin{},
 		).
 		InsertResource(
 			illusion.R(&render.ClearColor{Color: rl.NewColor(250, 196, 120, 255)}),

@@ -1,0 +1,30 @@
+Sounds from Kenney (https://kenney.nl), CC0 1.0: public domain, no
+credit needed, but here it is.
+
+  Impact Sounds: https://kenney.nl/assets/impact-sounds
+  Interface Sounds: https://kenney.nl/assets/interface-sounds
+  RPG Audio: https://kenney.nl/assets/rpg-audio
+
+Sounds from Freesound (https://freesound.org), all CC0 1.0: public
+domain, no credit needed, but here it is. Cut, levelled and looped for
+Earth Two by tools/sounds/fetch.py.
+
+  wind: "Looping Gentle Wind Ambience on an Open Desert Plain" by dhallcomposer: https://freesound.org/s/697217/
+  storm: "Sandstorm Looping" by gbayles: https://freesound.org/s/632771/
+  hull_hum: "control_room.wav" by Diboz: https://freesound.org/s/211683/
+  dome_air: "AC Unit, Interior Exhaust Close Perspective 02" by HECKFRICKER: https://freesound.org/s/753275/
+  market: "Farmer's Market Chatter RX" by greysound: https://freesound.org/s/769034/
+  fountain: "Ambiance_Fountain_Small_Loop_Stereo.wav" by Nox_Sound: https://freesound.org/s/676173/
+  generator: "Scifi_Generator_Lp" by Euphrosyyn: https://freesound.org/s/452768/
+  fans: "Industrial Factory/Fans Loop" by IanStarGem: https://freesound.org/s/271096/
+  tyres: "tire_rolling_1.wav" by mhad: https://freesound.org/s/390798/
+  engine_bike: "Motorbike Idling.wav" by lmbubec: https://freesound.org/s/119455/
+  engine_trike: "Quad Bike_ATV Engine.wav" by Alex_hears_things: https://freesound.org/s/379915/
+  engine_buggy: "Synth Car Engine Loop 1_1" by Joao_Janz: https://freesound.org/s/482664/
+  engine_rover: "Electric Scooter Loop.WAV" by pkri: https://freesound.org/s/587511/
+  engine_truck: "Diesel Truck Idling Front.wav" by ibirdfilm: https://freesound.org/s/128160/
+  step_grating: "Footsteps On Metal" by IENBA: https://freesound.org/s/834029/
+  land_loose: "Human jumping down to gravel w/ impact" by DeqstersLab: https://freesound.org/s/819656/
+  slide: "Boots Gravel Feet Slide 1_5" by Joao_Janz: https://freesound.org/s/504383/
+  whoosh: "Short Whoosh, 13x" by Kinoton: https://freesound.org/s/427979/
+  skid: "auto car or van stop brake skid gravel short" by kyles: https://freesound.org/s/637161/

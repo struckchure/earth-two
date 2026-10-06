@@ -14,9 +14,10 @@ import (
 )
 
 // What the player can use in the world besides vehicles: sit on benches,
-// stools, chairs and bunks, and kneel to work on machinery (the Repair Run
-// contract's work, docs/contracts.md). Walk up to one and the HUD offers it
-// (E); a vehicle in reach is offered first. Moving, or E again, gets up.
+// stools, chairs and bunks, kneel to work on machinery (the Repair Run
+// contract's work, docs/contracts.md), and ring the Exchange's floor
+// bell. Walk up to one and the HUD offers it (E); a vehicle in reach is
+// offered first. Moving, or E again, gets up.
 
 // useKind is what a spot's for.
 type useKind uint8
@@ -24,6 +25,7 @@ type useKind uint8
 const (
 	useSit useKind = iota
 	useRepair
+	useRing
 )
 
 // useSpot is a place on a piece to use it, in the piece's own frame (the
@@ -72,6 +74,11 @@ var useSpots = map[string][]useSpot{
 	"control_console": {repairAt(0, 0.45)},
 	"power_conduit":   {repairAt(0, 0.28)},
 	"wind_turbine":    {repairAt(0, 0.4)},
+
+	// The bell's rung when a big contract is filed (docs/look-and-feel.md);
+	// until there are contracts, by anyone who walks up to it. Its plinth's
+	// front is 0.4 m out.
+	"floor_bell": {{useRing, rl.Vector3{Z: 0.95}, math.Pi}},
 }
 
 // useReach is how close (m) the player's feet must be to a spot to use it.
@@ -103,6 +110,8 @@ type uses struct {
 	gettingUp float32
 	// face is the way to turn the player, who's just knelt to a machine.
 	face *float32
+	// rung is where the bell was rung this frame, for its sound (cues.go).
+	rung *rl.Vector3
 }
 
 const useCell = 8
@@ -258,6 +267,13 @@ func useThings(
 		in.Hold = character.Fix
 		face := s.facing
 		u.face = &face
+	case useRing:
+		// Reaching up to the bell's rope: the Interact clip, and the bell.
+		in.Act = character.Interact
+		at := s.at
+		u.rung = &at
+		face := s.facing
+		u.face = &face
 	}
 }
 
@@ -305,6 +321,6 @@ func offerUse(
 		return
 	}
 	if s, ok := u.near(feet); ok {
-		pr.Key, pr.Text = "E", map[useKind]string{useSit: "Sit down", useRepair: "Work on it"}[s.kind]
+		pr.Key, pr.Text = "E", map[useKind]string{useSit: "Sit down", useRepair: "Work on it", useRing: "Ring the bell"}[s.kind]
 	}
 }

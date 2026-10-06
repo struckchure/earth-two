@@ -1,0 +1,54 @@
+{
+  "kenney": [
+    {"name": "impact", "title": "Impact Sounds", "page": "https://kenney.nl/assets/impact-sounds", "url": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip"},
+    {"name": "interface", "title": "Interface Sounds", "page": "https://kenney.nl/assets/interface-sounds", "url": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip"},
+    {"name": "rpg", "title": "RPG Audio", "page": "https://kenney.nl/assets/rpg-audio", "url": "https://kenney.nl/media/pages/assets/rpg-audio/8e99002d76-1677590336/kenney_rpg-audio.zip"}
+  ],
+  "sounds": [
+    {"name": "wind", "freesound": 697217, "author": "dhallcomposer", "title": "Looping Gentle Wind Ambience on an Open Desert Plain", "url": "https://cdn.freesound.org/previews/697/697217_7678208-hq.mp3", "start": 0, "length": 40, "loop": true},
+    {"name": "storm", "freesound": 632771, "author": "gbayles", "title": "Sandstorm Looping", "url": "https://cdn.freesound.org/previews/632/632771_4537135-hq.mp3", "start": 20, "length": 45, "loop": true},
+    {"name": "hull_hum", "freesound": 211683, "author": "Diboz", "title": "control_room.wav", "url": "https://cdn.freesound.org/previews/211/211683_3930831-hq.mp3", "start": 2, "length": 40, "loop": true},
+    {"name": "dome_air", "freesound": 753275, "author": "HECKFRICKER", "title": "AC Unit, Interior Exhaust Close Perspective 02", "url": "https://cdn.freesound.org/previews/753/753275_12863902-hq.mp3", "start": 2, "length": 36, "loop": true},
+    {"name": "market", "freesound": 769034, "author": "greysound", "title": "Farmer's Market Chatter RX", "url": "https://cdn.freesound.org/previews/769/769034_189568-hq.mp3", "start": 30, "length": 45, "loop": true},
+    {"name": "fountain", "freesound": 676173, "author": "Nox_Sound", "title": "Ambiance_Fountain_Small_Loop_Stereo.wav", "url": "https://cdn.freesound.org/previews/676/676173_9250976-hq.mp3", "loop": true, "full_rate": true},
+    {"name": "generator", "freesound": 452768, "author": "Euphrosyyn", "title": "Scifi_Generator_Lp", "url": "https://cdn.freesound.org/previews/452/452768_5051822-hq.mp3", "loop": true},
+    {"name": "fans", "freesound": 271096, "author": "IanStarGem", "title": "Industrial Factory/Fans Loop", "url": "https://cdn.freesound.org/previews/271/271096_4965320-hq.mp3", "loop": true},
+    {"name": "tyres", "freesound": 390798, "author": "mhad", "title": "tire_rolling_1.wav", "url": "https://cdn.freesound.org/previews/390/390798_7336549-hq.mp3", "loop": true, "full_rate": true},
+
+    {"name": "engine_bike", "freesound": 119455, "author": "lmbubec", "title": "Motorbike Idling.wav", "url": "https://cdn.freesound.org/previews/119/119455_1990688-hq.mp3", "start": 3, "length": 12, "loop": true, "full_rate": true},
+    {"name": "engine_trike", "freesound": 379915, "author": "Alex_hears_things", "title": "Quad Bike_ATV Engine.wav", "url": "https://cdn.freesound.org/previews/379/379915_2309965-hq.mp3", "start": 3, "length": 12, "loop": true, "full_rate": true},
+    {"name": "engine_buggy", "freesound": 482664, "author": "Joao_Janz", "title": "Synth Car Engine Loop 1_1", "url": "https://cdn.freesound.org/previews/482/482664_9961300-hq.mp3", "loop": true, "full_rate": true},
+    {"name": "engine_rover", "freesound": 587511, "author": "pkri", "title": "Electric Scooter Loop.WAV", "url": "https://cdn.freesound.org/previews/587/587511_2798390-hq.mp3", "start": 1, "length": 12, "loop": true, "full_rate": true},
+    {"name": "engine_truck", "freesound": 128160, "author": "ibirdfilm", "title": "Diesel Truck Idling Front.wav", "url": "https://cdn.freesound.org/previews/128/128160_1372389-hq.mp3", "start": 4, "length": 14, "loop": true, "full_rate": true},
+
+    {"name": "step_sand", "kenney": "impact", "files": ["footstep_snow_000", "footstep_snow_001", "footstep_snow_002", "footstep_snow_003", "footstep_snow_004"]},
+    {"name": "step_soil", "kenney": "impact", "files": ["footstep_grass_000", "footstep_grass_001", "footstep_grass_002", "footstep_grass_003", "footstep_grass_004"]},
+    {"name": "step_paving", "kenney": "impact", "files": ["footstep_concrete_000", "footstep_concrete_001", "footstep_concrete_002", "footstep_concrete_003", "footstep_concrete_004"]},
+    {"name": "step_rug", "kenney": "impact", "files": ["footstep_carpet_000", "footstep_carpet_001", "footstep_carpet_002", "footstep_carpet_003", "footstep_carpet_004"]},
+    {"name": "step_grating", "freesound": 834029, "author": "IENBA", "title": "Footsteps On Metal", "url": "https://cdn.freesound.org/previews/834/834029_9616576-hq.mp3", "slices": 5},
+    {"name": "land_loose", "freesound": 819656, "author": "DeqstersLab", "title": "Human jumping down to gravel w/ impact", "url": "https://cdn.freesound.org/previews/819/819656_189858-hq.mp3"},
+    {"name": "land_hard", "kenney": "impact", "files": ["impactSoft_heavy_000", "impactSoft_heavy_001", "impactSoft_heavy_002"]},
+    {"name": "slide", "freesound": 504383, "author": "Joao_Janz", "title": "Boots Gravel Feet Slide 1_5", "url": "https://cdn.freesound.org/previews/504/504383_9961300-hq.mp3"},
+    {"name": "whoosh", "freesound": 427979, "author": "Kinoton", "title": "Short Whoosh, 13x", "url": "https://cdn.freesound.org/previews/427/427979_2247456-hq.mp3", "slices": 5},
+    {"name": "cloth", "kenney": "rpg", "files": ["cloth1", "cloth2", "cloth3", "cloth4"]},
+    {"name": "thump", "kenney": "impact", "files": ["impactPunch_medium_000", "impactPunch_medium_001", "impactPunch_medium_002"]},
+    {"name": "grab", "kenney": "rpg", "files": ["beltHandle1", "beltHandle2", "clothBelt"]},
+    {"name": "creak", "kenney": "rpg", "files": ["creak1", "creak2", "creak3"]},
+    {"name": "clank", "kenney": "impact", "files": ["impactMetal_light_000", "impactMetal_light_001", "impactMetal_light_002", "impactMetal_light_003", "impactMetal_light_004"]},
+    {"name": "bell", "kenney": "impact", "files": ["impactBell_heavy_000", "impactBell_heavy_001", "impactBell_heavy_002"]},
+
+    {"name": "door", "kenney": "rpg", "files": ["doorClose_1", "doorClose_2", "doorClose_3"]},
+    {"name": "crash_metal", "kenney": "impact", "files": ["impactMetal_heavy_000", "impactMetal_heavy_001", "impactMetal_heavy_002", "impactMetal_heavy_003"]},
+    {"name": "crash_ground", "kenney": "impact", "files": ["impactSoft_heavy_003", "impactSoft_heavy_004", "impactPlate_heavy_000"]},
+    {"name": "skid", "freesound": 637161, "author": "kyles", "title": "auto car or van stop brake skid gravel short", "url": "https://cdn.freesound.org/previews/637/637161_612689-hq.mp3"},
+
+    {"name": "ui_move", "kenney": "interface", "files": ["tick_001", "tick_002"]},
+    {"name": "ui_stamp", "kenney": "impact", "files": ["impactPlank_medium_000", "impactPlank_medium_001", "impactPlank_medium_002"]},
+    {"name": "ui_back", "kenney": "rpg", "files": ["bookClose"]},
+    {"name": "ui_open", "kenney": "rpg", "files": ["bookOpen"]},
+    {"name": "ui_page", "kenney": "rpg", "files": ["bookFlip1", "bookFlip2", "bookFlip3"]},
+    {"name": "ui_mark", "kenney": "interface", "files": ["scratch_001", "scratch_002", "scratch_003"]},
+    {"name": "ui_arrive", "kenney": "interface", "files": ["confirmation_002"]},
+    {"name": "ui_deny", "kenney": "interface", "files": ["error_006"]}
+  ]
+}
