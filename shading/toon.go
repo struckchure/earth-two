@@ -33,6 +33,7 @@ uniform float rimThreshold;
 uniform vec3 fogColor;
 uniform float fogDistance; // how far the haze goes a share 1 - 1/e of the way; 0 for none
 uniform float fogEnd; // past here, none: the sky's out there
+uniform float veil; // but in a storm, this much: the sky, the sun and the planets dimmed by dust
 uniform vec3 groundFill; // the light off the ground, for what faces down
 uniform float hemisphere; // 1 to light from sky and ground, 0 for ambient alone
 uniform float exposure;
@@ -96,7 +97,8 @@ void main() {
         discard;
     }
     if (unlit > 0.5) {
-        finalColor = base;
+        // The sky and the sun (all that's unlit), behind the storm's dust.
+        finalColor = vec4(mix(base.rgb, fogColor, veil), base.a);
         return;
     }
     vec3 n = normalize(fragNormal);
@@ -166,7 +168,7 @@ void main() {
     finalColor = vec4(rollOff(base.rgb * (light + rimColor * rim) * exposure), 1.0);
     if (fogDistance > 0.0) {
         float d = length(viewPos - fragPosition);
-        finalColor.rgb = mix(finalColor.rgb, fogColor, (1.0 - exp(-d / fogDistance)) * step(d, fogEnd));
+        finalColor.rgb = mix(finalColor.rgb, fogColor, d < fogEnd ? 1.0 - exp(-d / fogDistance) : veil);
     }
 }
 `

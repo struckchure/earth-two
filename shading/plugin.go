@@ -60,6 +60,16 @@ type Zone struct {
 	Sun        color.RGBA
 }
 
+// Haze is a resource: the dust in the air as the shaders draw it, starting
+// as the Plugin's haze. Change it and the shaders follow: a dust storm closes
+// it in and turns it brown. Veil is how much of the dust hides what's past
+// the haze's end (the sky, the sun and the planets): 0 in clear air.
+type Haze struct {
+	Color         color.RGBA
+	Distance, End float32
+	Veil          float32
+}
+
 // maxZones is how many zones the toon shader takes.
 const maxZones = 4
 
@@ -120,7 +130,10 @@ func (pl Plugin) Build(app *illusion.App) {
 		uniforms[fmt.Sprintf("zoneAmbient[%d]", i)] = scaled(z.Ambient, z.Brightness)
 		uniforms[fmt.Sprintf("zoneSun[%d]", i)] = rgb(z.Sun)
 	}
-	app.InsertResource(illusion.R(&render.Shader{Fragment: toonFragment, Uniforms: uniforms}))
+	uniforms["veil"] = []float32{0}
+	toon := &render.Shader{Fragment: toonFragment, Uniforms: uniforms}
+	app.InsertResource(illusion.R(toon))
+	app.InsertResource(illusion.R(&Haze{Color: pl.FogColor, Distance: pl.FogDistance, End: pl.FogEnd}))
 	Outline.Uniforms = map[string][]float32{
 		"outlineColor": rgb(pl.OutlineColor),
 		"reach":        {outlineReach},
@@ -134,6 +147,14 @@ func (pl Plugin) Build(app *illusion.App) {
 		if w > 0 && h > 0 {
 			Outline.Uniforms["pixel"] = []float32{2 * pl.OutlineWidth / w, 2 * pl.OutlineWidth / h}
 		}
+	}))
+	// The haze, as it is this frame, to both shaders.
+	app.AddSystems(illusion.PostUpdate, illusion.Fn1(func(haze *illusion.Res[Haze]) {
+		h := haze.Get()
+		for _, u := range []map[string][]float32{toon.Uniforms, Outline.Uniforms} {
+			u["fogColor"], u["fogDistance"], u["fogEnd"] = rgb(h.Color), []float32{h.Distance}, []float32{h.End}
+		}
+		toon.Uniforms["veil"] = []float32{h.Veil}
 	}))
 }
 

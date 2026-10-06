@@ -140,6 +140,7 @@ func build(m *menu) *illusion.App {
 				Knee:  0.8,
 				Zones: lightZones,
 			},
+			weatherPlugin{},
 		).
 		InsertResource(
 			illusion.R(&render.ClearColor{Color: rl.NewColor(250, 196, 120, 255)}),

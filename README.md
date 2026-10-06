@@ -357,6 +357,15 @@ dome is seen through without sorting what's drawn. To go with it,
 painted look, in place. It marks what it paints and skips it next time, so
 it's safe to run again.
 
+Dust storms are the weather (`game/weather.go`). They come by the real
+clock, so everyone in the shared world sees the same one: each eight hours
+may bring one, half an hour to an hour and a half long, blowing up and
+dying down over minutes. A storm draws the haze in brown to a couple of
+hundred metres, puts the sky and the sun behind the dust, dims the sun and
+browns the fill, and blows grit across the view; under the dome the glass
+keeps most of it out. `EARTH_TWO_STORM=1` (0 to 1) holds a storm that hard,
+for looking at one: `EARTH_TWO_STORM=1 go run ./tools/tour`.
+
 The ground itself is built in `game/terrain.go` from one height function:
 dunes, ridges, canyons whose steep sides show their rock in beds, sand
 banked against the dome's walls, and the berms that sink the Fringers' hold
