@@ -51,6 +51,9 @@ const (
 	// by time (see stairPhase).
 	StairsUp
 	StairsDown
+	// Drive sits at a wheel, and Ride astride a bike or a trike: see Seated.
+	Drive
+	Ride
 )
 
 // Airborne reports whether a is a jump, or the fall after one.
@@ -107,6 +110,10 @@ func (a Anim) String() string {
 		return "stairs up"
 	case StairsDown:
 		return "stairs down"
+	case Drive:
+		return "drive"
+	case Ride:
+		return "ride"
 	}
 	return "unknown"
 }
@@ -174,6 +181,8 @@ type State struct {
 	stairsLeft float32
 	// rightPunch is whether the next punch is with the right hand.
 	rightPunch bool
+	// hidden is whether it's hidden, seated out of sight (see Seated).
+	hidden bool
 
 	// Off the ground (as the physics step last saw it), and the way it was
 	// going and facing when it left: in the air it can only veer a little

@@ -204,7 +204,7 @@ func TestTraversalSizes(t *testing.T) {
 // Every piece says what it is and where it's from; what's carried has
 // nothing to collide with, and what's big enough to walk into does.
 func TestKindsAndCategories(t *testing.T) {
-	kinds := map[string]bool{"kit": true, "prop": true, "item": true, "vehicle": true}
+	kinds := map[string]bool{"kit": true, "prop": true, "item": true, "vehicle": true, "wheel": true}
 	for name, p := range kit(t).Pieces {
 		if !kinds[p.Kind] {
 			t.Errorf("%s: kind %q", name, p.Kind)
@@ -254,5 +254,47 @@ func TestQuarterTurn(t *testing.T) {
 	l := Ladder{Facing: [3]float32{0, 0, -1}}.In(rl.Vector3{}, turn)
 	if rl.Vector3Distance(l.Facing, rl.Vector3{X: -1}) > 1e-5 {
 		t.Errorf("turned facing %v, want (-1, 0, 0)", l.Facing)
+	}
+}
+
+// A vehicle that drives has its wheel pieces, a seat with somewhere to get
+// out, and a chassis that clears the ground with its suspension right up
+// (as the game's handlings have it: at most 0.3 m of bump).
+func TestDrivableVehicles(t *testing.T) {
+	k := kit(t)
+	drivable := 0
+	for name, p := range k.Pieces {
+		v := p.Vehicle
+		if v == nil {
+			continue
+		}
+		drivable++
+		if v.Handling == "" || len(v.Wheels) == 0 || len(v.Seats) == 0 || len(v.Chassis) == 0 {
+			t.Errorf("%s: drives with handling %q, %d wheels, %d seats, %d chassis boxes", name, v.Handling,
+				len(v.Wheels), len(v.Seats), len(v.Chassis))
+			continue
+		}
+		for i, w := range v.Wheels {
+			if wp, ok := k.Pieces[w.Piece]; !ok || wp.Kind != "wheel" {
+				t.Errorf("%s: wheel %d is drawn with %q, which isn't a wheel", name, i, w.Piece)
+			}
+			if w.Radius <= 0 || math.Abs(float64(w.At[1]-w.Radius)) > 0.08 {
+				t.Errorf("%s: wheel %d of radius %v has its centre %v m up: parked, it should touch the ground", name, i, w.Radius, w.At[1])
+			}
+		}
+		for i, c := range v.Chassis {
+			lo, _ := colliderBounds(Collider(c))
+			if lo.Y < 0.3 {
+				t.Errorf("%s: chassis box %d reaches %.2f m from the ground: the suspension bottoming out would ground it", name, i, lo.Y)
+			}
+		}
+		for _, s := range v.Seats {
+			if len(s.Exits) == 0 {
+				t.Errorf("%s: a seat with no way out", name)
+			}
+		}
+	}
+	if drivable < 6 {
+		t.Errorf("%d vehicles drive, want the buggy, bike, trike, rover and both haulers", drivable)
 	}
 }

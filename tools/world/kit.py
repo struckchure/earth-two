@@ -31,7 +31,7 @@ DETAIL = 1.0
 # separately), so it's kept lean and gets its detail from its texture;
 # props and vehicles are where the detail goes. A piece can set its own
 # (Piece.budget) for the odd set piece: the drifter, the terraformer's wreck.
-BUDGET = {"kit": 4000, "prop": 20000, "item": 8000, "vehicle": 60000}
+BUDGET = {"kit": 4000, "prop": 20000, "item": 8000, "vehicle": 60000, "wheel": 6000}
 
 # Whether pieces are being built for the finish (finish.py). If so, a
 # piece's decals (see Piece.painted) and its detailed model, if it has a
@@ -328,6 +328,7 @@ class Piece:
     sources: list[dict] = field(default_factory=list)
     _plain: bool = False
     ladders: list[dict] = field(default_factory=list)
+    vehicle: dict = field(default_factory=dict)  # how it drives, if it does (see drive)
 
     def _slot(self, mat: str) -> int:
         if self._plain and not mat.endswith(PLAIN):
@@ -748,6 +749,50 @@ class Piece:
             "bottomExit": game_vec(bottom_exit), "topExit": game_vec(top_exit), "width": width,
         })
 
+    # Driving: what the game needs to make a vehicle drivable (its vehicle
+    # package). The wheels are pieces of their own, so they spin and steer;
+    # the chassis is what the body collides with, clear of the ground, since
+    # it rides on the wheels' suspension.
+
+    def drive(self, handling: str, com=None, camera: float = 0.0) -> None:
+        """Makes it drivable, handling as the game's Handlings[handling]
+        (vehicle/handling.go), its weight centred at com (by default as low
+        as its axles), the chase camera camera metres behind (0 picks one)."""
+        self.vehicle["handling"] = handling
+        if com is not None:
+            self.vehicle["centerOfMass"] = game_vec(com)
+        if camera:
+            self.vehicle["camera"] = camera
+
+    def wheel(self, at, radius: float, width: float, piece: str, steer: bool = False, drive: bool = True,
+              handbrake: bool = False) -> None:
+        """A wheel, its centre at at as the vehicle's parked, drawn with
+        piece (a wheel made centred on its axle, the axle along X, its outer
+        face toward +X: a left wheel; the game turns it about for the right)."""
+        self.vehicle.setdefault("wheels", []).append({
+            "piece": piece, "at": game_vec(at), "radius": radius, "width": width,
+            "steer": steer, "drive": drive, "handBrake": handbrake})
+
+    def seat(self, at, exits, pose: str = "drive", grips=(), pegs=()) -> None:
+        """A seat facing the front: at is where the sitter's feet would be
+        standing (the game's sitting clip puts the hips 0.57 m up and 0.27 m
+        behind that, the hands 0.13 m ahead and 0.89 m up), exits where
+        they can stand getting out, on the ground beside it; pose is
+        "drive", at a wheel, "ride", astride, or "inside", at a wheel shut
+        in a cab, where the game hides the driver. Riding astride, grips
+        and pegs are where the hands hold the bars and the feet rest, left
+        then right."""
+        seat = {"at": game_vec(at), "pose": pose, "exits": [game_vec(e) for e in exits]}
+        if grips:
+            seat["grips"] = [game_vec(g) for g in grips]
+        if pegs:
+            seat["pegs"] = [game_vec(p) for p in pegs]
+        self.vehicle.setdefault("seats", []).append(seat)
+
+    def chassis(self, size, at, rot=(0, 0, 0)) -> None:
+        """A box of what a drivable vehicle's body collides with."""
+        self.vehicle.setdefault("chassis", []).append(_box(size, at, rot))
+
     def turn(self, turns: int) -> None:
         """Turns everything built so far, colliders and ladders too, by
         quarter turns anticlockwise seen from above: for a piece that's
@@ -765,6 +810,20 @@ class Piece:
         for ladder in self.ladders:
             for k in ("bottom", "top", "facing", "bottomExit", "topExit"):
                 ladder[k] = [round(v, 4) + 0.0 for v in q @ Vector(ladder[k])]
+        for box in self.vehicle.get("chassis", []):
+            box["center"] = [round(v, 4) + 0.0 for v in q @ Vector(box["center"])]
+            x, y, z, w = box["rotation"]
+            r = q @ Quaternion((w, x, y, z))
+            box["rotation"] = [round(v, 5) + 0.0 for v in (r.x, r.y, r.z, r.w)]
+        for w in self.vehicle.get("wheels", []):
+            w["at"] = [round(v, 4) + 0.0 for v in q @ Vector(w["at"])]
+        for seat in self.vehicle.get("seats", []):
+            seat["at"] = [round(v, 4) + 0.0 for v in q @ Vector(seat["at"])]
+            for k in ("exits", "grips", "pegs"):
+                if k in seat:
+                    seat[k] = [[round(v, 4) + 0.0 for v in q @ Vector(e)] for e in seat[k]]
+        if "centerOfMass" in self.vehicle:
+            self.vehicle["centerOfMass"] = [round(v, 4) + 0.0 for v in q @ Vector(self.vehicle["centerOfMass"])]
         for s in self.sources:
             s["at"] = tuple(Matrix.Rotation(a, 3, "Z") @ Vector(s["at"]))
             s["turns"] = s.get("turns", 0) + turns
@@ -874,6 +933,10 @@ class Piece:
              "budget": self.budget or BUDGET[self.kind], "colliders": self.colliders}
         if self.ladders:
             e["ladders"] = self.ladders
+        if self.vehicle:
+            for w in self.vehicle.get("wheels", []):
+                w["left"] = w["at"][0] > 0.001  # the game's +X is the vehicle's left
+            e["vehicle"] = self.vehicle
         return e
 
 
@@ -903,6 +966,17 @@ def _face(size, local, at, facing):
     if facing == "+X":
         return (size[1], size[0], size[2]), at + Vector((0, local.x, local.z))
     raise ValueError(facing)
+
+
+def _box(size, at, rot) -> dict:
+    """A box in Blender's frame as world.json has one, in the game's."""
+    q = _euler(rot).to_quaternion()
+    g = (TO_GAME.to_4x4() @ q.to_matrix().to_4x4() @ TO_GAME.to_4x4().inverted()).to_quaternion()
+    return {
+        "center": game_vec(at),
+        "size": [round(abs(c), 4) for c in (size[0], size[2], size[1])],
+        "rotation": [round(c, 5) + 0.0 for c in (g.x, g.y, g.z, g.w)],
+    }
 
 
 def _euler(rot) -> Matrix:

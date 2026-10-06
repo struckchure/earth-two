@@ -51,3 +51,20 @@ lit, as a lamp's is. A hull with a few lit windows doesn't glow.
   under a quarter of its length across reads as a car, not an off-roader.
 - Check `docs/look-and-feel.md` before choosing colours. A model's own
   palette is usually replaced.
+
+## Driving
+
+All but the two ships can be driven (see the README's Vehicles section).
+How each kind handles is in `vehicle/handling.go`:
+
+| kind | pieces | what it's like |
+| --- | --- | --- |
+| `buggy` | buggy | Light four-wheel drive on long travel: lively and forgiving. |
+| `trike` | trike | Two steering wheels in front, one driven behind; narrow, so it's kept from rolling over. |
+| `bike` | bike | Leans into turns and holds itself up (Jolt's motorcycle controller). |
+| `rover` | rover | Six wheels, heavy and low-geared; the back pair steers against the front to turn tighter. |
+| `truck` | hauler, hauler_tanker | Eight driven wheels, the front two axles steering. |
+
+The engines are geared for about half a g at the wheels in first gear,
+and each kind is limited to a top speed. Each vehicle's weight sits as low
+as its axles unless `drive(com=...)` says otherwise.

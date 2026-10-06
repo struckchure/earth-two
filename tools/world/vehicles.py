@@ -19,7 +19,7 @@ import math
 from mathutils import Vector
 
 from kit import PALETTE, REPAINTS, Piece, Style, rng, rounded, section
-from polyhaven import Sourced
+from polyhaven import Sourced, wheel_of
 
 CATEGORY = "Vehicles"
 
@@ -148,6 +148,35 @@ def _coilover(p: Piece, a, b, radius: float = 0.06, turns: int = 7, spring: str 
 
 # The trike, modelled -----------------------------------------------------------
 
+TRIKE_FRONT = (0.85, -0.95)  # its axles along X, modelled with the nose at +X
+TRIKE_RADII = (0.33, 0.36)
+TRIKE_TRACK = 0.44
+
+
+def _trike_colours(style: Style) -> tuple[str, str]:
+    """The trike's paint and trim, the same for it and its wheels."""
+    r = rng(style, "trike")
+    return (r.choice(["Bleached", "Repaint cream", "Crew grey", "Hull alloy"]),
+            r.choice(["Crew orange", "Hazard yellow", "Repaint oxide", "Repaint teal"]))
+
+
+def _trike_wheel(style: Style, name: str, radius: float, width: float) -> Piece:
+    """One of the trike's wheels, centred on its axle (along X), its outer
+    face toward +X."""
+    _, trim = _trike_colours(style)
+    q = Piece(name, "wheel", f"{2 * radius:.2f} m trike wheel")
+    _wheel(q, 0, 0, 0, radius, width, 1, tread="knobby", rim="Hull alloy", cap=trim, spokes=5)
+    q.turn(-1)
+    return q
+
+
+def trike_wheel_front(style: Style) -> Piece:
+    return _trike_wheel(style, "trike_wheel_front", TRIKE_RADII[0], 0.18)
+
+
+def trike_wheel_rear(style: Style) -> Piece:
+    return _trike_wheel(style, "trike_wheel_rear", TRIKE_RADII[1], 0.26)
+
 def trike(style: Style) -> Piece:
     """A Fringe runner's reverse trike, after Death Stranding's: two
     wheels up front close together on wishbones under a broad faired nose
@@ -158,16 +187,26 @@ def trike(style: Style) -> Piece:
     about half that, the saddle at a motorbike's height.)"""
     p = Piece("trike", "vehicle", "2.7 × 1.25 × 1.3 m reverse trike, front at -Y")
     p.budget = 30000
-    r = rng(style, p.name)
-    paint = r.choice(["Bleached", "Repaint cream", "Crew grey", "Hull alloy"])
-    trim = r.choice(["Crew orange", "Hazard yellow", "Repaint oxide", "Repaint teal"])
-    fx, rx = 0.85, -0.95
-    fr, rr_ = 0.33, 0.36
-    track = 0.44
+    paint, trim = _trike_colours(style)
+    fx, rx = TRIKE_FRONT
+    fr, rr_ = TRIKE_RADII
+    track = TRIKE_TRACK
+    # The wheels are pieces of their own (trike_wheel_front and _rear), so
+    # they spin and steer; the left front first, as the game numbers them.
+    for s in (1, -1):
+        p.wheel((fx, s * track, fr), fr, 0.18, "trike_wheel_front", steer=True, drive=False)
+    p.wheel((rx, 0, rr_), rr_, 0.26, "trike_wheel_rear", handbrake=True)
+    p.seat((-0.15, 0, 0.43), exits=[(-0.3, 1.3, 0), (-0.3, -1.3, 0), (-2.3, 0, 0)], pose="ride",
+           grips=[(0.24, 0.3, 1.12), (0.24, -0.3, 1.12)], pegs=[(-0.24, 0.2, 0.42), (-0.24, -0.2, 0.42)])
+    p.chassis((2.7, 0.9, 0.6), (-0.05, 0, 0.75))
+    # Weighted low and forward, over the front pair, as a reverse trike's
+    # battery and drive are: it tips over the outside front wheel, about the
+    # line from it to the back wheel, and weight near that line tips it
+    # before its tyres slide.
+    p.drive("trike", com=(0.4, 0, 0.25))
     # Front wheels on double wishbones from the nose's frame, a coilover
     # each, a fender hugging each tyre on a stay.
     for s in (-1, 1):
-        _wheel(p, fx, s * track, fr, fr, 0.18, s, tread="knobby", rim="Hull alloy", cap=trim, spokes=5)
         p.box((0.08, 0.05, 0.24), (fx, s * (track - 0.13), fr), "Hull dark")
         _wishbone(p, (fx - 0.18, s * 0.16, 0.5), (fx + 0.18, s * 0.16, 0.5), (fx, s * (track - 0.13), 0.44), 0.02)
         _wishbone(p, (fx - 0.2, s * 0.16, 0.26), (fx + 0.2, s * 0.16, 0.26), (fx, s * (track - 0.13), 0.22), 0.022)
@@ -226,7 +265,6 @@ def trike(style: Style) -> Piece:
     # A strap over the load.
     p.tube([(-1.22, -0.44, 1.02), (-1.22, -0.3, 1.47), (-1.22, 0.3, 1.47), (-1.22, 0.44, 1.02)], 0.01, "Fabric olive", segments=4)
     # The rear wheel on a single-sided arm on the left, its shock.
-    _wheel(p, rx, 0, rr_, rr_, 0.26, 1, tread="knobby", rim="Hull alloy", cap=trim, spokes=5)
     p.loft([(rx, section(0.05, 0.3, 0.42, y=-0.17, r_top=0.015, r_bottom=0.015)),
             (-0.4, section(0.06, 0.32, 0.5, y=-0.17, r_top=0.02, r_bottom=0.02))], trim, smooth=False)
     p.cyl(0.07, 0.36, (-0.4, 0, 0.42), "Hull dark", rot=(90, 0, 0), segments=12)
@@ -296,6 +334,15 @@ SKETCHFAB = {
 }
 
 
+# Where each Sourced vehicle's wheels are, fitted: (centre, radius, width),
+# their axles along X, the left (+X) one of each pair first. Their parts are
+# cut out of the vehicle and drawn as wheel pieces (polyhaven.wheel_of).
+BUGGY_WHEELS = [((x, y, 0.425), 0.43, 0.36) for y in (-1.475, 1.725) for x in (1.285, -1.285)]
+BIKE_WHEELS = [((0, y, 0.385), 0.38, 0.22) for y in (-0.715, 0.72)]
+HAULER_WHEELS = [((x, y, 0.64), 0.64, 0.5) for y in (-1.635, 0.395, 1.705, 3.025) for x in (1.145, -1.145)]
+ROVER_WHEELS = [((x, y, 0.55), 0.545, 0.46) for y in (-1.505, -0.2, 2.65) for x in (1.52, -1.52)]
+
+
 def buggy(style: Style) -> Piece:
     """A two-seat Fringe runabout: an open wedge tub in a tube cage on long
     travel suspension, its body repainted, a rack bolted over the drive
@@ -304,7 +351,13 @@ def buggy(style: Style) -> Piece:
     r = rng(style, "buggy")
     paint = r.choice(["Crew orange", "Bleached", "Repaint oxide", "Hazard yellow", "Repaint cream"])
     p = Sourced("buggy", "vehicle", "4.3 × 2.9 × 1.7 m buggy, front at -Y", asset=SKETCHFAB["buggy"], width=4.3,
-                budget=40000, paint={"main_body": paint, "rear_strip": "Hazard yellow"})
+                budget=40000, paint={"main_body": paint, "rear_strip": "Hazard yellow"}, wheels=BUGGY_WHEELS)
+    for i, (c, radius, _) in enumerate(BUGGY_WHEELS):
+        front = i < 2
+        p.wheel(c, radius, 0.3, "buggy_wheel_front" if front else "buggy_wheel_rear", steer=front, handbrake=not front)
+    p.seat((0.4, -0.62, 0.1), exits=[(1.9, -0.4, 0), (-1.9, -0.4, 0), (0, 2.8, 0)])
+    p.chassis((2.3, 4.2, 1.1), (0, 0, 0.95))
+    p.drive("buggy")
     # The rack over the engine cover, on posts down to it.
     top = 1.38
     p.span((-0.6, 1.0, top), (0.6, 1.85, top + 0.03), "Grating")
@@ -331,7 +384,16 @@ def bike(style: Style) -> Piece:
     battery and drive out in the open, a courier's bag strapped to the
     tail."""
     p = Sourced("bike", "vehicle", "2.2 × 0.6 × 1.0 m bike, front at -Y", asset=SKETCHFAB["bike"], width=2.2, turns=3,
-                budget=30000)
+                budget=30000, wheels=BIKE_WHEELS)
+    for i, (c, radius, _) in enumerate(BIKE_WHEELS):
+        p.wheel(c, radius, 0.14, "bike_wheel_front" if i == 0 else "bike_wheel_rear", steer=i == 0, drive=i == 1,
+                handbrake=i == 1)
+    # At the front of the saddle (its top 0.93 m up), up to the tank, the
+    # hands on the grips at the ends of the low bars, the feet on the pegs.
+    p.seat((0, -0.05, 0.38), exits=[(1.0, 0, 0), (-1.0, 0, 0)], pose="ride",
+           grips=[(0.24, -0.36, 0.82), (-0.24, -0.36, 0.82)], pegs=[(0.2, 0.1, 0.32), (-0.2, 0.1, 0.32)])
+    p.chassis((0.4, 1.7, 0.6), (0, 0, 0.65))
+    p.drive("bike")
     p.span((-0.36, 0.35, 0.52), (-0.24, 0.8, 0.78), "Canvas")
     p.span((-0.37, 0.34, 0.72), (-0.23, 0.81, 0.8), "Fabric olive")
     p.collider((0.45, 2.0, 0.9), (0, 0, 0.5))
@@ -346,7 +408,14 @@ def _hauler(name: str, note: str, style: Style) -> tuple[Piece, "random.Random",
     paint = r.choice(["Crew orange", "Hazard yellow", "Repaint cream", "Bleached", "Crew orange"])
     patch = r.choice([c for c in REPAINTS if c != paint])
     p = Sourced(name, "vehicle", note, asset=SKETCHFAB["hauler"], width=7.8, stretch=(0.9, 1, 1), budget=60000,
-                paint={"trailer": paint, "doors": patch, "front": "Hazard yellow"})
+                paint={"trailer": paint, "doors": patch, "front": "Hazard yellow"}, wheels=HAULER_WHEELS)
+    # Eight wheels on four axles: the front two steer, the back two take
+    # the hand brake.
+    for i, (c, radius, _) in enumerate(HAULER_WHEELS):
+        p.wheel(c, radius, 0.43, "hauler_wheel", steer=i < 4, handbrake=i >= 4)
+    p.seat((0.6, -2.55, 1.35), exits=[(2.2, -2.3, 0), (-2.2, -2.3, 0), (0, -5.0, 0)], pose="inside")
+    p.chassis((2.7, 7.8, 2.3), (0, 0, 2.25))
+    p.drive("truck")
     z = 3.24
     p.span((-1.05, -1.25, z), (1.05, 2.35, z + 0.05), "Grating")
     for s in (-1, 1):
@@ -377,6 +446,7 @@ def hauler(style: Style) -> Piece:
         p.tube([(-1.08, y, z + 0.3), (-1.0, y, lid + 0.03), (1.0, y, lid + 0.03), (1.08, y, z + 0.3)], 0.014, "Hazard yellow",
                segments=4)
     p.collider((2.0, 3.5, top), (0, 0.55, z + top / 2))
+    p.chassis((2.0, 3.5, top), (0, 0.55, z + top / 2))
     return p
 
 
@@ -399,6 +469,7 @@ def hauler_tanker(style: Style) -> Piece:
         p.lathe([(0.0, 0.0), (0.04, 0.0), (0.04, 0.16), (0.07, 0.18), (0.07, 0.24), (0.0, 0.24)], (x, y1 - 0.02, zc - 0.35), "Brass",
                 rot=(-90, 0, 0), segments=6)
     p.collider((1.4, y1 - y0, 2 * rad), (0, (y0 + y1) / 2, zc))
+    p.chassis((1.4, y1 - y0, 2 * rad), (0, (y0 + y1) / 2, zc))
     return p
 
 
@@ -411,7 +482,16 @@ def rover(style: Style) -> Piece:
     paint = r.choice(["Crew orange", "Repaint cream", "Hazard yellow", "Bleached"])
     patch = r.choice([c for c in REPAINTS if c != paint])
     p = Sourced("rover", "vehicle", "6.4 × 3.5 × 3.2 m crew rover, front at -Y", asset=SKETCHFAB["rover"], width=6.4, turns=2,
-                stretch=(0.85, 1, 1), budget=60000, drop=("Icosphere",), paint={"marsrider": paint, "devices": patch})
+                stretch=(0.85, 1, 1), budget=60000, drop=("Icosphere",), paint={"marsrider": paint, "devices": patch},
+                wheels=ROVER_WHEELS)
+    # Six wheels on rocker arms: the front and back pairs steer, the back
+    # against the front, to turn tighter.
+    for i, (c, radius, _) in enumerate(ROVER_WHEELS):
+        p.wheel(c, radius, 0.42, "rover_wheel", steer=i < 2 or i >= 4, handbrake=i >= 4)
+    p.seat((0.4, -0.25, 0.95), exits=[(2.4, -0.3, 0), (-2.4, -0.3, 0), (0, 3.9, 0)], pose="inside")
+    p.chassis((1.9, 3.7, 1.8), (0, 0.82, 1.5))
+    p.chassis((2.2, 4.8, 0.6), (0, 0.5, 1.05))
+    p.drive("rover")
     for s in (-1, 1):
         for y in (0.15, 0.85, 1.55):
             p.cyl(0.17, 0.06, (s * 0.93, y, 1.6), "Hull dark", rot=(0, 90, 0), segments=12)
@@ -430,7 +510,7 @@ def rover(style: Style) -> Piece:
         for x in (-0.75, 0.75):
             p.cyl(0.008, 1.3, (x, 2.4, 2.9), "Hull dark", segments=3)
     p.collider((1.8, 3.5, 1.8), (0, 0.83, 1.5))
-    p.collider((3.4, 5.2, 1.1), (0, 0.57, 0.55))
+    p.collider((2.5, 5.2, 1.1), (0, 0.57, 0.55))  # the body between the wheels
     return p
 
 
@@ -519,4 +599,31 @@ def covered_car(style: Style) -> Piece:
     return p
 
 
-PIECES = [hauler, hauler_tanker, bike, trike, buggy, rover, drifter_patience, receivership_shuttle, covered_car]
+def buggy_wheel_front(style: Style) -> Piece:
+    return wheel_of(buggy(style), "buggy_wheel_front", 0)
+
+
+def buggy_wheel_rear(style: Style) -> Piece:
+    return wheel_of(buggy(style), "buggy_wheel_rear", 2)
+
+
+def bike_wheel_front(style: Style) -> Piece:
+    return wheel_of(bike(style), "bike_wheel_front", 0)
+
+
+def bike_wheel_rear(style: Style) -> Piece:
+    return wheel_of(bike(style), "bike_wheel_rear", 1)
+
+
+def hauler_wheel(style: Style) -> Piece:
+    """The haulers' wheel: the tanker's are the same."""
+    return wheel_of(hauler(style), "hauler_wheel", 0)
+
+
+def rover_wheel(style: Style) -> Piece:
+    return wheel_of(rover(style), "rover_wheel", 0)
+
+
+PIECES = [hauler, hauler_tanker, bike, trike, buggy, rover, drifter_patience, receivership_shuttle, covered_car,
+          buggy_wheel_front, buggy_wheel_rear, bike_wheel_front, bike_wheel_rear, hauler_wheel, rover_wheel,
+          trike_wheel_front, trike_wheel_rear]

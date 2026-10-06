@@ -19,6 +19,7 @@ import math
 import urllib.request
 from pathlib import Path
 
+import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
@@ -156,13 +157,20 @@ class Sourced(Piece):
     triangles it keeps (finish.py decimates down to it), and recolour paints
     it a palette colour while keeping the texture's wear; paint does that
     for some of its materials ({word in the material's name: colour}), and
-    drop leaves parts out (see load)."""
+    drop leaves parts out (see load).
+
+    wheels are a vehicle's wheels, as (centre, radius, width) cylinders with
+    their axles along X, where the fitted model has them: the parts that lie
+    wholly inside one are cut out of it, to be drawn as wheel pieces of
+    their own (see wheel_of) that spin and steer."""
 
     def __init__(self, name: str, kind: str, note: str = "", *, asset: str, res: str = "2k",
                  height: float | None = None, length: float | None = None, width: float | None = None,
                  turns: int = 0, rot=(0, 0, 0), stretch=(1, 1, 1), at=(0, 0, 0), budget: int = 0,
-                 recolour: str | None = None, drop=(), paint: dict[str, str] | None = None):
+                 recolour: str | None = None, drop=(), paint: dict[str, str] | None = None, wheels=()):
         super().__init__(name, kind, note)
+        self.wheels = [(Vector(c), r, w) for c, r, w in wheels]
+        self.only = None  # a wheel_of's: which of wheels it is
         self.asset, self.res = asset, res
         self.drop, self.paint = drop, paint or {}
         self.fit = {"z": height, "x": length, "y": width}
@@ -180,6 +188,8 @@ class Sourced(Piece):
                 if m and word.lower() in m.name.lower():
                     m["recolour"] = colour
         fit(mesh, self.fit, rot=self.rot, turns=self.turns, stretch=self.stretch, at=self.at)
+        if self.wheels:
+            _cut_wheels(mesh, self.wheels, self.only)
         src.name = self.name
         mesh.name = self.name
         # Its own parts, if it has any, joined on (by Blender's join, which
@@ -217,3 +227,62 @@ class Sourced(Piece):
         if self.note:
             src["note"] = self.note
         return src
+
+
+def wheel_of(vehicle: Sourced, name: str, index: int, budget: int = 0) -> Sourced:
+    """A wheel piece from vehicle's model: its wheels[index] alone, centred on
+    its axle. Take a left wheel (+X), or a bike's in the middle, so its outer
+    face is toward +X, as the game expects of a wheel's model."""
+    c, _, _ = vehicle.wheels[index]
+    if c.x < 0:
+        raise ValueError(f"{name}: wheel {index} of {vehicle.name} is a right wheel")
+    w = Sourced(name, "wheel", f"a wheel of the {vehicle.name}", asset=vehicle.asset, res=vehicle.res, turns=vehicle.turns,
+                rot=vehicle.rot, stretch=vehicle.stretch, at=tuple(vehicle.at), budget=budget, drop=vehicle.drop,
+                paint=vehicle.paint, wheels=[(tuple(c), r, wd) for c, r, wd in vehicle.wheels])
+    w.fit, w.recolour, w.only = dict(vehicle.fit), vehicle.recolour, index
+    return w
+
+
+def _cut_wheels(mesh: bpy.types.Mesh, wheels, only: int | None) -> None:
+    """Cuts the wheels out of mesh: every part (a connected set of faces)
+    lying wholly inside one of the wheels' cylinders. With only, keeps that
+    wheel's parts instead, moved so its centre is at the origin."""
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    seen, parts = set(), []
+    for f in bm.faces:
+        if f.index in seen:
+            continue
+        seen.add(f.index)
+        stack, part = [f], []
+        while stack:
+            g = stack.pop()
+            part.append(g)
+            for e in g.edges:
+                for h in e.link_faces:
+                    if h.index not in seen:
+                        seen.add(h.index)
+                        stack.append(h)
+        parts.append(part)
+
+    def inside(part, wheel) -> bool:
+        c, r, w = wheel
+        return all(abs(v.co.x - c.x) <= w / 2 + 0.03 and math.hypot(v.co.y - c.y, v.co.z - c.z) <= r * 1.04
+                   for f in part for v in f.verts)
+    gone, cut = [], 0
+    for part in parts:
+        which = next((i for i, wheel in enumerate(wheels) if inside(part, wheel)), None)
+        cut += which is not None
+        keep = which is None if only is None else which == only
+        if not keep:
+            gone.extend(part)
+    if not cut:
+        raise ValueError("no parts lie inside the wheels: check their centres")
+    bmesh.ops.delete(bm, geom=list(set(gone)), context="FACES")
+    if only is not None:
+        if not bm.faces:
+            raise ValueError(f"wheel {only} has no parts inside it")
+        bmesh.ops.translate(bm, verts=bm.verts, vec=-wheels[only][0])
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()

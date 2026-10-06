@@ -9,6 +9,17 @@ import (
 	"github.com/struckchure/illusion/transform"
 )
 
+// Sets in the Update schedule, in the order they run.
+const (
+	// Input writes the player's Intent from the keyboard. Systems that take
+	// a key press for themselves (getting into a vehicle with E, say) run
+	// after it and clear what it asked for.
+	Input illusion.SystemSet = "character.Input"
+	// Act carries out what characters want: seats them, dresses them, turns
+	// and animates them.
+	Act illusion.SystemSet = "character.Act"
+)
+
 // Plugin loads the roster and runs the character systems. It needs the
 // default plugins and physics.Plugin.
 type Plugin struct {
@@ -59,16 +70,21 @@ func (pl Plugin) Build(app *illusion.App) {
 	}))
 	app.AddSystems(illusion.FixedUpdate, illusion.Chain(illusion.Fn8(traverse), illusion.Fn4(locomote)))
 	app.AddSystems(illusion.FixedPostUpdate, illusion.Fn1(rememberMotion).After(physics.Writeback))
-	app.AddSystems(illusion.Update, illusion.Chain(
-		illusion.Fn4(playerInput),
-		illusion.Fn8(dress),
-		illusion.Fn6(clothe),
-		illusion.Fn5(face),
-		illusion.Fn8(animate),
-	))
+	app.ConfigureSets(illusion.Update, Act.After(Input))
+	app.AddSystems(illusion.Update,
+		illusion.Fn4(playerInput).InSet(Input),
+		illusion.Chain(
+			illusion.Fn8(sit),
+			illusion.Fn8(dress),
+			illusion.Fn6(clothe),
+			illusion.Fn5(face),
+			illusion.Fn8(animate),
+		).InSet(Act),
+	)
 	app.AddSystems(illusion.PostUpdate,
 		illusion.Fn4(presentMotion).Before(render.Animate).Before(transform.Propagate),
 		illusion.Fn8(fitPoseToWorld).InSet(render.Animate).After(render.AdvanceAnimations).Before(render.AttachBones),
+		illusion.Fn6(ride).InSet(render.Animate).After(render.AdvanceAnimations).Before(render.AttachBones),
 		illusion.Fn3(mirrorPose).After(render.Animate),
 	)
 }

@@ -13,6 +13,7 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/struckchure/earth-two/character"
+	"github.com/struckchure/earth-two/vehicle"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/asset"
 	"github.com/struckchure/illusion/physics"
@@ -64,12 +65,14 @@ type Kit struct {
 // a vehicle), made standing on its origin in metres.
 type Piece struct {
 	Model     string     `json:"model"`    // relative to the asset root
-	Kind      string     `json:"kind"`     // "kit", "prop", "item" or "vehicle"
+	Kind      string     `json:"kind"`     // "kit", "prop", "item", "vehicle" or "wheel" (a vehicle's)
 	Category  string     `json:"category"` // the part of the world it's from, e.g. "The Fringe"
 	Budget    int        `json:"budget"`   // the most triangles it may have
 	Colliders []Collider `json:"colliders"`
 	Ladders   []Ladder   `json:"ladders"`
-	model     asset.Handle[render.Model]
+	// Vehicle is how it drives, for a vehicle that can be driven.
+	Vehicle *vehicle.Spec `json:"vehicle"`
+	model   asset.Handle[render.Model]
 }
 
 // Collider is a box the piece collides with: its middle, its full size
@@ -142,8 +145,21 @@ func (k *Kit) SpawnLayout(cmd *illusion.Commands, path string) error {
 	return nil
 }
 
+// Model is a piece's model, as loaded.
+func (k *Kit) Model(piece string) asset.Handle[render.Model] { return k.Pieces[piece].model }
+
+// look is how a model's drawn: the model and its outline.
+func (k *Kit) look(model asset.Handle[render.Model]) []illusion.Component {
+	out := []illusion.Component{illusion.C(render.Model3d{Model: model})}
+	if k.outline != nil {
+		out = append(out, illusion.C(render.Passes{k.outline(nil)}))
+	}
+	return out
+}
+
 // Place spawns a piece: its model, a static body for each of its colliders
-// and its ladders.
+// and its ladders; or, for a vehicle that drives, a vehicle parked there (see
+// vehicle.Spawn).
 func (k *Kit) Place(cmd *illusion.Commands, p Placement) error {
 	piece, ok := k.Pieces[p.Piece]
 	if !ok {
@@ -151,6 +167,10 @@ func (k *Kit) Place(cmd *illusion.Commands, p Placement) error {
 	}
 	at := vec(p.At)
 	turn := rl.QuaternionFromAxisAngle(transform.Up, float32(p.Turns)*math.Pi/2)
+	if piece.Vehicle != nil {
+		_, err := vehicle.Spawn(cmd, p.Piece, piece.Vehicle, piece.model, k.Model, k.look, at, turn)
+		return err
+	}
 	model := []illusion.Component{
 		illusion.C(render.Model3d{Model: piece.model}),
 		illusion.C(transform.FromTranslation(at).WithRotation(turn)),
