@@ -3446,17 +3446,17 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-39.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-37.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-35.0, 0.0, 20.0],
    "turns": 0
   },
@@ -3466,42 +3466,42 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-31.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-29.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-27.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-25.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-23.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-21.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-19.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-17.0, 0.0, 20.0],
    "turns": 0
   },
@@ -3511,37 +3511,37 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-13.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-11.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-9.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-7.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-5.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-3.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-1.0, 0.0, 20.0],
    "turns": 0
   },
@@ -3556,22 +3556,22 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [5.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [7.0, 0.0, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-39.0, 0.0, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-37.0, 0.0, -12.0],
    "turns": 0
   },
@@ -3581,12 +3581,12 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-33.0, 0.0, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-31.0, 0.0, -12.0],
    "turns": 0
   },
@@ -3596,22 +3596,22 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-27.0, 0.0, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-25.0, 0.0, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-23.0, 0.0, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-21.0, 0.0, -12.0],
    "turns": 0
   },
@@ -3636,7 +3636,7 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-11.0, 0.0, -12.0],
    "turns": 0
   },
@@ -3666,7 +3666,7 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [1.0, 0.0, -12.0],
    "turns": 0
   },
@@ -3676,7 +3676,7 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [5.0, 0.0, -12.0],
    "turns": 0
   },
@@ -3686,17 +3686,17 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-39.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-37.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-35.0, 3.6, 20.0],
    "turns": 0
   },
@@ -3706,12 +3706,12 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-31.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-29.0, 3.6, 20.0],
    "turns": 0
   },
@@ -3721,12 +3721,12 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-25.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-23.0, 3.6, 20.0],
    "turns": 0
   },
@@ -3741,17 +3741,17 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-17.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-15.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-13.0, 3.6, 20.0],
    "turns": 0
   },
@@ -3761,32 +3761,32 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-9.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-7.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-5.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-3.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-1.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [1.0, 3.6, 20.0],
    "turns": 0
   },
@@ -3796,42 +3796,42 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [5.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [7.0, 3.6, 20.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-39.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-37.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-35.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-33.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-31.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-29.0, 3.6, -12.0],
    "turns": 0
   },
@@ -3846,22 +3846,22 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-23.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-21.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-19.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-17.0, 3.6, -12.0],
    "turns": 0
   },
@@ -3871,7 +3871,7 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-13.0, 3.6, -12.0],
    "turns": 0
   },
@@ -3881,27 +3881,27 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-9.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-7.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-5.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [-3.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-1.0, 3.6, -12.0],
    "turns": 0
   },
@@ -3916,12 +3916,12 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [5.0, 3.6, -12.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [7.0, 3.6, -12.0],
    "turns": 0
   },
@@ -3936,22 +3936,22 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-40.0, 3.6, 19.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [8.0, 3.6, 19.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-40.0, 0.0, 17.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [8.0, 0.0, 17.0],
    "turns": 1
   },
@@ -3961,22 +3961,22 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_c",
    "at": [8.0, 3.6, 17.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-40.0, 0.0, 15.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [8.0, 0.0, 15.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 3.6, 15.0],
    "turns": 1
   },
@@ -3991,17 +3991,17 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [8.0, 0.0, 13.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 3.6, 13.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [8.0, 3.6, 13.0],
    "turns": 1
   },
@@ -4021,27 +4021,27 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [8.0, 3.6, 11.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-40.0, 0.0, 9.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [8.0, 0.0, 9.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-40.0, 3.6, 9.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [8.0, 3.6, 9.0],
    "turns": 1
   },
@@ -4051,17 +4051,17 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [8.0, 0.0, 7.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-40.0, 3.6, 7.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [8.0, 3.6, 7.0],
    "turns": 1
   },
@@ -4071,47 +4071,47 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [8.0, 0.0, 5.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 3.6, 5.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [8.0, 3.6, 5.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 0.0, 3.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [8.0, 0.0, 3.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-40.0, 3.6, 3.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [8.0, 3.6, 3.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-40.0, 0.0, 1.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [8.0, 0.0, 1.0],
    "turns": 1
   },
@@ -4121,27 +4121,27 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [8.0, 3.6, 1.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 0.0, -1.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [8.0, 0.0, -1.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 3.6, -1.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [8.0, 3.6, -1.0],
    "turns": 1
   },
@@ -4151,17 +4151,17 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [8.0, 0.0, -3.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 3.6, -3.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [8.0, 3.6, -3.0],
    "turns": 1
   },
@@ -4176,7 +4176,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-40.0, 3.6, -5.0],
    "turns": 1
   },
@@ -4191,12 +4191,12 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [8.0, 0.0, -7.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 3.6, -7.0],
    "turns": 1
   },
@@ -4211,7 +4211,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [8.0, 0.0, -9.0],
    "turns": 1
   },
@@ -4221,7 +4221,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [8.0, 3.6, -9.0],
    "turns": 1
   },
@@ -4231,32 +4231,32 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [8.0, 0.0, -11.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-40.0, 3.6, -11.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [8.0, 3.6, -11.0],
    "turns": 1
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_c",
    "at": [-36.0, 0.0, 20.4],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-36.0, 3.6, 20.4],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-30.0, 0.0, 20.4],
    "turns": 0
   },
@@ -4266,7 +4266,7 @@
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-24.0, 0.0, 20.4],
    "turns": 0
   },
@@ -4281,17 +4281,17 @@
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_c",
    "at": [-18.0, 3.6, 20.4],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_c",
    "at": [-12.0, 0.0, 20.4],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-12.0, 3.6, 20.4],
    "turns": 0
   },
@@ -4311,7 +4311,7 @@
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_c",
    "at": [0.0, 3.6, 20.4],
    "turns": 0
   },
@@ -4321,12 +4321,12 @@
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [6.0, 3.6, 20.4],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-28.0, 0.0, 19.0],
    "turns": 1
   },
@@ -4336,7 +4336,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-4.0, 0.0, 17.0],
    "turns": 1
   },
@@ -4346,52 +4346,52 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-28.0, 0.0, 13.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-4.0, 0.0, 13.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-28.0, 0.0, 11.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-4.0, 0.0, 11.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-28.0, 0.0, 9.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-4.0, 0.0, 9.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-28.0, 0.0, 7.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-28.0, 0.0, 5.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-4.0, 0.0, 5.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-28.0, 0.0, 3.0],
    "turns": 1
   },
@@ -4401,12 +4401,12 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-28.0, 0.0, 1.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-4.0, 0.0, 1.0],
    "turns": 1
   },
@@ -4421,22 +4421,22 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-28.0, 0.0, -3.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-4.0, 0.0, -3.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-4.0, 0.0, -5.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-28.0, 0.0, -7.0],
    "turns": 1
   },
@@ -4446,7 +4446,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-28.0, 0.0, -9.0],
    "turns": 1
   },
@@ -4456,7 +4456,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-28.0, 0.0, -11.0],
    "turns": 1
   },
@@ -4466,7 +4466,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-23.0, 0.0, 0.0],
    "turns": 0
   },
@@ -4476,27 +4476,27 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-19.0, 0.0, 0.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-17.0, 0.0, 0.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall_port",
+   "piece": "hull_wall_port_b",
    "at": [-15.0, 0.0, 0.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-13.0, 0.0, 0.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-11.0, 0.0, 0.0],
    "turns": 0
   },
@@ -4506,27 +4506,27 @@
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-7.0, 0.0, 0.0],
    "turns": 0
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-24.0, 0.0, 11.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-8.0, 0.0, 11.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-6.0, 0.0, 11.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-24.0, 0.0, 9.0],
    "turns": 1
   },
@@ -4536,22 +4536,22 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-6.0, 0.0, 9.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-24.0, 0.0, 7.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-8.0, 0.0, 7.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-6.0, 0.0, 7.0],
    "turns": 1
   },
@@ -4561,17 +4561,17 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-8.0, 0.0, 5.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_c",
    "at": [-6.0, 0.0, 5.0],
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_b",
    "at": [-24.0, 0.0, 3.0],
    "turns": 1
   },
@@ -4581,7 +4581,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-6.0, 0.0, 3.0],
    "turns": 1
   },
@@ -4591,7 +4591,7 @@
    "turns": 1
   },
   {
-   "piece": "hull_wall",
+   "piece": "hull_wall_d",
    "at": [-8.0, 0.0, 1.0],
    "turns": 1
   },
@@ -4661,17 +4661,17 @@
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-22.0, 0.0, 1.15],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-16.0, 0.0, 1.15],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_c",
    "at": [-12.0, 0.0, 1.15],
    "turns": 0
   },
@@ -4731,7 +4731,7 @@
    "turns": 3
   },
   {
-   "piece": "crate",
+   "piece": "crate_b",
    "at": [-15.0, 0.0, 7.0],
    "turns": 0
   },
@@ -4761,12 +4761,12 @@
    "turns": 0
   },
   {
-   "piece": "crate_tall",
+   "piece": "crate_tall_c",
    "at": [-20.45, 0.0, 5.0],
    "turns": 1
   },
   {
-   "piece": "crate_tall",
+   "piece": "crate_tall_b",
    "at": [-17.55, 0.0, 5.0],
    "turns": 1
   },
@@ -5656,17 +5656,17 @@
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-24.0, 0.0, -4.0],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-24.0, 0.0, -8.0],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_c",
    "at": [-20.0, 0.0, -4.0],
    "turns": 0
   },
@@ -5676,12 +5676,12 @@
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_c",
    "at": [-16.0, 0.0, -4.0],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-16.0, 0.0, -8.0],
    "turns": 0
   },
@@ -5691,12 +5691,12 @@
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-12.0, 0.0, -8.0],
    "turns": 0
   },
   {
-   "piece": "rib_pillar",
+   "piece": "rib_pillar_b",
    "at": [-8.0, 0.0, -4.0],
    "turns": 0
   },
@@ -6451,7 +6451,7 @@
    "turns": 0
   },
   {
-   "piece": "crate_tall",
+   "piece": "crate_tall_c",
    "at": [-35.6, 0.0, 12.0],
    "turns": 0
   },
@@ -10096,7 +10096,7 @@
    "turns": 0
   },
   {
-   "piece": "crate",
+   "piece": "crate_c",
    "at": [-56.3, 0.0, -31.0],
    "turns": 1
   },
@@ -10106,7 +10106,7 @@
    "turns": 0
   },
   {
-   "piece": "crate",
+   "piece": "crate_c",
    "at": [-56.5, 0.15, -34.0],
    "turns": 0
   },
@@ -10126,7 +10126,7 @@
    "turns": 0
   },
   {
-   "piece": "crate",
+   "piece": "crate_c",
    "at": [36.5, 0.15, 12.0],
    "turns": 1
   },
@@ -10176,7 +10176,7 @@
    "turns": 0
   },
   {
-   "piece": "crate",
+   "piece": "crate_c",
    "at": [19.0, 0.0, 46.3],
    "turns": 0
   },
@@ -12211,12 +12211,12 @@
    "turns": 0
   },
   {
-   "piece": "crate",
+   "piece": "crate_c",
    "at": [-6492.0, 0.0, -6489.0],
    "turns": 0
   },
   {
-   "piece": "crate_tall",
+   "piece": "crate_tall_c",
    "at": [-6490.7998, 0.0, -6489.0],
    "turns": 0
   },

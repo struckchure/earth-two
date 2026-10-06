@@ -3810,6 +3810,149 @@
      "range": 14
     }
    ]
+  },
+  "hull_wall_b": {
+   "model": "world/hull_wall_b.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "hull_wall_c": {
+   "model": "world/hull_wall_c.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "hull_wall_d": {
+   "model": "world/hull_wall_d.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "hull_wall_port_b": {
+   "model": "world/hull_wall_port_b.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "hull_wall_port_c": {
+   "model": "world/hull_wall_port_c.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [2.02, 3.6, 0.3],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "rib_pillar_b": {
+   "model": "world/rib_pillar_b.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [0.4, 3.6, 0.4],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "rib_pillar_c": {
+   "model": "world/rib_pillar_c.glb",
+   "kind": "kit",
+   "category": "The Hull",
+   "budget": 500,
+   "colliders": [
+    {
+     "center": [0.0, 1.8, 0.0],
+     "size": [0.4, 3.6, 0.4],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "crate_b": {
+   "model": "world/crate_b.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.45, 0.0],
+     "size": [1.2, 0.9, 0.9],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "crate_c": {
+   "model": "world/crate_c.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.45, 0.0],
+     "size": [1.2, 0.9, 0.9],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "crate_tall_b": {
+   "model": "world/crate_tall_b.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.8, 0.0],
+     "size": [1.2, 1.6, 0.9],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
+  },
+  "crate_tall_c": {
+   "model": "world/crate_tall_c.glb",
+   "kind": "prop",
+   "category": "The Hull market",
+   "budget": 20000,
+   "colliders": [
+    {
+     "center": [0.0, 0.8, 0.0],
+     "size": [1.2, 1.6, 0.9],
+     "rotation": [0.0, 0.0, 0.0, 1.0]
+    }
+   ]
   }
  }
 }

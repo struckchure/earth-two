@@ -122,7 +122,33 @@ def layout() -> Layout:
     _scatter(put, PADS_AT, 110, 500, 2)
     _scatter(put, HOLD_AT, 190, 700, 3)
     _scatter(put, HAVEN_AT, 40, 600, 4, spires=3)
-    return out
+    # What's laid by the dozen or the hundred (walls, ports, ribs, crates),
+    # each one of its variants by where it is, so they don't repeat.
+    return [(variant_at(piece, x, y, z), x, y, z, turns) for piece, x, y, z, turns in out]
+
+
+# The pieces laid by the dozen or the hundred that have variants (the Hull's
+# walls and ribs, crates), by the name the layout gives: variant_at picks
+# one for each place.
+VARIANTS = {
+    "hull_wall": ("hull_wall", "hull_wall_b", "hull_wall_c", "hull_wall_d"),
+    "hull_wall_port": ("hull_wall_port", "hull_wall_port_b", "hull_wall_port_c"),
+    "rib_pillar": ("rib_pillar", "rib_pillar_b", "rib_pillar_c"),
+    "crate": ("crate", "crate_b", "crate_c"),
+    "crate_tall": ("crate_tall", "crate_tall_b", "crate_tall_c"),
+}
+
+
+def variant_at(piece: str, x: float, y: float, z: float = 0.0) -> str:
+    """Which of piece's variants goes at (x, y, z) (piece itself, if it has
+    none): the same for a place on every build, and mixed along a run."""
+    names = VARIANTS.get(piece)
+    if not names:
+        return piece
+    h = (round(x * 10) * 0x27D4EB2D ^ round(y * 10) * 0x165667B1 ^ round(z * 10) * 0x9E3779B9) & 0xFFFFFFFF
+    for shift, mul in ((15, 0x85EBCA6B), (13, 0xC2B2AE35)):  # mixed, as game/terrain.go's lattice
+        h = ((h ^ (h >> shift)) * mul) & 0xFFFFFFFF
+    return names[(h ^ (h >> 16)) % len(names)]
 
 
 def _moved(put, ox, oy):

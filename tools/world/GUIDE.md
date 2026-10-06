@@ -83,6 +83,16 @@ A piece is good when it reads as a real, used object at arm's length:
   and floodlights 12–18 m. The game lights the scene by the eight that
   matter most to the camera, and lamps cast no shadows.
 
+## Variants
+
+A piece laid by the dozen or the hundred shouldn't repeat itself: a run of
+the same wall, number and patch is the first thing the eye catches. Give it
+variants, the same shape and colliders under another name
+(`hull_wall_b`), so its seeded paint, welds and number come out otherwise,
+and list them in `landfall.VARIANTS`. The layout names only the first, and
+`landfall.variant_at` picks one for each place, the same on every build.
+The hull walls and their ports, the rib pillars and the crates have them.
+
 ## Glass
 
 - The palette's `Glass` is clear: the finish bakes it into the texture's

@@ -118,13 +118,36 @@ def _crate(p: Piece, style: Style, size, number: str) -> Piece:
 
 
 def crate(style: Style) -> Piece:
-    """1.2 × 0.9 × 0.9 m: vaulted from its long side (the clip's box is 0.89 m)."""
+    """1.2 × 0.9 × 0.9 m: vaulted from its long side (the clip's box is 0.89 m).
+    crate_b and _c are the same crate, painted and numbered otherwise (see
+    landfall.variant_at)."""
     return _crate(Piece("crate", "prop", "1.2 × 0.9 × 0.9 m: vaultable"), style, (1.2, 0.9, 0.9), "42")
 
 
+def crate_b(style: Style) -> Piece:
+    """A crate painted and numbered otherwise."""
+    return _crate(Piece("crate_b", "prop", "1.2 × 0.9 × 0.9 m: vaultable"), style, (1.2, 0.9, 0.9), "8")
+
+
+def crate_c(style: Style) -> Piece:
+    """A crate painted and numbered otherwise."""
+    return _crate(Piece("crate_c", "prop", "1.2 × 0.9 × 0.9 m: vaultable"), style, (1.2, 0.9, 0.9), "203")
+
+
 def crate_tall(style: Style) -> Piece:
-    """1.2 × 0.9 × 1.6 m: too high to vault, low enough to mantle."""
+    """1.2 × 0.9 × 1.6 m: too high to vault, low enough to mantle.
+    crate_tall_b and _c are the same, painted and numbered otherwise."""
     return _crate(Piece("crate_tall", "prop", "1.2 × 0.9 × 1.6 m: mantle"), style, (1.2, 0.9, 1.6), "117")
+
+
+def crate_tall_b(style: Style) -> Piece:
+    """A crate_tall painted and numbered otherwise."""
+    return _crate(Piece("crate_tall_b", "prop", "1.2 × 0.9 × 1.6 m: mantle"), style, (1.2, 0.9, 1.6), "61")
+
+
+def crate_tall_c(style: Style) -> Piece:
+    """A crate_tall painted and numbered otherwise."""
+    return _crate(Piece("crate_tall_c", "prop", "1.2 × 0.9 × 1.6 m: mantle"), style, (1.2, 0.9, 1.6), "350")
 
 
 def drum(style: Style) -> Piece:
@@ -471,4 +494,4 @@ def exchange_board(style: Style) -> Piece:
     return p
 
 
-PIECES = [crate, crate_tall, drum, terminal_kiosk, market_stall, tarp_awning, work_lamp, status_light, exchange_board]
+PIECES = [crate, crate_b, crate_c, crate_tall, crate_tall_b, crate_tall_c, drum, terminal_kiosk, market_stall, tarp_awning, work_lamp, status_light, exchange_board]

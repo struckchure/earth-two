@@ -245,28 +245,69 @@ def _wall_number(style: Style, name: str) -> str:
     return f"{r.randint(1, 9)}-{r.randint(10, 99)}"
 
 
-def hull_wall(style: Style) -> Piece:
-    """2 m of hull wall, a deck high and 0.3 m thick: riveted plates on both
-    faces (some repainted, some welded), ribs and stringers bolted round
-    them, a vent here and there and a frame number stencilled on. The game
-    draws a box with all of it baked on."""
-    p = Piece("hull_wall", "kit", "2 × 3.6 m wall, 0.3 m thick: kickable")
+def _hull_wall(style: Style, name: str, numbered: bool) -> Piece:
+    """A hull wall called name: its plates' paint, welds and vent, and its
+    frame number if numbered, all chosen by its name."""
+    p = Piece(name, "kit", "2 × 3.6 m wall, 0.3 m thick: kickable")
     p.budget = 500
     p.collider((GRID + SEAM, 0.3, DECK), (0, 0, DECK / 2))
     _wall_core(p)
     _wall_frame(p)
     for side in (-1, 1):
         _plates(p, style, side, -H + 0.12, H - 0.12, 0.18, DECK - 0.22, 3,
-                number=_wall_number(style, p.name) if side < 0 else None)
+                number=_wall_number(style, p.name) if side < 0 and numbered else None)
     with p.lowpoly():
         p.span((-H, -0.15, 0), (H, 0.15, DECK), "Hull alloy")
     return p
 
 
+def hull_wall(style: Style) -> Piece:
+    """2 m of hull wall, a deck high and 0.3 m thick: riveted plates on both
+    faces (some repainted, some welded), ribs and stringers bolted round
+    them, a vent here and there and a frame number stencilled on. The game
+    draws a box with all of it baked on. Laid by the hundred, it has
+    variants (hull_wall_b, _c and _d) as alike as walls of one ship are, but
+    each painted, patched and numbered its own way, and landfall.variant_at picks
+    one for a place, so a run of wall doesn't repeat itself."""
+    return _hull_wall(style, "hull_wall", True)
+
+
+def hull_wall_b(style: Style) -> Piece:
+    """A hull_wall painted and patched another way, its number long gone."""
+    return _hull_wall(style, "hull_wall_b", False)
+
+
+def hull_wall_c(style: Style) -> Piece:
+    """A hull_wall painted and patched another way, with its own number."""
+    return _hull_wall(style, "hull_wall_c", True)
+
+
+def hull_wall_d(style: Style) -> Piece:
+    """A hull_wall painted and patched another way, its number long gone."""
+    return _hull_wall(style, "hull_wall_d", False)
+
+
 def hull_wall_port(style: Style) -> Piece:
     """A hull wall with a round viewport: a heavy bolted collar, a brass
-    ring, fogged glass held by six dogs."""
-    p = Piece("hull_wall_port", "kit", "2 × 3.6 m wall with a viewport")
+    ring, fogged glass held by six dogs. Its variants (hull_wall_port_b and
+    _c) are painted and numbered their own ways, as hull_wall's are."""
+    return _hull_wall_port(style, "hull_wall_port", True)
+
+
+def hull_wall_port_b(style: Style) -> Piece:
+    """A hull_wall_port painted another way, its number long gone."""
+    return _hull_wall_port(style, "hull_wall_port_b", False)
+
+
+def hull_wall_port_c(style: Style) -> Piece:
+    """A hull_wall_port painted another way, with its own number."""
+    return _hull_wall_port(style, "hull_wall_port_c", True)
+
+
+def _hull_wall_port(style: Style, name: str, numbered: bool) -> Piece:
+    """A hull wall with a viewport called name: its paint, and its number if
+    numbered, chosen by its name."""
+    p = Piece(name, "kit", "2 × 3.6 m wall with a viewport")
     p.budget = 500
     p.collider((GRID + SEAM, 0.3, DECK), (0, 0, DECK / 2))
     _wall_core(p)
@@ -290,8 +331,9 @@ def hull_wall_port(style: Style) -> Piece:
         c = (math.cos(a) * (radius + 0.02), -0.25, centre + math.sin(a) * (radius + 0.02))
         p.box((0.05, 0.02, 0.11), c, "Hull alloy", rot=(0, -math.degrees(a), 0))
         p.cyl(0.018, 0.02, (c[0], -0.262, c[2]), "Steel", rot=(90, 0, 0), segments=4)
-    with p.painted():
-        p.stencil(_wall_number(style, p.name), (0.45, -0.122, 0.75), 0.18, "Stencil white")
+    if numbered:
+        with p.painted():
+            p.stencil(_wall_number(style, p.name), (0.45, -0.122, 0.75), 0.18, "Stencil white")
     with p.lowpoly():
         p.span((-H, -0.15, 0), (H, 0.15, DECK), "Hull alloy")
         p.cyl(radius + 0.16, 0.12, (0, -0.21, centre), "Hull dark", rot=(90, 0, 0), segments=5)
@@ -357,8 +399,23 @@ def rib_pillar(style: Style) -> Piece:
     """One of the ship's ribs, standing free where the decks were cut away:
     an I-beam a deck high, riveted down its flanges, stiffened across its
     web, on a bolted foot, with a band of Crew orange at eye height and its
-    frame number."""
-    p = Piece("rib_pillar", "kit", "0.4 × 0.4 × 3.6 m I-beam")
+    frame number. Its variants (rib_pillar_b and _c) carry other numbers."""
+    return _rib_pillar(style, "rib_pillar")
+
+
+def rib_pillar_b(style: Style) -> Piece:
+    """A rib_pillar with another frame number."""
+    return _rib_pillar(style, "rib_pillar_b")
+
+
+def rib_pillar_c(style: Style) -> Piece:
+    """A rib_pillar with another frame number."""
+    return _rib_pillar(style, "rib_pillar_c")
+
+
+def _rib_pillar(style: Style, name: str) -> Piece:
+    """A rib pillar called name, its frame number chosen by its name."""
+    p = Piece(name, "kit", "0.4 × 0.4 × 3.6 m I-beam")
     p.budget = 500
     s, t = 0.2, 0.05
     p.collider((0.4, 0.4, DECK), (0, 0, DECK / 2))
@@ -658,5 +715,6 @@ def low_duct(style: Style) -> Piece:
     return p
 
 
-PIECES = [deck_floor, deck_slab, hull_wall, hull_wall_port, bulkhead_door, rib_pillar, catwalk, railing, stairs,
+PIECES = [deck_floor, deck_slab, hull_wall, hull_wall_b, hull_wall_c, hull_wall_d, hull_wall_port, hull_wall_port_b,
+          hull_wall_port_c, bulkhead_door, rib_pillar, rib_pillar_b, rib_pillar_c, catwalk, railing, stairs,
           ladder, pipe_run, low_duct]
