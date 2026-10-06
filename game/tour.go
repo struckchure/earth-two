@@ -1,0 +1,101 @@
+//go:build !js
+
+package game
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/mlange-42/ark/ecs"
+	"github.com/struckchure/earth-two/character"
+	"github.com/struckchure/illusion"
+	"github.com/struckchure/illusion/physics"
+	"github.com/struckchure/illusion/render"
+	"github.com/struckchure/illusion/transform"
+)
+
+// A View is a place the tour (see Tour) stops and takes a frame: the player
+// stood at Player, and the camera orbiting them at Yaw and Pitch (as the
+// mouse turns it in play), or, if Eye is set, there looking at Target. All
+// in the game's frame (Y up), in metres. With Ground, the player stands on
+// the terrain at Player's X and Z, whatever its Y.
+type View struct {
+	Name   string      `json:"name"`
+	Player [3]float32  `json:"player"`
+	Ground bool        `json:"ground"`
+	Yaw    float32     `json:"yaw"`
+	Pitch  float32     `json:"pitch"`
+	Eye    *[3]float32 `json:"eye,omitempty"`
+	Target *[3]float32 `json:"target,omitempty"`
+}
+
+// tourSettle is how many frames the tour waits at a view before taking it:
+// long enough for the terrain to stream in and the camera to catch up.
+const tourSettle = 150
+
+// Tour runs the game with no menus, takes a frame at each view in the JSON
+// file viewsFile, saves it as <out>/<name>.png, and exits: the same places
+// shot the same way, to compare the look before and after a change.
+func Tour(viewsFile, out string) error {
+	b, err := os.ReadFile(viewsFile)
+	if err != nil {
+		return err
+	}
+	var views []View
+	if err := json.Unmarshal(b, &views); err != nil {
+		return fmt.Errorf("%s: %w", viewsFile, err)
+	}
+	if err := os.MkdirAll(out, 0o755); err != nil {
+		return err
+	}
+	at, frames := 0, 0
+	app := build(&menu{})
+	// After the camera's followed the player, and before transforms are
+	// propagated for drawing.
+	app.AddSystems(illusion.PostUpdate, illusion.Fn3(func(
+		players *illusion.Query2Where[transform.Transform, physics.CharacterController, illusion.With[character.Player]],
+		cameras *illusion.Query2[transform.Transform, render.Camera3d],
+		o *illusion.Res[orbit],
+	) {
+		if at >= len(views) {
+			return
+		}
+		v := views[at]
+		p := rl.Vector3{X: v.Player[0], Y: v.Player[1], Z: v.Player[2]}
+		if v.Ground {
+			p.Y = groundHeight(p.X, p.Z) + groundLevel + 1
+		}
+		// Held there until they've landed, then left to stand.
+		if frames < 40 {
+			players.Each(func(_ ecs.Entity, tr *transform.Transform, cc *physics.CharacterController) {
+				tr.Translation = p
+				cc.Velocity = rl.Vector3{}
+			})
+		}
+		orb := o.Get()
+		orb.yaw, orb.pitch, orb.still = v.Yaw, v.Pitch, 0
+		if v.Eye != nil && v.Target != nil {
+			cameras.Each(func(_ ecs.Entity, tr *transform.Transform, _ *render.Camera3d) {
+				tr.Translation = rl.Vector3{X: v.Eye[0], Y: v.Eye[1], Z: v.Eye[2]}
+				tr.LookAt(rl.Vector3{X: v.Target[0], Y: v.Target[1], Z: v.Target[2]}, transform.Up)
+			})
+		}
+	}).Before(transform.Propagate))
+	app.AddSystems(illusion.Render, illusion.Fn0(func() {
+		if at >= len(views) {
+			os.Exit(0)
+		}
+		if frames++; frames < tourSettle {
+			return
+		}
+		img := rl.LoadImageFromScreen()
+		rl.ExportImage(*img, filepath.Join(out, views[at].Name+".png"))
+		rl.UnloadImage(img)
+		at, frames = at+1, 0
+	}).InSet(render.Draw2D))
+	app.Run()
+	return nil
+}

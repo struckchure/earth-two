@@ -3,6 +3,7 @@
 package shading
 
 import (
+	"fmt"
 	"image/color"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -31,7 +32,41 @@ type Plugin struct {
 	// past which (the sky) none.
 	FogColor            color.RGBA
 	FogDistance, FogEnd float32
+	// GroundFill is the light bounced up off the ground, at
+	// GroundBrightness: what faces down gets in place of the ambient light,
+	// which then comes from the sky above. Black for an ambient the same
+	// from everywhere.
+	GroundFill       color.RGBA
+	GroundBrightness float32
+	// Exposure scales the light (0 for 1), and colours brighter than Knee
+	// roll off towards white rather than clipping, keeping their hue (0
+	// for none).
+	Exposure, Knee float32
+	// Zones are places lit differently from the open air, at most
+	// maxZones of them; where they overlap, the later wins.
+	Zones []Zone
 }
+
+// A Zone is a box of the world, Min to Max, lit its own way: inside it
+// the ambient light is Ambient at Brightness, and the sun is tinted Sun
+// (white leaves it be, black puts it out), fading in over Blend metres
+// from its faces. Shadows still fall in it, so a roof still keeps the sun
+// off what's under it.
+type Zone struct {
+	Min, Max   rl.Vector3
+	Blend      float32
+	Ambient    color.RGBA
+	Brightness float32
+	Sun        color.RGBA
+}
+
+// maxZones is how many zones the toon shader takes.
+const maxZones = 4
+
+// Smooth is the material colour that has the toon shader light something
+// smoothly, with no bands: the ground, whose slopes in bands read as stains.
+// It's white, and all but opaque, which is how the shader knows it.
+var Smooth = color.RGBA{R: 255, G: 255, B: 255, A: 254}
 
 // Outline is the shader of the outline pass.
 var Outline = &render.Shader{Vertex: outlineVertex, Fragment: outlineFragment}
@@ -54,20 +89,38 @@ func OutlinePass(skip map[int]bool) render.Pass {
 const outlineReach = 7
 
 func (pl Plugin) Build(app *illusion.App) {
-	app.InsertResource(illusion.R(&render.Shader{
-		Fragment: toonFragment,
-		Uniforms: map[string][]float32{
-			"shadowColor":  rgb(pl.ShadowColor),
-			"softness":     {pl.Softness},
-			"midBand":      {pl.MidBand},
-			"rimColor":     rgb(pl.RimColor),
-			"rimPower":     {pl.RimPower},
-			"rimThreshold": {pl.RimThreshold},
-			"fogColor":     rgb(pl.FogColor),
-			"fogDistance":  {pl.FogDistance},
-			"fogEnd":       {pl.FogEnd},
-		},
-	}))
+	exposure := pl.Exposure
+	if exposure == 0 {
+		exposure = 1
+	}
+	hemisphere := float32(0)
+	if pl.GroundFill != (color.RGBA{}) {
+		hemisphere = 1
+	}
+	uniforms := map[string][]float32{
+		"shadowColor":  rgb(pl.ShadowColor),
+		"softness":     {pl.Softness},
+		"midBand":      {pl.MidBand},
+		"rimColor":     rgb(pl.RimColor),
+		"rimPower":     {pl.RimPower},
+		"rimThreshold": {pl.RimThreshold},
+		"fogColor":     rgb(pl.FogColor),
+		"fogDistance":  {pl.FogDistance},
+		"fogEnd":       {pl.FogEnd},
+		"groundFill":   scaled(pl.GroundFill, pl.GroundBrightness),
+		"hemisphere":   {hemisphere},
+		"exposure":     {exposure},
+		"knee":         {pl.Knee},
+		"zoneCount":    {float32(min(len(pl.Zones), maxZones))},
+	}
+	for i, z := range pl.Zones[:min(len(pl.Zones), maxZones)] {
+		uniforms[fmt.Sprintf("zoneMin[%d]", i)] = []float32{z.Min.X, z.Min.Y, z.Min.Z}
+		uniforms[fmt.Sprintf("zoneMax[%d]", i)] = []float32{z.Max.X, z.Max.Y, z.Max.Z}
+		uniforms[fmt.Sprintf("zoneBlend[%d]", i)] = []float32{max(z.Blend, 0.01)}
+		uniforms[fmt.Sprintf("zoneAmbient[%d]", i)] = scaled(z.Ambient, z.Brightness)
+		uniforms[fmt.Sprintf("zoneSun[%d]", i)] = rgb(z.Sun)
+	}
+	app.InsertResource(illusion.R(&render.Shader{Fragment: toonFragment, Uniforms: uniforms}))
 	Outline.Uniforms = map[string][]float32{
 		"outlineColor": rgb(pl.OutlineColor),
 		"reach":        {outlineReach},
@@ -86,4 +139,10 @@ func (pl Plugin) Build(app *illusion.App) {
 
 func rgb(c color.RGBA) []float32 {
 	return []float32{float32(c.R) / 255, float32(c.G) / 255, float32(c.B) / 255}
+}
+
+// scaled is c at brightness b.
+func scaled(c color.RGBA, b float32) []float32 {
+	v := rgb(c)
+	return []float32{v[0] * b, v[1] * b, v[2] * b}
 }

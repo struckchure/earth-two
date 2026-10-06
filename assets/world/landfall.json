@@ -6496,6 +6496,641 @@
    "turns": 0
   },
   {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 19.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 17.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 15.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 13.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, -7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, -9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-39.0, 3.6, -11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 19.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 17.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 15.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 13.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_hatch",
+   "at": [-37.0, 3.6, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, -7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, -9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-37.0, 3.6, -11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 19.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 17.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 15.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 13.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "shaft_grate",
+   "at": [-35.0, 3.6, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, -7.0],
+   "turns": 0
+  },
+  {
+   "piece": "shaft_grate",
+   "at": [-35.0, 3.6, -9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-35.0, 3.6, -11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 19.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 17.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 15.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 13.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, -7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, -9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-33.0, 3.6, -11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 19.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 17.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 15.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 13.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, -7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, -9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-31.0, 3.6, -11.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, 19.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, 17.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, 9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, 7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, 5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, 3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, -1.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, -3.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, -5.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, -7.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, -9.0],
+   "turns": 0
+  },
+  {
+   "piece": "deck_ceiling",
+   "at": [-29.0, 3.6, -11.0],
+   "turns": 0
+  },
+  {
+   "piece": "stairwell",
+   "at": [-29.0, 3.6, 13.0],
+   "turns": 0
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, 19.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, 17.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, 9.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, 7.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, 5.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, 3.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, 1.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, -1.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, -3.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, -5.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, -7.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, -9.0],
+   "turns": 1
+  },
+  {
+   "piece": "railing",
+   "at": [-28.1, 3.6, -11.0],
+   "turns": 1
+  },
+  {
+   "piece": "folding_table",
+   "at": [-34.0, 3.6, -9.0],
+   "turns": 0
+  },
+  {
+   "piece": "cooker",
+   "at": [-34.0, 4.4, -9.0],
+   "turns": 0
+  },
+  {
+   "piece": "stool",
+   "at": [-35.0, 3.6, -8.0],
+   "turns": 0
+  },
+  {
+   "piece": "stool",
+   "at": [-33.0, 3.6, -8.0],
+   "turns": 0
+  },
+  {
+   "piece": "water_canister",
+   "at": [-33.6, 4.4, -9.1],
+   "turns": 0
+  },
+  {
+   "piece": "locker",
+   "at": [-39.25, 3.6, -11.6],
+   "turns": 0
+  },
+  {
+   "piece": "locker",
+   "at": [-38.7, 3.6, -11.6],
+   "turns": 0
+  },
+  {
+   "piece": "locker",
+   "at": [-38.15, 3.6, -11.6],
+   "turns": 0
+  },
+  {
+   "piece": "crew_panel",
+   "at": [-31.0, 3.6, -11.85],
+   "turns": 0
+  },
+  {
+   "piece": "status_light",
+   "at": [-29.0, 6.2, -11.9],
+   "turns": 0
+  },
+  {
+   "piece": "storage_rack",
+   "at": [-39.4, 3.6, 1.0],
+   "turns": 1
+  },
+  {
+   "piece": "storage_rack",
+   "at": [-39.4, 3.6, -3.0],
+   "turns": 1
+  },
+  {
+   "piece": "parts_stall",
+   "at": [-32.0, 3.6, 1.0],
+   "turns": 1
+  },
+  {
+   "piece": "toolbox",
+   "at": [-32.0, 4.55, 1.0],
+   "turns": 0
+  },
+  {
+   "piece": "work_lamp",
+   "at": [-31.0, 3.6, 7.0],
+   "turns": 0
+  },
+  {
+   "piece": "crate",
+   "at": [-38.0, 3.6, 14.0],
+   "turns": 0
+  },
+  {
+   "piece": "crate_tall",
+   "at": [-36.6, 3.6, 14.0],
+   "turns": 0
+  },
+  {
+   "piece": "pallet",
+   "at": [-34.0, 3.6, 18.0],
+   "turns": 0
+  },
+  {
+   "piece": "drum",
+   "at": [-34.0, 3.75, 18.0],
+   "turns": 0
+  },
+  {
+   "piece": "hazard_panel",
+   "at": [-36.0, 3.6, 19.85],
+   "turns": 2
+  },
+  {
    "piece": "iron_fence",
    "at": [-29.0, 0.0, -20.0],
    "turns": 0
@@ -9478,6 +10113,126 @@
   {
    "piece": "rover",
    "at": [-16.0, 0.0, 62.0],
+   "turns": 0
+  },
+  {
+   "piece": "scrap_pile",
+   "at": [-57.5, 0.0, -8.0],
+   "turns": 1
+  },
+  {
+   "piece": "drum",
+   "at": [-56.5, 0.0, -13.0],
+   "turns": 0
+  },
+  {
+   "piece": "drum",
+   "at": [-57.3, 0.0, -13.9],
+   "turns": 0
+  },
+  {
+   "piece": "crate",
+   "at": [-56.3, 0.0, -31.0],
+   "turns": 1
+  },
+  {
+   "piece": "pallet",
+   "at": [-56.5, 0.0, -34.0],
+   "turns": 0
+  },
+  {
+   "piece": "crate",
+   "at": [-56.5, 0.15, -34.0],
+   "turns": 0
+  },
+  {
+   "piece": "filter_cache",
+   "at": [-56.5, 0.0, 20.0],
+   "turns": 1
+  },
+  {
+   "piece": "salvage_frame",
+   "at": [-60.5, 0.0, 32.0],
+   "turns": 1
+  },
+  {
+   "piece": "pallet",
+   "at": [36.5, 0.0, 12.0],
+   "turns": 0
+  },
+  {
+   "piece": "crate",
+   "at": [36.5, 0.15, 12.0],
+   "turns": 1
+  },
+  {
+   "piece": "drum",
+   "at": [36.2, 0.0, 9.6],
+   "turns": 0
+  },
+  {
+   "piece": "drum",
+   "at": [37.1, 0.0, -2.0],
+   "turns": 0
+  },
+  {
+   "piece": "drum",
+   "at": [36.3, 0.0, -2.9],
+   "turns": 0
+  },
+  {
+   "piece": "scrap_pile",
+   "at": [37.5, 0.0, -26.0],
+   "turns": 3
+  },
+  {
+   "piece": "concrete_barrier",
+   "at": [36.5, 0.0, -42.0],
+   "turns": 1
+  },
+  {
+   "piece": "filter_cache",
+   "at": [10.0, 0.0, -58.5],
+   "turns": 2
+  },
+  {
+   "piece": "terraformer_debris",
+   "at": [-32.0, 0.0, -62.5],
+   "turns": 2
+  },
+  {
+   "piece": "drum",
+   "at": [15.0, 0.0, 46.5],
+   "turns": 0
+  },
+  {
+   "piece": "drum",
+   "at": [15.9, 0.0, 47.0],
+   "turns": 0
+  },
+  {
+   "piece": "crate",
+   "at": [19.0, 0.0, 46.3],
+   "turns": 0
+  },
+  {
+   "piece": "concrete_barrier",
+   "at": [26.0, 0.0, 46.9],
+   "turns": 0
+  },
+  {
+   "piece": "scrap_pile",
+   "at": [-30.0, 0.0, 47.5],
+   "turns": 0
+  },
+  {
+   "piece": "crate",
+   "at": [-15.0, 0.0, 46.3],
+   "turns": 1
+  },
+  {
+   "piece": "drum",
+   "at": [-21.0, 0.0, 46.5],
    "turns": 0
   },
   {

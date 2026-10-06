@@ -31,6 +31,10 @@ import kit
 # download (assets/world went to over 100 MB, heavy for the browser build)
 # for detail only seen up close.
 TEXTURE_MAX = 1024
+# GLASS_ALPHA is how much of what's behind clear glass it hides: the
+# texture's alpha there, which the game draws as that share of its pixels
+# (shading/toon.go), so the dome's panes are seen through, dusty.
+GLASS_ALPHA = 0.3
 
 # Threads each bake may use (0: all of them). make world runs several
 # builds at once and shares the CPU out between them.
@@ -392,7 +396,8 @@ def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object
         _unwrap(obj)
     else:
         obj.data.uv_layers.active = obj.data.uv_layers["Baked"]
-    image = bpy.data.images.new(f"{name} albedo", px, px, alpha=False)
+    glazed = any(kit.colour((m.get("palette", m.name) if m else "")) == "Glass" for m in shading.data.materials)
+    image = bpy.data.images.new(f"{name} albedo", px, px, alpha=glazed)
     # The game draws a texture's values as they are, as it does the flat
     # colours' values: so the texture keeps them unconverted.
     image.colorspace_settings.name = "Non-Color"
@@ -415,10 +420,12 @@ def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object
         target_mat.use_nodes = True
         obj.data.materials.clear()
         obj.data.materials.append(target_mat)
+    targets = []
     for mat in obj.data.materials:
         node = mat.node_tree.nodes.new("ShaderNodeTexImage")
         node.image = image
         mat.node_tree.nodes.active = node
+        targets.append(node)
     s = bpy.context.scene
     engine = s.render.engine
     s.render.engine = "CYCLES"
@@ -452,6 +459,8 @@ def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object
         for r in rays:
             setattr(obj, r, False)
     bpy.ops.object.bake(type="EMIT")
+    if glazed:
+        _bake_glass(shading, image, targets, name, px)
     if high is not None:
         for r, v in kept.items():
             setattr(obj, r, v)
@@ -472,6 +481,10 @@ def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object
     tex = final.node_tree.nodes.new("ShaderNodeTexImage")
     tex.image = image
     final.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    if glazed:
+        # So the exporter keeps the alpha, and writes a PNG (kit.export).
+        final.node_tree.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+        obj["glazed"] = True
     bsdf.inputs["Roughness"].default_value = 0.8
     final.diffuse_color = (1, 1, 1, 1)
     used = list(obj.data.materials) + (list(high.data.materials) if high else [])
@@ -488,6 +501,36 @@ def bake(obj: bpy.types.Object, category: str, name: str, high: bpy.types.Object
             bpy.data.materials.remove(m)
     _split(obj, final)
     _glow(obj, final, glowing)
+
+
+def _bake_glass(shading: bpy.types.Object, image: bpy.types.Image, targets: list, name: str, px: int) -> None:
+    """The clear glass of what's being baked, into image's alpha: a second
+    bake of the same faces, white where they're the palette's Glass and
+    black elsewhere, and the alpha GLASS_ALPHA where it's white. (Fogged
+    glass, its own colour, stays opaque.)"""
+    import numpy as np
+    mask = bpy.data.images.new(f"{name} glass", px, px, alpha=False)
+    mask.colorspace_settings.name = "Non-Color"
+    for node in targets:
+        node.image = mask
+    for mat in shading.data.materials:
+        nt = mat.node_tree
+        out = next(n for n in nt.nodes if n.type == "OUTPUT_MATERIAL")
+        emit = nt.nodes.new("ShaderNodeEmission")
+        clear = kit.colour(mat.get("palette", mat.name)) == "Glass"
+        emit.inputs["Color"].default_value = (1, 1, 1, 1) if clear else (0, 0, 0, 1)
+        nt.links.new(emit.outputs[0], out.inputs["Surface"])
+    bpy.ops.object.bake(type="EMIT")
+    n = px * px * 4
+    rgba, m = np.empty(n, dtype=np.float32), np.empty(n, dtype=np.float32)
+    image.pixels.foreach_get(rgba)
+    mask.pixels.foreach_get(m)
+    rgba[3::4] = 1 - (1 - GLASS_ALPHA) * np.clip(m[0::4], 0, 1)
+    image.pixels.foreach_set(rgba)
+    image.update()
+    for node in targets:
+        node.image = image
+    bpy.data.images.remove(mask)
 
 
 def _glows(mat: bpy.types.Material | None) -> bool:

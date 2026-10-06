@@ -320,12 +320,34 @@ glasses01 packs, all CC0: install those three packs like the others below.
 
 ### The look
 
-`shading/` draws everything with a toon shader (light in hard bands, tinted
-shadows, a rim of light) and outlines bodies and clothes; its settings are
-the `shading.Plugin` values in `game/game.go`. To go with it, `tools/paint`
-(`make paint`) gives the textures in `assets/characters` a painted look, in
-place. It marks what it paints and skips it next time, so it's safe to run
-again.
+The look is painterly realistic: realistic people and objects, lit in soft
+bands as if painted. `shading/` draws everything with a toon shader and
+outlines only bodies and clothes; its settings are the `shading.Plugin`
+values in `game/game.go`. Light falls in soft-edged bands with
+violet-tinted shadows, except on the ground, which is lit smoothly
+(`shading.Smooth`). The fill comes from the sky above and the red soil
+below. Light zones change it where the docs say the light isn't the open
+air's: filtered and warm under the dome, and the sodium lamps' fill inside
+the Hull. Colours brighter than white roll off rather than clip, and haze
+thickens with distance. What's less than opaque, clear glass and the edges
+of hair, is drawn as that share of its pixels in a fine pattern, so the
+dome is seen through without sorting what's drawn. To go with it,
+`tools/paint` (`make paint`) gives the textures in `assets/characters` a
+painted look, in place. It marks what it paints and skips it next time, so
+it's safe to run again.
+
+The ground itself is built in `game/terrain.go` from one height function:
+dunes, ridges, canyons whose steep sides show their rock in beds, sand
+banked against the dome's walls, and the berms that sink the Fringers' hold
+into a bowl. Close up, the shader adds the sand's ripples and grain.
+`game/scatter.go` streams brush and stones round the player wherever they
+go, the same things in the same places each time, off the roads and the
+seats' ground.
+
+To see a change to the look, `go run ./tools/tour` runs the game with no
+menus and saves a frame at each place in `tools/tour/views.json` (the
+Pads, the gate, the Hull, the Exchange, Charter Row, the hold, the haven)
+to `out/tour/`, so the same shots can be compared before and after.
 
 ### The character pipeline
 

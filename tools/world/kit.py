@@ -1014,7 +1014,9 @@ def export(obj: bpy.types.Object, path: Path) -> None:
             export_yup=True, export_cameras=False, export_lights=False, export_animations=False,
             export_extras=False, export_texcoords=True, export_normals=True,
             export_vertex_color="NONE", export_materials="EXPORT",
-            export_image_format="JPEG", export_jpeg_quality=88)
+            # JPEG has no alpha: a piece with clear glass in its texture's
+            # (finish.bake) keeps its PNG.
+            export_image_format="AUTO" if obj.get("glazed") else "JPEG", export_jpeg_quality=88)
     finally:
         obj.matrix_world = kept
 

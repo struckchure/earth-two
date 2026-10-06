@@ -8,6 +8,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/earth-two/character"
+	"github.com/struckchure/earth-two/shading"
 	"github.com/struckchure/earth-two/world"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/asset"
@@ -128,6 +129,11 @@ func levelDistance(x, z float32) float32 {
 
 // groundHeight is how high the ground is at (x, z), above groundLevel.
 func groundHeight(x, z float32) float32 {
+	return levelled(x, z) + drift(x, z) + berm(x, z)
+}
+
+// levelled is the land, levelled under the seats and along the roads.
+func levelled(x, z float32) float32 {
 	d := levelDistance(x, z)
 	if d == 0 {
 		return 0
@@ -141,6 +147,47 @@ func groundHeight(x, z float32) float32 {
 		return 0
 	}
 	return full * max(-2, relief(x, z))
+}
+
+// The dome's walls, in the game's frame (tools/world/landfall.py's DOME_*),
+// and how high and how far out the sand banks against them.
+var (
+	domeWalls             = rl.Rectangle{X: -54, Y: -56, Width: 88, Height: 100}
+	driftHigh, driftReach = float32(1.4), float32(10)
+)
+
+// drift is the sand blown up against the outside of the dome's walls:
+// highest at the wall, thinning out over driftReach (the ground has a
+// vertex every few metres, so a narrower bank wouldn't show), more in some
+// places than others, and none across the road through the gate.
+func drift(x, z float32) float32 {
+	d := rectDistance(domeWalls, x, z)
+	if d <= .2 || d >= driftReach {
+		return 0
+	}
+	rd, _ := roadDistance(x, z)
+	k := 1 - smoothstep(.2, driftReach, d)
+	return driftHigh * k * float32(math.Sqrt(float64(k))) * (.4 + 1.2*fbm(x/9+31, z/9-13)) * smoothstep(1, 5, rd)
+}
+
+// The Fringers' hold sits in a bowl in the dunes (docs/settlement.md: "dug
+// in among the dunes"): berms bermHigh high round its fields and camp,
+// bermIn to bermOut metres out from them, but where its roads come in.
+var (
+	holdGround                = rl.Rectangle{X: -1656, Y: 11842, Width: 312, Height: 210}
+	bermHigh, bermIn, bermOut = float32(6), float32(10), float32(75)
+)
+
+// berm is the bank of the hold's bowl at (x, z).
+func berm(x, z float32) float32 {
+	d := rectDistance(holdGround, x, z)
+	if d <= bermIn || d >= bermOut {
+		return 0
+	}
+	rd, _ := roadDistance(x, z)
+	mid := (bermIn + bermOut) / 2
+	k := smoothstep(bermIn, mid-10, d) * smoothstep(bermOut, mid+5, d)
+	return bermHigh * k * (.6 + .8*fbm(x/40+5, z/40+9)) * smoothstep(4, 22, rd)
 }
 
 // relief is the land before it's levelled: dunes, long dunes, ridges,
@@ -189,13 +236,33 @@ func walkHeight(x, z float32) float32 {
 // groundColour is the ground's paint at (x, z): red soil, lighter and
 // darker in drifts; packed dirt on the roads; darker rock in the canyons.
 func groundColour(x, z float32) rl.Color {
-	soil := mixColour(rl.NewColor(132, 66, 46, 255), rl.NewColor(178, 98, 64, 255), fbm(x/34, z/34))
-	soil = mixColour(soil, rl.NewColor(196, 120, 80, 255), .35*smoothstep(.55, .8, fbm(x/9+5, z/90)))
+	// Dusty red, not orange: the low sun warms it enough.
+	soil := mixColour(rl.NewColor(134, 76, 56, 255), rl.NewColor(174, 108, 80, 255), fbm(x/34, z/34))
+	soil = mixColour(soil, rl.NewColor(194, 138, 102, 255), .35*smoothstep(.55, .8, fbm(x/9+5, z/90)))
 	if c := canyon(x, z); c > 0 {
-		soil = mixColour(soil, rl.NewColor(108, 58, 44, 255), c*smoothstep(.45, .7, fbm(x/60-9, z/60+3)))
+		soil = mixColour(soil, rl.NewColor(106, 60, 48, 255), c*smoothstep(.45, .7, fbm(x/60-9, z/60+3)))
 	}
-	if d, painted := roadDistance(x, z); painted && d < 1.5 {
-		return mixColour(soil, rl.NewColor(118, 94, 80, 255), .85*smoothstep(1.5, -1, d))
+	// Where it's steep, in the canyons and the mountains, the rock shows
+	// through in its beds: bands by height, wandering a little.
+	if canyon(x, z) > 0 || max(abs(x), abs(z)) > 13000 {
+		hx := groundHeight(x+2, z) - groundHeight(x-2, z)
+		hz := groundHeight(x, z+2) - groundHeight(x, z-2)
+		if steep := smoothstep(.35, .75, float32(math.Hypot(float64(hx), float64(hz)))/4); steep > 0 {
+			h := groundHeight(x, z) + 4*fbm(x/60, z/60)
+			bed := smoothstep(-.3, .3, float32(math.Sin(float64(h*.75))))
+			rock := mixColour(rl.NewColor(98, 50, 40, 255), rl.NewColor(176, 108, 76, 255), bed)
+			soil = mixColour(soil, rock, steep)
+		}
+	}
+	// The sand banked against the dome, paler.
+	if dr := drift(x, z); dr > 0 {
+		soil = mixColour(soil, rl.NewColor(200, 146, 108, 255), min(1, dr/driftHigh*1.4))
+	}
+	// The roads: the same red packed darker, their verges ragged where
+	// the sand's blown over them.
+	if d, painted := roadDistance(x, z); painted && d < 4 {
+		d += 2.4 * (fbm(x/4+11, z/4-7) - .5)
+		return mixColour(soil, rl.NewColor(104, 70, 60, 255), .85*smoothstep(2.5, -1, d))
 	}
 	return soil
 }
@@ -410,7 +477,7 @@ func spawnTerrain(cmd *illusion.Commands, meshes *asset.Assets[render.Mesh], mat
 		for tx := -h + tileSize/2; tx < h; tx += tileSize {
 			m := rl.GenMeshPlane(tileSize, tileSize, tileCells, tileCells)
 			shape(m, tx, tz, tileSize, tileCells, drawnHeight, sink)
-			mat := mats.Add(render.StandardMaterial{BaseColor: rl.White, Texture: textures.Add(paint(tx, tz, tileSize, tileTexels))})
+			mat := mats.Add(render.StandardMaterial{BaseColor: shading.Smooth, Texture: textures.Add(paint(tx, tz, tileSize, tileTexels))})
 			cmd.Spawn(
 				illusion.C(render.Mesh3d{Mesh: meshes.Add(render.Mesh{Mesh: m})}),
 				illusion.C(render.MeshMaterial3d{Material: mat}),
@@ -429,7 +496,7 @@ func spawnTerrain(cmd *illusion.Commands, meshes *asset.Assets[render.Mesh], mat
 			m := rl.GenMeshPlane(chunkSize, chunkSize, chunkCells, chunkCells)
 			shape(m, c.X, c.Y, chunkSize, chunkCells, drawnHeight, noSink)
 			tex := textures.Add(paint(c.X, c.Y, chunkSize, chunkTexels))
-			mat := mats.Add(render.StandardMaterial{BaseColor: rl.White, Texture: tex})
+			mat := mats.Add(render.StandardMaterial{BaseColor: shading.Smooth, Texture: tex})
 			cmd.Spawn(
 				illusion.C(render.Mesh3d{Mesh: meshes.Add(render.Mesh{Mesh: m})}),
 				illusion.C(render.MeshMaterial3d{Material: mat}),

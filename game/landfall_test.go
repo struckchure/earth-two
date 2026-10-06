@@ -170,3 +170,24 @@ func TestTheStacksStairsCountAsStairs(t *testing.T) {
 		t.Fatalf("walking up the stairs, never on them: at %v, ground %v", l.feet(), l.cc.GroundNormal)
 	}
 }
+
+func TestTheCrewsDeckIsADeckUp(t *testing.T) {
+	// Dropped onto the Crew's deck, over the lower decks' pumps.
+	l := newLandfall(t, rl.Vector3{X: -33, Y: 5, Z: 9})
+	l.tick(90)
+	if f := l.feet(); !l.cc.Grounded || f.Y < 3.4 || f.Y > 3.8 {
+		t.Fatalf("on the Crew's deck, feet at %v (grounded %v), want on it at 3.6", f, l.cc.Grounded)
+	}
+}
+
+func TestTheCrewsStairwellGoesDown(t *testing.T) {
+	// On the Crew's deck south of its stairwell (x -29, opening z 10 to
+	// 16), walking north into it and down to the lower decks.
+	l := newLandfall(t, rl.Vector3{X: -29, Y: 3.7, Z: 18})
+	l.tick(30)
+	l.in.Move = rl.Vector3{Z: -1}
+	l.tick(8 * 60)
+	if f := l.feet(); !l.cc.Grounded || f.Y > .3 || f.Z > 10.5 {
+		t.Fatalf("walking down the stairwell, feet at %v (grounded %v), want on the lower deck north of it", f, l.cc.Grounded)
+	}
+}

@@ -83,6 +83,17 @@ A piece is good when it reads as a real, used object at arm's length:
   and floodlights 12–18 m. The game lights the scene by the eight that
   matter most to the camera, and lamps cast no shadows.
 
+## Glass
+
+- The palette's `Glass` is clear: the finish bakes it into the texture's
+  alpha (`finish.GLASS_ALPHA`, about a third), and the game draws it as
+  that share of its pixels, so what's behind shows through, dusty. It
+  casts no shadow. A piece with any ships its texture as PNG, not JPEG.
+- `Glass fog` (the dome's pane edges) and other colours stay opaque. Use
+  them for glass that shouldn't be seen through.
+- Clear glass needs something behind it worth seeing: model the room, or
+  the frame on the far side.
+
 ## Never stack surfaces
 
 Two faces of different colours closer than about 5 mm flicker in the game

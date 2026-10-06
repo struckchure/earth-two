@@ -100,6 +100,7 @@ def layout() -> Layout:
     _stacks(put)
     _exchange(put)
     _lower_decks(put)
+    _upper_deck(put)
     _charter_row(put)
     _outside_landfall(put)
     _pads(_moved(put, *PADS_AT))
@@ -434,6 +435,59 @@ def _lower_decks(put):
     put("drum", x0 + 9.5, -11.5)
 
 
+def _upper_deck(put):
+    """The Crew's deck, a deck up over the lower decks: its ceiling (the
+    air plant's), railed along the edge that looks down on the market,
+    vents over the fans below, a stairwell down by the inner wall and a
+    hatch with a ladder down by the pumps, and the Crew's mess and
+    workshop on it (docs/settlement.md: catwalks, ladders, shafts)."""
+    xs = range(HULL_W + 1, LOWER_DECKS, 2)
+    ys = range(HULL_S + 1, HULL_N, 2)
+    # The stairwell's 2 x 6 m opening, by the inner wall, entered from the
+    # south and going down northwards into the warehouse's aisle.
+    stair = (LOWER_DECKS - 1, -13)
+    stair_tiles = {(stair[0], stair[1] + dy) for dy in (-2, 0, 2)}
+    hatch = (HULL_W + 3, -5)
+    vents = {(HULL_W + 5, 1), (HULL_W + 5, 9)}  # over the air fans
+    for x in xs:
+        for y in ys:
+            if (x, y) in stair_tiles:
+                continue
+            if (x, y) == hatch:
+                put("deck_hatch", x, y, DECK)
+            elif (x, y) in vents:
+                put("shaft_grate", x, y, DECK)
+            else:
+                put("deck_ceiling", x, y, DECK)
+    put("stairwell", *stair, DECK)
+    # Railings along the open edge over the inner wall, but where the
+    # stairwell's own are.
+    for y in ys:
+        if (stair[0], y) not in stair_tiles:
+            put("railing", LOWER_DECKS - 0.1, y, DECK, 1)
+    # The mess, at the north end.
+    put("folding_table", HULL_W + 6, 9, DECK)
+    put("cooker", HULL_W + 6, 9, DECK + 0.8)
+    for x in (HULL_W + 5, HULL_W + 7):
+        put("stool", x, 8, DECK)
+    put("water_canister", HULL_W + 6.4, 9.1, DECK + 0.8)
+    for x in (HULL_W + 0.75, HULL_W + 1.3, HULL_W + 1.85):
+        put("locker", x, HULL_N - 0.4, DECK)
+    put("crew_panel", HULL_W + 9, HULL_N - .15, DECK)
+    put("status_light", HULL_W + 11, HULL_N - 0.1, DECK + 2.6, 0)
+    # The workshop, along the west wall, and stores by the south wall.
+    for y in (-1, 3):
+        put("storage_rack", HULL_W + 0.6, y, DECK, 1)
+    put("parts_stall", HULL_W + 8, -1, DECK, 1)
+    put("toolbox", HULL_W + 8, -1, DECK + 0.95)
+    put("work_lamp", HULL_W + 9, -7, DECK)
+    put("crate", HULL_W + 2, -14, DECK)
+    put("crate_tall", HULL_W + 3.4, -14, DECK)
+    put("pallet", HULL_W + 6, -18, DECK)
+    put("drum", HULL_W + 6, -18, DECK + 0.15)
+    put("hazard_panel", HULL_W + 4, HULL_S + .15, DECK, 2)
+
+
 def _charter_room(put, cx, cy, door_south):
     """One of Charter Row's company buildings: 8 m square and two storeys,
     white walls with windows and a door onto the street, pillars at its
@@ -633,6 +687,44 @@ def _outside_landfall(put):
     put("hauler", GATE_X - 9, DOME_S - 20)
     put("hauler_tanker", GATE_X + 12, DOME_S - 22)
     put("rover", GATE_X - 16, DOME_S - 18)
+    _dome_edges(put)
+
+
+def _dome_edges(put):
+    """What's left lying outside the dome's walls, in the sand banked up
+    against them (game/terrain.go's drift): scrap and salvage dragged in
+    and never sorted, drums and crates too dirty to bring inside, spent
+    filter caches, and barriers nobody's moved, in clumps, never across the
+    gate's road."""
+    w, e, s_, n = DOME_W - 2.5, DOME_E + 2.5, DOME_S - 2.5, DOME_N + 2.5
+    # The west wall, by the Second Light's stern.
+    put("scrap_pile", w - 1, 8, turns=1)
+    put("drum", w, 13)
+    put("drum", w - .8, 13.9)
+    put("crate", w + .2, 31, turns=1)
+    put("pallet", w, 34)
+    put("crate", w, 34, 0.15)
+    put("filter_cache", w, -20, turns=1)
+    put("salvage_frame", w - 4, -32, turns=1)
+    # The east wall, facing the Pads' road.
+    put("pallet", e, -12)
+    put("crate", e, -12, 0.15, 1)
+    put("drum", e - .3, -9.6)
+    put("drum", e + .6, 2)
+    put("drum", e - .2, 2.9)
+    put("scrap_pile", e + 1, 26, turns=3)
+    put("concrete_barrier", e, 42, turns=1)
+    # The north wall, behind Charter Row: little, they keep it clean.
+    put("filter_cache", 10, n, turns=2)
+    put("terraformer_debris", -32, n + 4, turns=2)
+    # The south wall, either side of the gate's road.
+    put("drum", 15, s_)
+    put("drum", 15.9, s_ - .5)
+    put("crate", 19, s_ + .2)
+    put("concrete_barrier", 26, s_ - .4)
+    put("scrap_pile", -30, s_ - 1)
+    put("crate", -15, s_ + .2, turns=1)
+    put("drum", -21, s_)
 
 
 def _wayside(put):

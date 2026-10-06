@@ -100,11 +100,16 @@ func build(m *menu) *illusion.App {
 			}),
 			physics.Plugin{},
 			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass},
-			world.Plugin{Manifest: "world/world.json", Outline: shading.OutlinePass},
+			// Outlines on people only: the world is painted, not inked.
+			world.Plugin{Manifest: "world/world.json"},
 			vehicle.Plugin{},
 			shading.Plugin{
-				ShadowColor: rl.NewColor(185, 165, 240, 255),
-				Softness:    0.03,
+				// Violet, but light enough that what's in shadow still
+				// reads.
+				ShadowColor: rl.NewColor(205, 190, 235, 255),
+				// Wide enough that the bands blend like brushwork rather
+				// than cut like a cel.
+				Softness: 0.09,
 				// Low, so the ground under the low sun is in its full light.
 				MidBand: 0.2,
 				// No rim light: it follows the camera, so it reads as a
@@ -117,8 +122,15 @@ func build(m *menu) *illusion.App {
 				// Dust in the air: the Fringe hazes into the sky's horizon
 				// with distance, so the seats loom out of it.
 				FogColor:    skyHorizon,
-				FogDistance: 3500,
+				FogDistance: 1600,
 				FogEnd:      bodyDistance - 200,
+				// The red soil throws the sun back up under things.
+				GroundFill:       rl.NewColor(205, 120, 86, 255),
+				GroundBrightness: 0.24,
+				// The low sun is brighter than white on what faces it: roll
+				// it off rather than clipping.
+				Knee:  0.8,
+				Zones: lightZones,
 			},
 		).
 		InsertResource(
@@ -131,12 +143,13 @@ func build(m *menu) *illusion.App {
 			illusion.R(newOrbit()),
 			illusion.R(&vehicle.Ground{}),
 			illusion.R(&uiFonts{}),
+			illusion.R(&scatter{}),
 		).
 		AddSystems(illusion.Startup, illusion.Fn7(setup)).
 		AddSystems(illusion.Update,
 			// After the characters act, so the camera follows a vehicle where
 			// it's drawn this frame.
-			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
+			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
 			illusion.Fn1(respawn),
 		).
 		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn6(drawMaps), illusion.Fn5(drawMenus)).InSet(render.Draw2D))
@@ -194,6 +207,23 @@ func startingOutfit(w *character.Wardrobe) character.Outfit {
 		}
 	}
 	return o
+}
+
+// lightZones are where the light isn't the open air's (docs/look-and-feel.md),
+// in the game's frame, from tools/world/landfall.py's DOME_* and HULL_*
+// (Blender's y is the game's -Z). Under the dome the sun comes through
+// filtered and warm; inside the Hull it's the sodium work lamps' warm fill.
+var lightZones = []shading.Zone{
+	{
+		Min: rl.Vector3{X: -54, Y: -5, Z: -56}, Max: rl.Vector3{X: 34, Y: 30, Z: 44}, Blend: 3,
+		Ambient: rl.NewColor(232, 200, 170, 255), Brightness: 0.32,
+		Sun: rl.NewColor(255, 232, 205, 255),
+	},
+	{
+		Min: rl.Vector3{X: -40, Y: -5, Z: -12}, Max: rl.Vector3{X: 8, Y: 11, Z: 20}, Blend: 1.5,
+		Ambient: rl.NewColor(255, 186, 130, 255), Brightness: 0.8,
+		Sun: rl.NewColor(255, 240, 220, 255),
+	},
 }
 
 // floored is where floors cover the ground, on the XZ plane (X across, Y
