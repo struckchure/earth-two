@@ -31,6 +31,14 @@ browser build to `build/web/` (static files you can host anywhere). The first
 web build compiles raylib and Jolt with emscripten, which takes a minute;
 later builds take seconds.
 
+Native Make targets prepare private dependency copies in `build/deps` using
+`tools/deps`. These fix stb_vorbis's offset check before pointer arithmetic
+and remove illusion's redundant macOS `libc++` link. Warnings remain enabled;
+the shared module cache is unchanged. The copies refresh when dependency
+sources change. To use them with a direct Go command, run `make deps` first,
+then set `GOWORK="$PWD/build/deps/native.work"` for that command. Browser builds
+continue to use illusion's upstream build script.
+
 ### Deploying the browser build
 
 `railpack.json` builds and serves the browser build with

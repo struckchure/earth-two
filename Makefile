@@ -4,29 +4,38 @@
 GAME := earth-two
 TITLE := Earth Two
 PORT ?= 8080
+.DEFAULT_GOAL := run
+
+# Source fixes for native dependencies, prepared without changing the Go cache.
+NATIVE_GO = env GOWORK="$(CURDIR)/build/deps/native.work" go
 
 # illusion's directory: the module cache, or a local checkout if go.work
 # uses one. Its web/build.sh does the browser build. It's downloaded first:
 # a module that isn't in the cache yet has no directory to list.
 ILLUSION = $(shell go mod download github.com/struckchure/illusion 2>/dev/null; go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
-.PHONY: run build web serve test characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
+.PHONY: deps run build web serve test characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
+
+deps:
+	go run ./tools/deps
+
+run build test serve people wardrobe paint bindpose: deps
 
 run:
-	go run ./cmd/desktop
+	$(NATIVE_GO) run ./cmd/desktop
 
 build:
-	go build -o build/$(GAME)$(shell go env GOEXE) ./cmd/desktop
+	$(NATIVE_GO) build -o build/$(GAME)$(shell go env GOEXE) ./cmd/desktop
 
 # cmd/web compiled for the browser is the game (cmd/web/game_js.go).
 web:
 	sh "$(ILLUSION)/web/build.sh" -m . -o build/web -a assets -t "$(TITLE)" ./cmd/web
 
 serve: web
-	go run ./cmd/web -addr :$(PORT) -dir build/web
+	$(NATIVE_GO) run ./cmd/web -addr :$(PORT) -dir build/web
 
 test:
-	go test ./...
+	$(NATIVE_GO) test ./...
 
 # The characters. Who they are and what they can look like is in
 # tools/makehuman/cast.py; make characters builds all of assets/characters
@@ -46,7 +55,7 @@ MIXAMO ?= build/mixamo
 MAKEHUMAN = BLENDER_USER_RESOURCES="$(CURDIR)/build/makehuman/blender" "$(BLENDER)" -b --python-exit-code 1 --python
 # people and wardrobe paint what they build, unless PAINT=0.
 PAINT ?= 1
-PAINT_CHARACTERS = $(if $(filter 0,$(PAINT)),@true,go run ./tools/paint assets/characters)
+PAINT_CHARACTERS = $(if $(filter 0,$(PAINT)),@true,$(NATIVE_GO) run ./tools/paint assets/characters)
 
 characters:
 	$(MAKE) people PAINT=0
@@ -67,7 +76,7 @@ traversal-animations:
 	"$(BLENDER)" --background --factory-startup --python-exit-code 1 --python tools/makehuman/check_traversal.py -- assets/characters
 
 paint:
-	go run ./tools/paint assets/characters
+	$(NATIVE_GO) run ./tools/paint assets/characters
 
 # Prepares a skinned glTF model from elsewhere for raylib (see
 # tools/bindpose) and puts it in assets/characters:
@@ -75,7 +84,7 @@ paint:
 SRC ?=
 bindpose:
 	@test -n "$(SRC)" || { echo 'set SRC to the .glb files to prepare'; exit 1; }
-	go run ./tools/bindpose -o assets/characters $(SRC)
+	$(NATIVE_GO) run ./tools/bindpose -o assets/characters $(SRC)
 
 # The world's pieces: the Hull kit and the props, their colliders and the
 # Hull test block's layout, all into assets/world (see tools/world). It
