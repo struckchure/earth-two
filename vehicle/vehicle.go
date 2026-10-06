@@ -158,7 +158,7 @@ func (Plugin) Build(app *illusion.App) {
 	app.AddSystems(illusion.Update, illusion.Chain(
 		illusion.Fn8(steer),
 		illusion.Fn8(offer),
-		illusion.Fn7(present),
+		illusion.Fn8(present),
 		illusion.Fn3(tyres),
 	).After(character.Input).Before(character.Act))
 	app.AddSystems(illusion.FixedUpdate, illusion.Fn4(settle))

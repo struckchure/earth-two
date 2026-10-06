@@ -337,3 +337,24 @@ func TestParkedTyresAreSolid(t *testing.T) {
 		t.Fatalf("its wheels should find the ground, not tyres: %d touch", st.Touching)
 	}
 }
+
+// Paused while driving, the vehicle holds still where it was last
+// simulated: the fixed clock running on doesn't rock it between its last
+// two steps.
+func TestPausedVehicleHoldsStill(t *testing.T) {
+	g := newRig(t)
+	g.tap(rl.KeyE)
+	g.keys.Press(rl.KeyW)
+	g.tick(90)
+	ecs.GetResource[physics.Settings](g.app.World).Paused = true
+	g.tick(1)
+	held := g.driving.Pose.Translation
+	// Frames that don't divide the physics step, so the share of one
+	// they've run past keeps changing.
+	for i := range 40 {
+		g.app.Tick(time.Second / 97)
+		if at := g.driving.Pose.Translation; at != held {
+			t.Fatalf("paused, the buggy moved from %v to %v, %d frames on", held, at, i+1)
+		}
+	}
+}

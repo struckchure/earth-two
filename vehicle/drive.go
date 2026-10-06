@@ -236,8 +236,16 @@ func present(
 	hier *illusion.Hierarchy,
 	fixed *illusion.Res[illusion.FixedTime],
 	driving *illusion.Res[Driving],
+	settings *illusion.Res[physics.Settings],
 ) {
 	alpha := fixed.Get().Overstep()
+	// Paused, the simulation holds still but the fixed clock runs on, so
+	// the share between its last two steps keeps sweeping round: drawn by
+	// it, the vehicle would rock between them. It's drawn where it was
+	// last simulated.
+	if settings.Get().Paused {
+		alpha = 1
+	}
 	dr := driving.Get()
 	dr.Vehicle = ecs.Entity{}
 	cars.Each(func(e ecs.Entity, d *Drivable, root *transform.Transform, rb *physics.RigidBody, interp *physics.Interpolated, st *physics.VehicleState) {
