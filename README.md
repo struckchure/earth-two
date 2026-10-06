@@ -56,10 +56,19 @@ Esc goes back. In play:
 | Ctrl | Slide while running (at least 3 m/s); Space jumps out |
 | R | Roll in the movement direction, or forward when stationary |
 | W/S or Up/Down on a ladder | Climb/descend; release to hold; Space jumps off |
-| E | Interact; beside a vehicle, get in; in one, get out (once it's slow) |
+| E | Interact; beside a vehicle, get in; in one, get out (once it's slow); at a bench, stool, chair or bunk, sit down (E or move to get up); at a machine, kneel and work on it (move to stop) |
 | F | Punch |
 | Q | Pick up |
+| T / G | Talk / dance, until pressed again or until you do anything else |
 | Esc | Pause: Resume, Wardrobe, Controls, Main menu, Quit |
+
+What E can use is in `game/use.go`: the seats on each kind of bench,
+stool, chair and bunk, and the spot in front of each machine (air
+scrubbers, fans, generators, pumps, valve stations, junction boxes,
+consoles, conduits, turbines), by piece name. The HUD offers the nearest
+within reach, after any vehicle. Sitting goes through the vehicles' seat
+(`character.Sit`); working at a machine, talking and dancing are held poses
+(`Intent.Hold`), played standing still until the character moves.
 
 In play, a minimap in the top left shows the way round you, north up,
 and a compass along the top shows the way the camera looks. M opens the

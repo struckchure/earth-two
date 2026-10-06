@@ -38,7 +38,9 @@ func relative(dir, forward rl.Vector3) rl.Vector3 {
 
 // playerInput turns the keyboard into the player's Intent: WASD or the
 // arrows move (relative to the View), Shift runs, Space jumps, E interacts,
-// F punches and Q picks up. With Controls off, the player stands still.
+// F punches and Q picks up; T talks and G dances until pressed again or
+// until the player does anything else. With Controls off, the player
+// stands still.
 func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *illusion.Res[input.Keys], controls *illusion.Res[Controls], view *illusion.Res[View]) {
 	if !controls.Get().Enabled {
 		q.Each(func(_ ecs.Entity, in *Intent) { *in = Intent{} })
@@ -70,7 +72,25 @@ func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *i
 	case k.JustPressed(rl.KeyQ):
 		act = PickUp
 	}
+	emote := Idle
+	switch {
+	case k.JustPressed(rl.KeyT):
+		emote = Talk
+	case k.JustPressed(rl.KeyG):
+		emote = Dance
+	}
 	q.Each(func(_ ecs.Entity, in *Intent) {
+		// A held pose lasts until it's pressed again, or until anything
+		// else is done.
+		switch {
+		case emote != Idle && in.Hold == emote:
+			in.Hold = Idle
+		case emote != Idle:
+			in.Hold = emote
+		case dir != (rl.Vector3{}) || act != Idle || k.JustPressed(rl.KeySpace) || k.JustPressed(rl.KeyR) ||
+			k.JustPressed(rl.KeyLeftControl) || k.JustPressed(rl.KeyRightControl):
+			in.Hold = Idle
+		}
 		in.Move = dir
 		in.Slide = in.Slide || k.JustPressed(rl.KeyLeftControl) || k.JustPressed(rl.KeyRightControl)
 		in.Roll = in.Roll || k.JustPressed(rl.KeyR)

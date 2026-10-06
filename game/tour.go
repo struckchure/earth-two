@@ -22,7 +22,9 @@ import (
 // mouse turns it in play), or, if Eye is set, there looking at Target. All
 // in the game's frame (Y up), in metres. With Ground, the player stands on
 // the terrain at Player's X and Z, whatever its Y. With Look, the player
-// wears that faction's look (docs/look-and-feel.md), by name. Keep an Eye
+// wears that faction's look (docs/look-and-feel.md), by name. With Use,
+// the player presses E once they've landed (to sit on a bench in reach, say),
+// and with Hold they hold a pose ("Talk", "Dance", "Fix"). Keep an Eye
 // near its Player: the scene is still culled from where the orbit camera
 // round the Player would be, so pieces vanish from an Eye far from it.
 type View struct {
@@ -34,11 +36,23 @@ type View struct {
 	Eye    *[3]float32 `json:"eye,omitempty"`
 	Target *[3]float32 `json:"target,omitempty"`
 	Look   string      `json:"look,omitempty"`
+	Use    bool        `json:"use,omitempty"`
+	Hold   string      `json:"hold,omitempty"`
 }
 
+// tourHolds are the poses a View can Hold, by name.
+var tourHolds = map[string]character.Anim{"Talk": character.Talk, "Dance": character.Dance, "Fix": character.Fix}
+
 // tourSettle is how many frames the tour waits at a view before taking it:
-// long enough for the terrain to stream in and the camera to catch up.
-const tourSettle = 150
+// long enough for the terrain to stream in and the camera to catch up. A
+// view that uses something or holds a pose does so at tourUseAt, once the
+// player's surely landed, and is taken at tourUseSettle, once it's under
+// way (sat down, knelt).
+const (
+	tourSettle    = 150
+	tourUseAt     = 90
+	tourUseSettle = 240
+)
 
 // Tour runs the game with no menus, takes a frame at each view in the JSON
 // file viewsFile, saves it as <out>/<name>.png, and exits: the same places
@@ -59,7 +73,8 @@ func Tour(viewsFile, out string) error {
 	app := build(&menu{})
 	// After the camera's followed the player, and before transforms are
 	// propagated for drawing.
-	app.AddSystems(illusion.PostUpdate, illusion.Fn5(func(
+	app.AddSystems(illusion.PostUpdate, illusion.Fn6(func(
+		intents *illusion.Query1Where[character.Intent, illusion.With[character.Player]],
 		players *illusion.Query2Where[transform.Transform, physics.CharacterController, illusion.With[character.Player]],
 		cameras *illusion.Query2[transform.Transform, render.Camera3d],
 		o *illusion.Res[orbit],
@@ -84,6 +99,16 @@ func Tour(viewsFile, out string) error {
 				}
 			})
 		}
+		if frames == tourUseAt {
+			intents.Each(func(_ ecs.Entity, in *character.Intent) {
+				if v.Use {
+					in.Act = character.Interact
+				}
+				if hold, ok := tourHolds[v.Hold]; ok {
+					in.Hold = hold
+				}
+			})
+		}
 		// Held there until they've landed, then left to stand.
 		if frames < 40 {
 			players.Each(func(_ ecs.Entity, tr *transform.Transform, cc *physics.CharacterController) {
@@ -104,7 +129,11 @@ func Tour(viewsFile, out string) error {
 		if at >= len(views) {
 			os.Exit(0)
 		}
-		if frames++; frames < tourSettle {
+		settle := tourSettle
+		if views[at].Use || views[at].Hold != "" {
+			settle = tourUseSettle
+		}
+		if frames++; frames < settle {
 			return
 		}
 		img := rl.LoadImageFromScreen()

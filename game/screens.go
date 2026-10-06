@@ -31,6 +31,7 @@ var bindings = []struct {
 	{[]string{"E"}, "Interact"},
 	{[]string{"F"}, "Punch"},
 	{[]string{"Q"}, "Pick up"},
+	{[]string{"T / G"}, "Talk / dance"},
 	{[]string{"Esc"}, "Menu"},
 }
 

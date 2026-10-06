@@ -377,6 +377,11 @@ func animate(
 		if stairs := stairsAnim(st.stairs); stairs != Idle && skin.Has(stairs) && (next == Walk || next == Run) {
 			next = stairs
 		}
+		// Standing still, a held pose instead of idling, for as long as
+		// it's asked for.
+		if next == Idle && in.Hold.Held() && skin.Has(in.Hold) {
+			next = in.Hold
+		}
 		if next != st.Current {
 			landing := st.Current.Airborne() && m.Grounded
 			rolled := st.Current == Roll || st.Current == Slide

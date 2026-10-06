@@ -121,6 +121,12 @@ func fitPoseToWorld(
 		}
 		root, _, traversal, ok := roots.Get(parent)
 		if !ok {
+			// Not standing (seated, say): it fits nothing to the world, so it
+			// takes back the pose it last fitted, or the body would stay
+			// frozen in it. A pose someone else set (ride's) is theirs.
+			if rig := c.rigs[e]; rig != nil && len(player.Pose) > 0 && len(rig.pose) > 0 && &player.Pose[0] == &rig.pose[0] {
+				player.Pose = nil
+			}
 			return
 		}
 		model := assets.models.Get().Get(m.Model)

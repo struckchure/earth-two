@@ -68,6 +68,14 @@ var makehuman = map[character.Anim]character.Clip{
 	// In a vehicle's seat (Ride, astride a bike or a trike, falls back to
 	// it): the library's driving loop.
 	character.Drive: {Name: "Driving_Loop"},
+	// On a bench, a stool or a bunk (see use.go), at a machine, and the
+	// emotes: the library's.
+	character.SitDown: {Name: "Sitting_Enter"},
+	character.Sitting: {Name: "Sitting_Idle_Loop"},
+	character.SitUp:   {Name: "Sitting_Exit"},
+	character.Fix:     {Name: "Fixing_Kneeling"},
+	character.Talk:    {Name: "Idle_Talking_Loop"},
+	character.Dance:   {Name: "Dance_Loop"},
 }
 
 // stairStep and stairDownStep are where in the stair clips' cycles a foot
@@ -151,7 +159,12 @@ func build(m *menu) *illusion.App {
 			// it's drawn this frame.
 			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
 			illusion.Fn1(respawn),
+			// Benches, stools, bunks and machines (use.go): E acted on
+			// before characters act, and offered once the vehicles have
+			// made their offer.
+			illusion.Fn8(useThings).After(character.Input).Before(character.Act),
 		).
+		AddSystems(illusion.PostUpdate, illusion.Fn8(offerUse)).
 		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn6(drawMaps), illusion.Fn5(drawMenus)).InSet(render.Draw2D))
 }
 
@@ -189,6 +202,7 @@ func setup(
 		panic(err)
 	}
 	cmd.InsertResource(illusion.R(newWorldMap(kit.Get(), placed)))
+	cmd.InsertResource(illusion.R(newUses(kit.Get(), placed)))
 	roster.Get().Spawn(cmd, 0, arrival, illusion.C(character.Player{}), illusion.C(startingOutfit(wardrobe.Get())))
 }
 

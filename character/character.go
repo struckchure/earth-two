@@ -54,7 +54,20 @@ const (
 	// Drive sits at a wheel, and Ride astride a bike or a trike: see Seated.
 	Drive
 	Ride
+	// SitDown, Sitting and SitUp sit on a bench, a stool or a bunk and get
+	// up again (see Seated: whatever seats the character plays them).
+	SitDown
+	Sitting
+	SitUp
+	// Held poses, played standing still for as long as Intent.Hold asks:
+	// kneeling at a machine to work on it, talking, dancing.
+	Fix
+	Talk
+	Dance
 )
+
+// Held reports whether a is a pose held for as long as Intent.Hold asks.
+func (a Anim) Held() bool { return a == Fix || a == Talk || a == Dance }
 
 // Airborne reports whether a is a jump, or the fall after one.
 func (a Anim) Airborne() bool { return a == Jump || a == RunJump || a == Fall }
@@ -114,6 +127,18 @@ func (a Anim) String() string {
 		return "drive"
 	case Ride:
 		return "ride"
+	case SitDown:
+		return "sit down"
+	case Sitting:
+		return "sitting"
+	case SitUp:
+		return "get up"
+	case Fix:
+		return "fix"
+	case Talk:
+		return "talk"
+	case Dance:
+		return "dance"
 	}
 	return "unknown"
 }
@@ -161,6 +186,10 @@ type Intent struct {
 	// its end before another can start; Move waits until then, or until the
 	// action is far enough along to skip its recovery and move on.
 	Act Anim
+	// Hold asks for a held pose (Fix, Talk, Dance) while it stands still;
+	// Idle means none. It's kept until it's changed: moving, jumping,
+	// sliding, rolling or acting drops it (see playerInput).
+	Hold Anim
 }
 
 // Body marks the child entity that draws a character.
