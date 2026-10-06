@@ -306,3 +306,34 @@ func TestEveryKindDrivesAndStaysUp(t *testing.T) {
 		})
 	}
 }
+
+// A parked vehicle's tyres are solid: a ray along its side, through the
+// wheels, hits one. Driven, they're not in the way of its wheels.
+func TestParkedTyresAreSolid(t *testing.T) {
+	g := newRig(t)
+	p := ecs.NewMap[Tyre](g.app.World)
+	hit := func() (ecs.Entity, bool) {
+		var found ecs.Entity
+		var ok bool
+		g.app.AddSystems(illusion.Update, illusion.Fn1(func(ph *physics.Physics) {
+			// Along the buggy's left side at hub height, front to back.
+			h, hit := ph.CastRay(rl.Vector3{X: 0.85, Y: 0.38, Z: 3}, rl.Vector3{Z: -1}, 6)
+			if hit && p.Has(h.Entity) {
+				found, ok = h.Entity, true
+			}
+		}).RunIf(illusion.Once()))
+		g.tick(1)
+		return found, ok
+	}
+	if _, ok := hit(); !ok {
+		t.Fatal("parked, a ray along the wheels should hit a tyre")
+	}
+	g.tap(rl.KeyE)
+	g.tick(10)
+	if _, ok := hit(); ok {
+		t.Fatal("driven, the tyres shouldn't be there")
+	}
+	if st := get[physics.VehicleState](g, g.car); st.Touching != 4 {
+		t.Fatalf("its wheels should find the ground, not tyres: %d touch", st.Touching)
+	}
+}

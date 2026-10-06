@@ -30,6 +30,7 @@ type Drivable struct {
 	still    float32 // seconds at rest with nobody in it
 	upset    float32 // seconds on its side or roof
 	righting float32 // seconds R has been held to right it
+	tyred    bool    // whether its Tyres are out, parked
 }
 
 // Shell marks a vehicle's chassis model, a child of its root.
@@ -158,6 +159,7 @@ func (Plugin) Build(app *illusion.App) {
 		illusion.Fn8(steer),
 		illusion.Fn8(offer),
 		illusion.Fn7(present),
+		illusion.Fn3(tyres),
 	).After(character.Input).Before(character.Act))
 	app.AddSystems(illusion.FixedUpdate, illusion.Fn4(settle))
 }
