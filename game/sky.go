@@ -61,13 +61,15 @@ var (
 )
 
 const (
-	auKm         = 1.496e8
-	earthKm      = 6371.0
-	sunKm        = 0.1192 * 696000 // TRAPPIST-1's radius
-	planetScale  = 10              // how much bigger the planets are drawn than they look
-	skyRadius    = 900             // the dome, inside the camera's far plane
-	sunDistance  = 820
-	bodyDistance = 760
+	auKm        = 1.496e8
+	earthKm     = 6371.0
+	sunKm       = 0.1192 * 696000 // TRAPPIST-1's radius
+	planetScale = 10              // how much bigger the planets are drawn than they look
+	// The dome, and the sun and planets in it, are beyond the horizon (the
+	// world's edge is 16 km off at most) and inside the camera's far plane.
+	skyRadius    = 19800
+	sunDistance  = 19600
+	bodyDistance = 19300
 )
 
 // Where the sun is, and so the way the scene's light comes from (see

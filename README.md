@@ -61,10 +61,12 @@ Esc goes back. In play:
 | Q | Pick up |
 | Esc | Pause: Resume, Wardrobe, Controls, Main menu, Quit |
 
-In play, a minimap in the bottom right shows the way round you, north up,
+In play, a minimap in the top left shows the way round you, north up,
 and a compass along the top shows the way the camera looks. M opens the
-full map of Landfall and the Fringe, which pauses the game like the menus.
-Both maps are drawn from the layout (`game/maps.go`), so they follow it.
+full map of the Fringe, which pauses the game like the menus. Both maps are
+drawn from the layout (`game/maps.go`), so they follow it, and both name
+every place they can fit: the seats first, then the roads, then the places
+in each seat, as you zoom in.
 
 Landfall stands on terrain (`game/terrain.go`): level inside the dome,
 along the roads and under the Fringe's farms, salvage fields, camp and wind

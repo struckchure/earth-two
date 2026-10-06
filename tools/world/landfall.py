@@ -27,6 +27,7 @@ catwalk sections (floors don't collide, catwalks do). The Fringe's rocks
 are scattered from a fixed seed, so the layout comes out the same each
 build.
 """
+import math
 import random
 
 import hull_block
@@ -37,7 +38,7 @@ Layout = list[tuple[str, float, float, float, int]]
 # The dome line: a rectangle of dome_wall sections 4 m wide, close round
 # the city. The South gate's opening is in its south side, on the road
 # from the Hull.
-DOME_W, DOME_E = -54, 70
+DOME_W, DOME_E = -54, 34
 DOME_S, DOME_N = -44, 56
 # A corner piece takes 2 m of each side at the corners, and the rest are
 # whole numbers of sections, so neighbours meet exactly: overlapping glass
@@ -62,21 +63,28 @@ BLOCK = (-16, -6)
 STACKS_X = range(-25, -4, 2)
 STACKS_Y0, STACKS_ROWS = 0.75, 9
 
-# Charter Row, behind its fence; the Pads; the road outside.
+# Charter Row, behind its fence.
 CHARTER_S, CHARTER_N, CHARTER_W, CHARTER_E = 20, 52, -30, 22
-# The Pads start clear of the Second Light's bow, which reaches 16.7 m east
-# of the Hull.
-PADS_W, PADS_E, PADS_S, PADS_N = 26, 66, -40, 24
+
+# The other seats, out across the Fringe, 8 to 15 km off (docs/settlement.md):
+# where each one's middle is. Each is laid out round its own middle, then
+# moved there. The roads between them are painted on the terrain, and
+# levelled through it (game/terrain.go), as are the seats' grounds.
+PADS_AT = (9800, 1800)     # the spaceport, 10 km east, where everyone arrives
+HOLD_AT = (-1500, -12000)  # the Fringers' hold, 12 km south
+HAVEN_AT = (-6500, 6500)   # the Quiet Book's haven, 9 km north-west, in the canyons
+# The Pads, round their own middle (PADS_AT).
+PADS_W, PADS_E, PADS_S, PADS_N = -24, 20, -34, 30
 # The drifter, on its pad: nose to the south, its ramp down there.
-SHIP = (54, -2)
+SHIP = (7, -2)
 ROAD_Y = -90
 FARMS = (-150, -100)   # x from, to
 WRECK = (70, -132)
 SALVAGE = (100, 150)
 
-# Where the player starts: on the Pads by the drifter's ramp, where new
+# Where the player starts: at the Pads by the drifter's ramp, where new
 # players arrive (docs/settlement.md). Blender's frame, like the rest.
-SPAWN = (54, -30, 0)
+SPAWN = (PADS_AT[0] + SHIP[0], PADS_AT[1] - 29.5, 0)
 
 
 def layout() -> Layout:
@@ -93,9 +101,22 @@ def layout() -> Layout:
     _exchange(put)
     _lower_decks(put)
     _charter_row(put)
-    _pads(put)
-    _fringe(put)
+    _outside_landfall(put)
+    _pads(_moved(put, *PADS_AT))
+    # The hold is the Fringe's old layout, round where its road crossed.
+    _hold(_moved(put, HOLD_AT[0], HOLD_AT[1] - ROAD_Y))
+    _haven(_moved(put, *HAVEN_AT))
+    _wayside(put)
+    _scatter(put, (0, 0), 140, 700, 1)
+    _scatter(put, PADS_AT, 110, 500, 2)
+    _scatter(put, HOLD_AT, 190, 700, 3)
+    _scatter(put, HAVEN_AT, 40, 600, 4, spires=3)
     return out
+
+
+def _moved(put, ox, oy):
+    """put, moved by (ox, oy): for laying out a seat round its own middle."""
+    return lambda piece, x, y, z=0.0, turns=0: put(piece, x + ox, y + oy, z, turns)
 
 
 def _wall_run(put, piece, xs, y, z=0.0, turns=0, skip=(), doors=None):
@@ -569,7 +590,7 @@ def _pads(put):
     put("receivership_shuttle", w + 8, s + 2.5, turns=1)
     put("quiet_book_shack", sx - 11.5, s + 2, turns=1)
     put("forged_seal", sx - 11.5, s + 2, 0.9)
-    put("hauler", 12, s + 10)
+    put("hauler", w - 8, s + 10)
     for x, y in ((w + 1, s + 15), (e - 1, s + 1), (w + 1, n - 1), (e - 1, n - 1)):
         put("floodlight_tower", x, y)
     # The edge between the bow and the Pads: barriers and bollards; and the
@@ -578,6 +599,21 @@ def _pads(put):
         put("concrete_barrier", w - .5, y, turns=1)
         put("bollard", w - .5, y + 3)
     put("sign_the_pads", w - 4, s + 6, turns=1)
+    # Where new arrivals come off the ramp: masks to breathe the outside
+    # air, and the stop for the caravan to Landfall.
+    for x in (sx + 10.5, sx + 11.7):
+        put("mask_station", x, s + 4, turns=3)
+    put("signpost", w - 6, s + 2, turns=1)
+    put("terminal_kiosk", w - 6, s + 4)
+    put("caravan_cart", w - 8, s + 4)
+    # Off the pads, west: what arrivals can hire or buy to get about, a
+    # rover, a buggy, a trike and a bike side by side north of the caravan,
+    # noses north.
+    put("rover", w - 12, s + 22)
+    put("buggy", w - 8.5, s + 22)
+    put("trike", w - 6, s + 22)
+    put("bike", w - 4, s + 22)
+    put("filter_case", w - 4.5, s + 4)
     # The fuel depot, north of the Pads.
     for y in (n + 5, n + 12):
         put("fuel_tank", e - 6, y, turns=1)
@@ -585,40 +621,61 @@ def _pads(put):
     put("floodlight_tower", e - 12, n + 16)
 
 
-def _fringe(put):
-    """Outside the domes: the caravan road from the South gate to the farms
-    and the salvage fields, the wind farm, a Fringer camp by the road, and
-    rocks and dust everywhere else."""
-    # The caravan road, marked by signposts and old barriers.
+def _outside_landfall(put):
+    """Just outside Landfall's South gate: the caravans waiting to go, the
+    gate's sign, and markers down the road to where it forks, east to the
+    Pads and south to the Fringers' hold."""
     for y in range(DOME_S - 8, ROAD_Y, -10):
         put("signpost", GATE_X + 7, y, turns=2)
+    put("sign_south_gate", GATE_X - 7, DOME_S - 4)
+    put("caravan_cart", GATE_X - 6, DOME_S - 8)
+    put("caravan_cart", GATE_X + 9, DOME_S - 10, turns=1)
+    put("hauler", GATE_X - 9, DOME_S - 20)
+    put("hauler_tanker", GATE_X + 12, DOME_S - 22)
+    put("rover", GATE_X - 16, DOME_S - 18)
+
+
+def _wayside(put):
+    """The long roads' waystations, so a 10 km run has places along it: half
+    way to the Pads, a tanker stop where the caravans take on fuel, and on
+    the Fringe track, a trike broken down by a cairn of scrap. Each is just
+    off its road, on the ground the road was levelled through."""
+    # Caravan road, at its bend half way (5600, 500): on its north side.
+    x, y = 5600, 500 + 18
+    put("hauler_tanker", x - 8, y, turns=1)
+    put("fuel_tank", x + 6, y + 2, turns=1)
+    put("caravan_cart", x + 12, y - 1, turns=1)
+    put("signpost", x, y - 5, turns=3)
+    put("floodlight_tower", x - 16, y + 3)
+    put("windsock", x + 16, y + 4)
+    for dx in (-2, 0):
+        put("drum", x + dx, y + 3)
+    put("water_canister", x + 1, y + 2)
+    # Further on, a hauler broken down beside the road, its load lost.
+    put("hauler", 7600, 1250 + 12, turns=1)
+    put("container_open", 7614, 1262 + 2)
+    put("scrap_pile", 7590, 1262)
+    # The Fringe track, at its bend (-1300, -7600): on its east side.
+    x, y = -1300 + 9, -7600
+    put("trike", x, y)
+    put("scrap_pile", x + 4, y + 3, turns=1)
+    put("signpost", x - 3, y + 4)
+    put("water_canister", x + 1.2, y - 1.8)
+    put("rebreather", x + 1.6, y - 1.2)
+
+
+def _hold(put):
+    """The Fringers' hold, in what was the Fringe's layout round the road
+    that crossed it (ROAD_Y): the farms west, the salvage fields east, the
+    camp and the wreck south, the wind farm north, and the caravan stop
+    where the track from Landfall comes in."""
     put("signpost", GATE_X + 6, ROAD_Y + 6, turns=2)
     for x in range(FARMS[1] + 10, SALVAGE[0] - 9, 20):
         if abs(x) > 8:
             put("concrete_barrier", x, ROAD_Y + 6)
-    # The road itself: down from the gate to a junction with the caravan
-    # road, and that out to the farms and the salvage fields, where it
-    # fades; tracks off it to the salvage and the camp. (Each stands on the
-    # ground where it's put: see game/terrain.go.)
-    for y in range(DOME_S - 1, ROAD_Y + 3, -4):
-        put("road_straight", GATE_X, y - 2)
-    put("road_junction", GATE_X, ROAD_Y, turns=2)
-    for x in range(GATE_X + 5, SALVAGE[1] - 2, 4):
-        put("road_straight", x, ROAD_Y, turns=1)
-        put("road_straight", 2 * GATE_X - x, ROAD_Y, turns=1)
-    put("road_end", SALVAGE[1] - 1, ROAD_Y, turns=3)
-    put("road_end", FARMS[0] + 1, ROAD_Y, turns=1)
-    for y in range(ROAD_Y - 5, ROAD_Y - 30, -4):
-        put("track_straight", SALVAGE[0], y)
-    put("track_straight", 40, ROAD_Y - 5)
-    put("sign_south_gate", GATE_X - 7, DOME_S - 4)
-    # Caravans waiting at the gate.
-    put("caravan_cart", GATE_X - 6, DOME_S - 8)
-    put("caravan_cart", GATE_X + 9, DOME_S - 10, turns=1)
-    put("hauler", GATE_X - 3, DOME_S - 20)
     _farms(put)
     _salvage(put)
-    # The Fringer camp, south of the road.
+    # The camp, south of the road.
     cx, cy = 40, ROAD_Y - 14
     for dx, dy, turns in ((-5, 0, 0), (0, -4, 1), (5, 0, 2), (0, 4, 3)):
         put("fringer_tent", cx + dx, cy + dy, turns=turns)
@@ -632,12 +689,54 @@ def _fringe(put):
     put("buggy", cx - 8, cy + 6, turns=1)
     put("rebreather", cx + 1, cy - 1, 0.4)
     put("water_canister", cx - 1, cy + 1)
-    # A ship that came down out here, long before Landfall's time.
+    put("radio", cx - .6, cy - .8)
+    put("flashlight", cx + .5, cy + 1.2)
+    put("bike", cx + 4, cy + 8, turns=1)
     put("ship_wreck", *WRECK, turns=1)
-    # The wind farm, west of the dome.
     for y in range(-70, 61, 26):
         put("wind_turbine", -100, y)
-    _rocks(put)
+
+
+def _haven(put):
+    """The Quiet Book's haven: a pocket in the canyons with no road to it,
+    walled in with containers, a forger's tables under tarps, shacks, a
+    dead terminal, guns and a getaway car."""
+    for x, y, turns, stacked in ((-14, 8, 0, True), (-14, 2.5, 0, False), (-14, -3, 0, True),
+                                 (14, 8, 0, False), (14, 2.5, 0, True), (0, 14, 1, False)):
+        put("shipping_container", x, y, turns=turns)
+        if stacked:
+            put("shipping_container", x, y, 2.6, turns)
+    put("container_open", 14, -3)
+    for x, y, turns in ((-6, 10, 0), (6, 10, 0), (-9, -10, 1)):
+        put("quiet_book_shack", x, y, turns=turns)
+    for i, x in enumerate((-4, 0, 4)):
+        put("trade_table", x, 0)
+        put(("forged_seal", "scrip_bundle", "data_core")[i], x, 0, .8)
+        put("tarp_awning", x, .2)
+    put("ledger_book", -4.5, .2, .8)
+    put("sealed_filing", 4.5, -.2, .8)
+    put("terminal_kiosk", 9, -8)
+    put("weapon_rack", -12, -8, turns=1)
+    put("earth_rifle", -12, -8, 1)
+    put("shotgun", -12, -7.6, 1.2)
+    put("ammo_box", -11, -8.5)
+    for x, y in ((-8, 5), (8, 5), (0, -9)):
+        put("work_lamp", x, y)
+    for x, y in ((-10, 4), (-10.6, 4.6), (10, -5)):
+        put("drum", x, y)
+    put("crate", 8, -11)
+    put("crate_tall", 9.2, -11)
+    put("camp_stove", 2, -6)
+    put("water_canister", 2.8, -6.4)
+    put("covered_car", 2, -18, turns=1)
+    put("buggy", 9, -18, turns=1)
+    put("bike", -4, -16, turns=1)
+    # Off-book goods on the tables, and what the haven guards wear.
+    put("laser_pistol", 0.9, -.3, .8)
+    put("mark_chit", -.8, .3, .8)
+    put("radio", 4.8, .3, .8)
+    put("laser_rifle", -3.2, -.3, .8)
+    put("armour_vest", -10.4, -8)
 
 
 def _farms(put):
@@ -669,7 +768,7 @@ def _salvage(put):
     put("wrecked_terraformer", x0 + 12, ROAD_Y - 22)
     for dx, dy in ((-4, -8), (6, -14), (22, -4), (30, -18), (14, -32), (2, -28)):
         put("terraformer_debris", x0 + 10 + dx, ROAD_Y - 22 + dy)
-    for i, (dx, dy) in enumerate(((0, -8), (8, -6), (36, -10), (40, -30), (26, -38), (4, -40), (18, -12), (32, -26))):
+    for i, (dx, dy) in enumerate(((0, -8), (8, -6), (36, -10), (40, -30), (26, -38), (4, -40), (18, -12), (32, -34))):
         put("scrap_pile", x0 + dx, ROAD_Y + dy, turns=i % 4)
     for dx, dy in ((2, -16), (28, -6), (38, -38), (10, -36)):
         put("salvage_frame", x0 + dx, ROAD_Y + dy)
@@ -680,39 +779,54 @@ def _salvage(put):
     put("terraformer_part", x0 - 4, ROAD_Y - 8)
     put("salvage_scrap", x0 + 1, ROAD_Y - 6)
     put("crowbar", x0 + 1.5, ROAD_Y - 6.4)
+    put("wrench", x0 + .6, ROAD_Y - 5.4)
+    put("filter_case", x0 + 3, ROAD_Y - 6.5)
     put("rover", x0 + 30, ROAD_Y - 8, turns=1)
     put("covered_car", x0 + 16, ROAD_Y - 44, turns=2)
     put("signpost", x0 - 4, ROAD_Y + 4, turns=3)
 
 
-def _rocks(put):
-    """Rocks, spires, dust, dry brush and trees, dead and quiver, across
-    the Fringe, from a fixed seed, kept off the road, the districts and the
-    dome."""
-    rng = random.Random(7)
+# The roads between the seats, as the game paints and levels them on the
+# terrain (game/terrain.go has the same: keep the two the same): each a half
+# width and the points it runs through, in Blender's frame. The wash to the
+# haven is only levelled, not painted: it isn't a road.
+ROADS = (
+    ("caravan road", 5, ((0, DOME_S), (0, ROAD_Y), (2200, -260), (5600, 500), (8300, 1500),
+                         (PADS_AT[0] + PADS_W - 4, PADS_AT[1] + PADS_S + 6))),
+    ("Fringe track", 3, ((0, ROAD_Y), (-400, -3200), (-1300, -7600), (-1300, -11000), HOLD_AT)),
+    ("hold road", 4, ((HOLD_AT[0] + FARMS[0], HOLD_AT[1]), (HOLD_AT[0] + SALVAGE[1], HOLD_AT[1]))),
+    ("haven wash", 4, (HAVEN_AT, (HAVEN_AT[0] + 500, HAVEN_AT[1] - 300), (HAVEN_AT[0] + 1100, HAVEN_AT[1] - 900))),
+)
 
-    def clear(x, y, r):
-        if DOME_W - 8 - r < x < DOME_E + 8 + r and DOME_S - 8 - r < y < DOME_N + 8 + r:
-            return False  # the dome, and a margin round it
-        if abs(y - ROAD_Y) < 8 + r or (abs(x - GATE_X) < 10 + r and y > ROAD_Y):
-            return False  # the road
-        if FARMS[0] - 6 < x < FARMS[1] + 6 and ROAD_Y - 46 < y:
-            return False
-        if SALVAGE[0] - 12 < x < SALVAGE[1] + 6 and ROAD_Y - 50 < y:
-            return False
-        if 25 < x < 55 and ROAD_Y - 28 < y < ROAD_Y:
-            return False  # the camp
-        if abs(x - WRECK[0]) < 12 + r and abs(y - WRECK[1]) < 12 + r:
-            return False
-        if abs(x + 100) < 8 + r and -78 < y < 68:
-            return False  # the wind farm
-        return True
 
-    for piece, count, r in (("rock_small", 60, 1), ("rock_large", 34, 3), ("rock_spire", 12, 3), ("dust_mound", 30, 3),
-                            ("dry_brush", 50, 1), ("dead_tree", 14, 2), ("quiver_tree", 10, 2)):
-        placed = 0
-        while placed < count:
-            x, y = rng.uniform(-165, 165), rng.uniform(-145, 85)
-            if clear(x, y, r):
-                put(piece, round(x, 1), round(y, 1), 0, rng.randrange(4))
-                placed += 1
+def road_distance(x, y):
+    """How far (x, y) is from the nearest road's middle, less its half width:
+    0 or less on it."""
+    best = float("inf")
+    for _, half, points in ROADS:
+        for (ax, ay), (bx, by) in zip(points, points[1:]):
+            dx, dy = bx - ax, by - ay
+            t = max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)))
+            best = min(best, math.hypot(x - ax - t * dx, y - ay - t * dy) - half)
+    return best
+
+
+def _scatter(put, centre, near, far, seed, spires=1):
+    """Rocks, spires, dust, dry brush and trees round a seat, from a fixed
+    seed: between near and far of its middle, off the roads, and (round
+    Landfall) off the dome and the hold's fields."""
+    rng = random.Random(seed)
+    cx, cy = centre
+    for piece, count, r in (("rock_small", 40, 1), ("rock_large", 22, 3), ("rock_spire", 6 * spires, 3),
+                            ("dust_mound", 18, 3), ("dry_brush", 30, 1), ("dead_tree", 8, 2), ("quiver_tree", 6, 2)):
+        placed = tries = 0
+        while placed < count and tries < count * 50:
+            tries += 1
+            a, d = rng.uniform(0, 2 * math.pi), math.sqrt(rng.uniform(near * near, far * far))
+            x, y = cx + d * math.cos(a), cy + d * math.sin(a)
+            if road_distance(x, y) < 10 + r:
+                continue
+            if DOME_W - 10 - r < x < DOME_E + 10 + r and DOME_S - 10 - r < y < DOME_N + 10 + r:
+                continue
+            put(piece, round(x, 1), round(y, 1), 0, rng.randrange(4))
+            placed += 1

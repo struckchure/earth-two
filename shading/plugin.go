@@ -26,6 +26,11 @@ type Plugin struct {
 	// width in pixels.
 	OutlineColor color.RGBA
 	OutlineWidth float32
+	// Haze: what's far off fades to FogColor, a share 1 - 1/e of the way at
+	// FogDistance (0 for no haze), and more with distance, up to FogEnd,
+	// past which (the sky) none.
+	FogColor            color.RGBA
+	FogDistance, FogEnd float32
 }
 
 // Outline is the shader of the outline pass.
@@ -58,11 +63,17 @@ func (pl Plugin) Build(app *illusion.App) {
 			"rimColor":     rgb(pl.RimColor),
 			"rimPower":     {pl.RimPower},
 			"rimThreshold": {pl.RimThreshold},
+			"fogColor":     rgb(pl.FogColor),
+			"fogDistance":  {pl.FogDistance},
+			"fogEnd":       {pl.FogEnd},
 		},
 	}))
 	Outline.Uniforms = map[string][]float32{
 		"outlineColor": rgb(pl.OutlineColor),
 		"reach":        {outlineReach},
+		"fogColor":     rgb(pl.FogColor),
+		"fogDistance":  {pl.FogDistance},
+		"fogEnd":       {pl.FogEnd},
 	}
 	BoxOutline.Uniforms = Outline.Uniforms
 	app.AddSystems(illusion.Update, illusion.Fn0(func() {

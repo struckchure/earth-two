@@ -27,6 +27,9 @@ uniform float midBand;
 uniform vec3 rimColor;
 uniform float rimPower;
 uniform float rimThreshold;
+uniform vec3 fogColor;
+uniform float fogDistance; // how far the haze goes a share 1 - 1/e of the way; 0 for none
+uniform float fogEnd; // past here, none: the sky's out there
 
 out vec4 finalColor;
 
@@ -71,5 +74,10 @@ void main() {
     float rim = smoothstep(rimThreshold, rimThreshold + softness, edge) * lit * rounded;
 
     finalColor = vec4(base.rgb * (light + rimColor * rim), base.a);
+    // Haze with distance: dust in the air.
+    if (fogDistance > 0.0) {
+        float d = length(viewPos - fragPosition);
+        finalColor.rgb = mix(finalColor.rgb, fogColor, (1.0 - exp(-d / fogDistance)) * step(d, fogEnd));
+    }
 }
 `

@@ -116,10 +116,18 @@ def check(folder):
             assert (position-last[name][0]).length < .003, (body, name, "fall loop position seam")
             assert abs(rotation.dot(last[name][1])) > .999, (body, name, "fall loop rotation seam")
         # The stair climb loops: a cycle on, its feet where they started.
-        stairs = bpy.data.actions['Traversal_StairsUp']
-        first, last = sample(rig, stairs, 0), sample(rig, stairs, 1)
+        for clip in ('Traversal_StairsUp', 'Traversal_StairsDown'):
+            stairs = bpy.data.actions[clip]
+            first, last = sample(rig, stairs, 0), sample(rig, stairs, 1)
+            for side in ('l', 'r'):
+                assert (first['foot_'+side][0]-last['foot_'+side][0]).length < .03, (body, side, clip, "stair loop seam")
+        # Coming down, each foot reaches down below where it stood: the
+        # stairs' line, a step and more below the body ahead.
+        down = bpy.data.actions['Traversal_StairsDown']
         for side in ('l', 'r'):
-            assert (first['foot_'+side][0]-last['foot_'+side][0]).length < .03, (body, side, "stair loop seam")
+            lowest = min(sample(rig, down, f/28)['foot_'+side][0].z for f in range(29))
+            highest = max(sample(rig, down, f/28)['foot_'+side][0].z for f in range(29))
+            assert highest-lowest > .3, (body, side, "stair descent feet don't step down", lowest, highest)
         # Crouch -> stand-up share the same contact pose.
         hold, start = sample(rig, crouch, 0), sample(rig, recover, 0)
         for name in hold:

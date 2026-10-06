@@ -39,7 +39,7 @@ type Clip struct {
 	// is planted on a step at the height of the floor the stairs stand on.
 	Step float32
 	// Backward plays the clip backwards: coming down stairs with the clip
-	// for climbing them.
+	// for climbing them, for a body with no clip of its own for that.
 	Backward bool
 }
 

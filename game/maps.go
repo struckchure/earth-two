@@ -16,7 +16,7 @@ import (
 	"github.com/struckchure/illusion/window"
 )
 
-// The maps: a minimap in the corner in play, a compass along the top, and
+// The maps: a minimap in the top left corner in play, a compass along the top, and
 // the full map, which M opens and closes (as a screen: it pauses, like the
 // menus). Both maps are drawn from the layout, each piece as the footprint
 // of its colliders, coloured by the part of the world it's from; north
@@ -26,7 +26,7 @@ import (
 
 // Sizes, in points, and how much of the world the minimap shows.
 const (
-	minimapSize  = 210
+	minimapSize  = 150
 	minimapRange = 110 // metres across
 	compassWidth = 420
 	compassSpan  = 180 // degrees across the compass
@@ -39,13 +39,23 @@ type mark struct {
 	c rl.Color
 }
 
-// label names a place on the full map, at a point in the game's frame
-// (X, Z).
+// label names a place on the maps, at a point in the game's frame (X, Z).
+// The more important a place (the lower its tier), the bigger its name and
+// the sooner it's drawn: where names would overlap, the later one is left
+// out, so zoomed out the seats are named, and zoomed in what's in them.
 type label struct {
 	name string
 	at   rl.Vector2
-	big  bool
+	tier tier
 }
+
+type tier uint8
+
+const (
+	seat  tier = iota // a seat: marked, and named in big letters
+	route             // a road or way: named along it, unmarked
+	spot              // a place in a seat: marked, and named small
+)
 
 // worldMap is a resource: what the maps draw, and where the full map is
 // looking.
@@ -65,6 +75,7 @@ var (
 	mapInside  = rl.NewColor(104, 62, 46, 255)
 	mapDeck    = rl.NewColor(64, 64, 70, 255)
 	mapPads    = rl.NewColor(92, 92, 96, 255)
+	mapRoad    = rl.NewColor(148, 118, 98, 255)
 	mapDefault = rl.NewColor(170, 160, 150, 255)
 	mapColours = map[string]rl.Color{
 		"The Hull":        rl.NewColor(150, 150, 158, 255),
@@ -81,28 +92,105 @@ var (
 
 // The dome line, as tools/world/landfall.py has it (DOME_*), in the game's
 // frame.
-var domeArea = rl.Rectangle{X: -54, Y: -56, Width: 124, Height: 100}
+var domeArea = rl.Rectangle{X: -54, Y: -56, Width: 88, Height: 100}
 
-// places are the full map's names, at landfall.py's districts in the
-// game's frame (Blender's (x, y) is the game's (x, -y)).
+// places are the maps' names, at landfall.py's districts in the game's
+// frame (Blender's (x, y) is the game's (x, -y); each seat's own layout is
+// moved to its middle).
 var places = []label{
-	{"The Hull", rl.Vector2{X: -16, Y: -16}, true}, // just north of it
-	{"The Exchange", rl.Vector2{X: 2, Y: 4}, false},
-	{"Lower decks", rl.Vector2{X: -34, Y: 4}, false},
-	{"The Stacks", rl.Vector2{X: -15, Y: -6}, false},
-	{"Charter Row", rl.Vector2{X: -4, Y: -36}, true},
-	{"The Pads", rl.Vector2{X: 46, Y: 8}, true},
-	{"South gate", rl.Vector2{X: 0, Y: 49}, false},
-	{"Caravan road", rl.Vector2{X: 70, Y: 86}, false},
-	{"Farms", rl.Vector2{X: -125, Y: 113}, true},
-	{"Salvage fields", rl.Vector2{X: 125, Y: 110}, true},
-	{"Fringer camp", rl.Vector2{X: 40, Y: 104}, false},
-	{"Wind farm", rl.Vector2{X: -100, Y: -78}, false}, // past its north end
+	{"Landfall", rl.Vector2{}, seat},
+	{"The Pads", padsAt, seat},
+	{"The Fringers' hold", holdAt, seat},
+	{"The Quiet Book's haven", havenAt, seat},
+	{"Caravan road", rl.Vector2{X: 5600, Y: -540}, route},
+	{"Fringe track", rl.Vector2{X: -1260, Y: 7600}, route},
+	{"The wash", rl.Vector2{X: -5900, Y: -6100}, route},
+	// In Landfall.
+	{"The Hull", rl.Vector2{X: -16, Y: -16}, spot}, // just north of it
+	{"The Exchange", rl.Vector2{X: 2, Y: 4}, spot},
+	{"Lower decks", rl.Vector2{X: -34, Y: 4}, spot},
+	{"The Stacks", rl.Vector2{X: -15, Y: -6}, spot},
+	{"Hull market", rl.Vector2{X: -16, Y: 14}, spot},
+	{"Charter Row", rl.Vector2{X: -4, Y: -36}, spot},
+	{"South gate", rl.Vector2{X: 0, Y: 46}, spot},
+	{"Caravan stop", rl.Vector2{X: -6, Y: 54}, spot},
+	// At the Pads.
+	{"The drifter", rl.Vector2{X: 9807, Y: -1798}, spot},
+	{"Drifter market", rl.Vector2{X: 9807, Y: -1768}, spot},
+	{"Container yard", rl.Vector2{X: 9784, Y: -1805}, spot},
+	{"Arrivals", rl.Vector2{X: 9770, Y: -1770}, spot},
+	{"Fuel depot", rl.Vector2{X: 9810, Y: -1839}, spot},
+	{"Vehicle hire", rl.Vector2{X: 9768, Y: -1788}, spot},
+	// Along the roads.
+	{"Fuel stop", rl.Vector2{X: 5600, Y: -518}, spot},
+	{"Broken-down hauler", rl.Vector2{X: 7600, Y: -1262}, spot},
+	{"Scrap cairn", rl.Vector2{X: -1291, Y: 7600}, spot},
+	// In the hold.
+	{"Farms", rl.Vector2{X: -1625, Y: 12023}, spot},
+	{"Salvage fields", rl.Vector2{X: -1375, Y: 12020}, spot},
+	{"Fringer camp", rl.Vector2{X: -1460, Y: 12014}, spot},
+	{"Wind farm", rl.Vector2{X: -1600, Y: 11915}, spot},
+	{"Terraformer wreck", rl.Vector2{X: -1430, Y: 12042}, spot},
+}
+
+// mapLabels is how big each tier's names are on a map, in points.
+type mapLabels [3]float32
+
+// drawLabels names the places in the frame, the most important first,
+// leaving out any name that would cover one already drawn.
+func (f mapFrame) drawLabels(p painter, sizes mapLabels) {
+	var taken []rl.Rectangle
+	mark := p.px(sizes[spot] * .4)
+	for t := seat; t <= spot; t++ {
+		for _, l := range places {
+			if l.tier != t {
+				continue
+			}
+			pos := f.toScreen(l.at)
+			if pos.X < f.screen.X || pos.Y < f.screen.Y || pos.X > f.screen.X+f.screen.Width || pos.Y > f.screen.Y+f.screen.Height {
+				continue
+			}
+			size := sizes[t]
+			m := p.measure(l.name, size, semibold)
+			// Marked places are named just above their mark; a route over
+			// its middle.
+			r := rl.Rectangle{X: pos.X - m.X/2, Y: pos.Y - m.Y/2, Width: m.X, Height: m.Y}
+			if t != route {
+				r.Y = pos.Y - mark - m.Y
+			}
+			// Kept within the frame.
+			r.X = min(f.screen.X+f.screen.Width-r.Width, max(f.screen.X, r.X))
+			r.Y = min(f.screen.Y+f.screen.Height-r.Height, max(f.screen.Y, r.Y))
+			if slices.ContainsFunc(taken, func(o rl.Rectangle) bool { return rl.CheckCollisionRecs(o, r) }) {
+				continue
+			}
+			taken = append(taken, r)
+			if t != route {
+				m := mark
+				if t == seat {
+					m *= 1.4
+				}
+				rl.DrawRectangleRec(rl.Rectangle{X: pos.X - m/2 - 1, Y: pos.Y - m/2 - 1, Width: m + 2, Height: m + 2}, rl.NewColor(0, 0, 0, 200))
+				c := colText
+				if t == seat {
+					c = colAccent
+				}
+				rl.DrawRectangleRec(rl.Rectangle{X: pos.X - m/2, Y: pos.Y - m/2, Width: m, Height: m}, c)
+			}
+			c := colText
+			if t == route {
+				c = colMuted
+			}
+			shadow := max(1, p.px(1))
+			p.text(l.name, rl.Vector2{X: r.X + shadow, Y: r.Y + shadow}, size, semibold, rl.NewColor(0, 0, 0, 200))
+			p.text(l.name, rl.Vector2{X: r.X, Y: r.Y}, size, semibold, c)
+		}
+	}
 }
 
 // newWorldMap is the map of the pieces in the layout at path.
 func newWorldMap(k *world.Kit, placed []world.Placement) *worldMap {
-	h := float32(groundSize) / 2
+	h := float32(worldSize) / 2
 	m := &worldMap{bounds: rl.Rectangle{X: -h, Y: -h, Width: 2 * h, Height: 2 * h}}
 	m.marks = append(m.marks, mark{domeArea, mapInside})
 	m.marks = append(m.marks, mark{floored[0], mapDeck}, mark{floored[1], mapPads})
@@ -191,6 +279,47 @@ func (f mapFrame) draw(m *worldMap) {
 			rl.DrawRectangleRec(r, mk.c)
 		}
 	}
+}
+
+// drawRoads draws the roads as lines, cut to the frame's edges.
+func (f mapFrame) drawRoads(width float32) {
+	for _, r := range roads {
+		if !r.paint {
+			continue
+		}
+		w := max(width, 2*r.half*f.scale)
+		for i := 1; i < len(r.points); i++ {
+			a, b := f.toScreen(r.points[i-1]), f.toScreen(r.points[i])
+			if a, b, ok := clipSegment(a, b, f.screen); ok {
+				stroke(a, b, w, mapRoad)
+			}
+		}
+	}
+}
+
+// clipSegment is the part of a to b inside r, if any (Liang-Barsky).
+func clipSegment(a, b rl.Vector2, r rl.Rectangle) (rl.Vector2, rl.Vector2, bool) {
+	t0, t1 := float32(0), float32(1)
+	d := rl.Vector2Subtract(b, a)
+	for _, e := range [4][2]float32{{-d.X, a.X - r.X}, {d.X, r.X + r.Width - a.X}, {-d.Y, a.Y - r.Y}, {d.Y, r.Y + r.Height - a.Y}} {
+		p, q := e[0], e[1]
+		if p == 0 {
+			if q < 0 {
+				return a, b, false
+			}
+			continue
+		}
+		t := q / p
+		if p < 0 {
+			t0 = max(t0, t)
+		} else {
+			t1 = min(t1, t)
+		}
+		if t0 > t1 {
+			return a, b, false
+		}
+	}
+	return rl.Vector2Add(a, rl.Vector2Scale(d, t0)), rl.Vector2Add(a, rl.Vector2Scale(d, t1)), true
 }
 
 // clip is r cut to within to: empty if they don't meet.
@@ -282,32 +411,33 @@ func drawMaps(
 	width, height := float32(ww.Width), float32(ww.Height)
 	switch m.Get().screen() {
 	case playing:
-		drawMinimap(p, wmap, at, facing, width, height)
+		drawMinimap(p, wmap, at, facing)
 		drawCompass(p, heading(view.Get().Forward), width)
 	case mapping:
 		drawFullMap(p, wmap, at, facing, width, height)
 	}
 }
 
-// minimapRect is where the minimap goes: the bottom right corner.
-func minimapRect(p painter, width, height float32) rl.Rectangle {
+// minimapRect is where the minimap goes: the top left corner.
+func minimapRect(p painter) rl.Rectangle {
 	s := p.px(minimapSize)
-	return rl.Rectangle{X: width - s - p.px(20), Y: height - s - p.px(20), Width: s, Height: s}
+	return rl.Rectangle{X: p.px(16), Y: p.px(16), Width: s, Height: s}
 }
 
-func drawMinimap(p painter, m *worldMap, at rl.Vector2, facing, width, height float32) {
-	r := minimapRect(p, width, height)
+func drawMinimap(p painter, m *worldMap, at rl.Vector2, facing float32) {
+	r := minimapRect(p)
 	border := max(1, p.px(3))
 	rl.DrawRectangleRec(inset(r, -border, -border), colPanel)
 	f := mapFrame{screen: r, at: at, scale: r.Width / minimapRange}
 	f.draw(m)
-	you(f.toScreen(at), facing, p.px(9))
-	// North, and the key for the full map.
-	p.textIn("N", rl.Rectangle{X: r.X, Y: r.Y + p.px(4), Width: r.Width, Height: p.px(18)}, 14, semibold, colText, centre)
-	x := r.X + p.px(6)
-	y := r.Y + r.Height - p.px(14*1.7) - p.px(6)
-	x += p.keycap("M", rl.Vector2{X: x, Y: y}, 12) + p.px(6)
-	p.text("Map", rl.Vector2{X: x, Y: y + p.px(3)}, 13, semibold, colText)
+	f.drawRoads(max(2, p.px(2)))
+	f.drawLabels(p, mapLabels{12, 10, 10})
+	you(f.toScreen(at), facing, p.px(5))
+	// North, and the key for the full map, under it.
+	p.textIn("N", rl.Rectangle{X: r.X + r.Width - p.px(16), Y: r.Y + p.px(2), Width: p.px(14), Height: p.px(14)}, 12, semibold, colAccent, centre)
+	x, y := r.X, r.Y+r.Height+border+p.px(6)
+	x += p.keycap("M", rl.Vector2{X: x, Y: y}, 11) + p.px(6)
+	p.text("Map", rl.Vector2{X: x, Y: y + p.px(2)}, 12, semibold, colText)
 }
 
 // drawCompass draws the strip along the top: the bearings round the way
@@ -355,23 +485,12 @@ func drawFullMap(p painter, m *worldMap, at rl.Vector2, facing, width, height fl
 	rl.DrawRectangleRec(inset(r, -p.px(8), -p.px(8)), colPanel)
 	f := mapFrame{screen: r, at: m.at, scale: m.zoom * p.s}
 	f.draw(m)
-	for _, l := range places {
-		pos := f.toScreen(l.at)
-		size, c := float32(14), colText
-		if l.big {
-			size = 20
-		}
-		tr := rl.Rectangle{X: pos.X - p.px(90), Y: pos.Y - p.px(12), Width: p.px(180), Height: p.px(24)}
-		if clip(tr, r) != tr {
-			continue
-		}
-		p.textIn(l.name, rl.Rectangle{X: tr.X + 1, Y: tr.Y + 1, Width: tr.Width, Height: tr.Height}, size, semibold, rl.NewColor(0, 0, 0, 170), centre)
-		p.textIn(l.name, tr, size, semibold, c, centre)
-	}
+	f.drawRoads(max(2, p.px(2)))
+	f.drawLabels(p, mapLabels{20, 14, 14})
 	if pos := f.toScreen(at); clip(rl.Rectangle{X: pos.X, Y: pos.Y, Width: 1, Height: 1}, r).Width > 0 {
-		you(pos, facing, p.px(11))
+		you(pos, facing, p.px(7))
 	}
-	p.text("Landfall", rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(12)}, 30, black, colText)
+	p.text("The Fringe", rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(12)}, 30, black, colText)
 	x, y := r.X+p.px(16), r.Y+r.Height-p.px(14*1.7)-p.px(14)
 	for _, k := range []struct{ key, does string }{{"M", "Close"}, {"Esc", "Close"}, {"Drag", "Move"}, {"Scroll", "Zoom"}} {
 		x += p.keycap(k.key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
@@ -382,9 +501,9 @@ func drawFullMap(p painter, m *worldMap, at rl.Vector2, facing, width, height fl
 
 // Full map zoom, in pixels per metre at the UI's scale of 1.
 const (
-	mapZoomMin = 1.2
+	mapZoomMin = .03 // the whole region
 	mapZoomMax = 16
-	mapZoomOut = 3.2 // where it opens
+	mapZoomOut = .1 // where it opens: 10 km or so across
 )
 
 // mapInput moves the full map: drag to move it, scroll to zoom about the

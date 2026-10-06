@@ -12,6 +12,8 @@ links to the doc that covers it in full.
 | Where it is | TRAPPIST-1e, 40.7 light-years away; its six neighbour planets show in the sky | [Premise](premise.md) |
 | Dates | Years are written "<count> AL", e.g. 88 AL | [History](history.md) |
 | Outside air | Breathable with a mask, so the whole Fringe is free roam on foot | [The settlement](settlement.md) |
+| Distances | The seats are 8 to 15 km apart across the Fringe: Landfall (the Hull and Charter Row), the Pads, the Fringers' hold and the Quiet Book's haven | [The settlement](settlement.md) |
+| Travel | On foot, by earned vehicles, or by paid caravan between the seats | [The settlement](settlement.md) |
 | Vehicles | Players start on foot; haulers and bikes are bought or given as gifts | [Shared world](shared-world.md) |
 | Character | Picked once at the start along with the name; changing either means a new game | [Shared world](shared-world.md) |
 | Combat | Can be lethal, collection work included | [Shared world](shared-world.md) |

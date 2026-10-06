@@ -12,11 +12,19 @@ import (
 	"github.com/struckchure/illusion/window"
 )
 
-// drawDistance is how far away the world's pieces are drawn, from the
-// camera to the nearest edge of each: Landfall's are a few thousand pieces,
-// and the engine draws every one it isn't told to hide, twice with its
-// outline, behind the camera or not.
-const drawDistance = 160
+// drawDistance is how far away the world's small pieces are drawn, from the
+// camera to the nearest edge of each: there are thousands, and the engine
+// draws every one it isn't told to hide, twice with its outline, behind the
+// camera or not. Bigger pieces are drawn further, by sightRange: the dome,
+// the Second Light and the drifter are landmarks across the Fringe.
+const (
+	drawDistance = 160
+	sightRange   = 25 // more metres away per square metre of radius
+	sightMax     = 12000
+)
+
+// sight is how far away a piece of radius r is drawn.
+func sight(r float32) float32 { return min(sightMax, drawDistance+sightRange*r*r) }
 
 // sphere is a model's bounds as a sphere about its middle, in its own
 // frame.
@@ -63,6 +71,7 @@ func cull(
 	win *illusion.Res[window.Window],
 	hier *illusion.Hierarchy,
 	state *illusion.Local[culling],
+	tiles *illusion.Query2[transform.Transform, terrainTile],
 ) {
 	_, eye, cam, ok := cameras.Single()
 	if !ok {
@@ -79,7 +88,6 @@ func cull(
 		up:     rl.Vector3RotateByQuaternion(transform.Up, eye.Rotation),
 		tanV:   float32(math.Tan(float64(fovy) * math.Pi / 360)),
 		aspect: float32(ww.Width) / max(float32(ww.Height), 1),
-		far:    drawDistance,
 	}
 	v.right = rl.Vector3CrossProduct(v.ahead, v.up)
 	s := state.Get()
@@ -106,13 +114,22 @@ func cull(
 		}
 		center := rl.Vector3Transform(b.center, g.Matrix)
 		switch {
-		case v.sees(center, b.radius):
+		case v.sees(center, b.radius, sight(b.radius)):
 			s.show(cmd, e, seen)
 		case rl.Vector3Distance(center, v.at)-b.radius < shadowReach:
 			s.show(cmd, e, shadowOnly)
 		default:
 			s.show(cmd, e, unseen)
 		}
+	})
+	// The terrain's tiles, out to the horizon, but those off to the sides
+	// and behind.
+	tiles.Each(func(e ecs.Entity, tr *transform.Transform, _ *terrainTile) {
+		d := unseen
+		if v.sees(rl.Vector3Add(tr.Translation, rl.Vector3{Y: 40}), tileSize*.75, clipFar) {
+			d = seen
+		}
+		s.show(cmd, e, d)
 	})
 }
 
@@ -139,16 +156,17 @@ func (s *culling) show(cmd *illusion.Commands, e ecs.Entity, d drawn) {
 
 // view is what a camera sees: from at, looking ahead, with up and right
 // across its view; tanV is the tangent of half its vertical field of view,
-// aspect its width over its height, and far how far it sees.
+// and aspect its width over its height.
 type view struct {
 	at, ahead, up, right rl.Vector3
-	tanV, aspect, far    float32
+	tanV, aspect         float32
 }
 
-// sees reports whether any of a sphere about center of radius is in view.
-func (v view) sees(center rl.Vector3, radius float32) bool {
+// sees reports whether any of a sphere about center of radius is in view,
+// no further than far.
+func (v view) sees(center rl.Vector3, radius, far float32) bool {
 	d := rl.Vector3Subtract(center, v.at)
-	if rl.Vector3Length(d)-radius > v.far {
+	if rl.Vector3Length(d)-radius > far {
 		return false
 	}
 	z := rl.Vector3DotProduct(d, v.ahead)

@@ -20,10 +20,12 @@ uniform vec2 pixel; // the outline's width, in clip space
 uniform float reach; // how far away it starts thinning with distance
 
 out vec2 fragTexCoord;
+out float fragDepth;
 
 void main() {
     fragTexCoord = vertexTexCoord;
     vec4 clip = mvp * vec4(vertexPosition, 1.0);
+    fragDepth = clip.w;
     // Outwards on screen, so the line is as wide wherever it is.
     vec2 along = (mvp * vec4(`
 
@@ -37,10 +39,14 @@ const outlineVertexEnd = `, 0.0)).xy / pixel;
 
 const outlineFragment = `
 in vec2 fragTexCoord;
+in float fragDepth;
 
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 uniform vec3 outlineColor;
+uniform vec3 fogColor;
+uniform float fogDistance;
+uniform float fogEnd;
 
 out vec4 finalColor;
 
@@ -50,5 +56,9 @@ void main() {
         discard;
     }
     finalColor = vec4(base.rgb * outlineColor, 1.0);
+    // Hazed like what it's round (see the toon shader).
+    if (fogDistance > 0.0) {
+        finalColor.rgb = mix(finalColor.rgb, fogColor, (1.0 - exp(-fragDepth / fogDistance)) * step(fragDepth, fogEnd));
+    }
 }
 `

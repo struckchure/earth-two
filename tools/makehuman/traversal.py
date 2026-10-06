@@ -93,11 +93,26 @@ SLIDE_FRAMES = (5, 37)
 # STAIR_TREAD on (the kit's stairs, tools/world/hull_kit.py), about where
 # they are on average. The climb itself is the controller's, up the stairs'
 # ramp: the hips keep only how they sway about it. The game sets the clip
-# by how high the feet are (character/animate.go), and plays it backwards
-# coming down.
+# by how high the feet are (character/animate.go).
 STAIRS = "Ascending Stairs"
 STAIRS_FRAMES = (1, 41)
 STAIR_RISE, STAIR_TREAD = .3, .5
+
+# Coming down is Mixamo's "Descending Stairs" (downloaded the same way):
+# DESCENT_FRAMES is one cycle of it, a step with each foot. Its body goes
+# down, but its feet don't: they stay on one level while the hips sink into
+# a squat, so its feet are no use. The body, the hips' sway and the feet's
+# turns are its; where the feet go is ours: each planted on the stairs' line
+# (through the steps' edges) and swung forward over the edge below and down,
+# two steps a cycle. DESCENT_FEET is when each foot lands and lifts in the
+# capture, as shares of the cycle (where its foot stops going forward, and
+# starts again). Where a foot can't reach that far down with the hips at
+# standing height, the hips drop to it, as a knee bends coming down.
+DESCENT = "Descending Stairs"
+DESCENT_FRAMES = (1, 29)
+DESCENT_FEET = {"l": (5/28, 24.5/28), "r": (19/28, 11.5/28)}
+DESCENT_CLEAR = .06  # how far a swinging foot rises over the edge it passes
+DESCENT_REACH = .97  # the share of a leg's length it stretches to, at most
 
 # The ladder climb is authored (hands on the rails, feet on the rungs), but
 # its hips and spine move as in Mixamo's "Climbing Ladder" (downloaded the
@@ -148,7 +163,7 @@ MIRRORED = {"Punching": "Punching Mirrored"}
 
 DURATIONS = {"Slide": .8, "Ladder": 1., "Vault": 1., "Mantle": .8, "WallKick": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30,
              "WallKickRight": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30, "WallKickFall": 1.2, "WallKickFallRight": 1.2, "WallLand": .45, "Crouch": 1., "StandUp": .28, "LadderExit": 3., "Fall": .9,
-             "StairsUp": (STAIRS_FRAMES[1]-STAIRS_FRAMES[0])/30}
+             "StairsUp": (STAIRS_FRAMES[1]-STAIRS_FRAMES[0])/30, "StairsDown": (DESCENT_FRAMES[1]-DESCENT_FRAMES[0])/30}
 
 
 def smooth(a, b, t):
@@ -652,6 +667,69 @@ def stairs_cycle(rig, folder, base, rest):
     return poses, sway, targets
 
 
+def descent_foot(side, t):
+    """Where foot side is at t of the descent's cycle, from where it is
+    standing: (back, up), back along +Y and up along Z. Planted, it goes
+    back and up as the body goes on down past it, along the stairs' line;
+    swinging, it goes forward over the edge below, then down onto the next."""
+    land, lift = DESCENT_FEET[side]
+    stance = (lift-land) % 1
+    u = (t-land) % 1
+    if u <= stance:
+        k = u-stance/2
+        return 2*STAIR_TREAD*k, 2*STAIR_RISE*k
+    w = (u-stance)/(1-stance)
+    back = STAIR_TREAD*stance*(1-2*smooth(0, 1, w))
+    up = STAIR_RISE*stance*(1-2*smooth(0, 1, (w-.3)/.7))+DESCENT_CLEAR*math.sin(math.pi*w)
+    return back, up
+
+
+def descent_cycle(rig, folder, base, rest):
+    """The stair descent's frames: the capture's pose at each, how far the
+    hips sway from their steady descent (and drop, so the feet reach), and
+    where each foot goes and how it's turned."""
+    frames = round(DURATIONS["StairsDown"]*30)
+    poses, hips, metre = capture(rig, folder, DESCENT, [DESCENT_FRAMES[0]+(DESCENT_FRAMES[1]-DESCENT_FRAMES[0])*f/frames for f in range(frames+1)], Quaternion())
+    drop = hips[-1]-hips[0]
+    sway = [hips[f]-hips[0]-drop*(f/frames) for f in range(frames+1)]
+    targets, need = [], []
+    for f in range(frames+1):
+        for b in rig.pose.bones:
+            q, loc, scale = base[b.name]
+            b.rotation_mode = "QUATERNION"; b.rotation_quaternion = q.copy(); b.location = loc.copy(); b.scale = scale.copy()
+        bpy.context.view_layer.update()
+        for n, q in poses[f].items():
+            orient(rig.pose.bones[n], q)
+        pelvis = rig.pose.bones["pelvis"]
+        pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (rest["pelvis"][0]+sway[f]-pelvis.head)
+        bpy.context.view_layer.update()
+        targets.append({})
+        lower = 0.
+        for s in "lr":
+            foot = rig.pose.bones["foot_"+s]
+            back, up = descent_foot(s, f/frames)
+            stand = rest["foot_"+s][0]
+            target = Vector((foot.head.x, stand.y+back, stand.z+up))
+            targets[f][s] = (target, foot.matrix.to_quaternion())
+            # How far the hips must drop for the leg to reach it.
+            thigh, calf = rig.pose.bones["thigh_"+s], rig.pose.bones["calf_"+s]
+            reach = DESCENT_REACH*(thigh.length+calf.length)
+            d = target-thigh.head
+            across = Vector((d.x, d.y)).length
+            lower = max(lower, -d.z-math.sqrt(max(0., reach*reach-across*across)))
+        need.append(lower)
+    # Smoothed round the loop, so the hips don't jerk as one foot or the
+    # other sets how low they go.
+    n = frames
+    drops = [sum(need[(f+k) % n] for k in range(-3, 4))/7 for f in range(n)]
+    drops.append(drops[0])
+    for b in rig.pose.bones:
+        q, loc, scale = base[b.name]
+        b.rotation_quaternion = q.copy(); b.location = loc.copy(); b.scale = scale.copy()
+    bpy.context.view_layer.update()
+    return poses, sway, drops, targets
+
+
 def author(rig, suffix="", mixamo=MIXAMO, fps=24):
     scene = bpy.context.scene
     scene.render.fps = 30; scene.render.fps_base = 1
@@ -679,6 +757,7 @@ def author(rig, suffix="", mixamo=MIXAMO, fps=24):
     steps = round(DURATIONS["Slide"]*30)
     slide = capture(rig, mixamo, SLIDE, [SLIDE_FRAMES[0]+(SLIDE_FRAMES[1]-SLIDE_FRAMES[0])*f/steps for f in range(steps+1)], Quaternion())
     stairs = stairs_cycle(rig, mixamo, base, rest)
+    descent = descent_cycle(rig, mixamo, base, rest)
     moves = ladder_moves(rig, mixamo)
     frames = round(DURATIONS["LadderExit"]*30)
     # Its last sample is where the hop begins.
@@ -725,6 +804,16 @@ def author(rig, suffix="", mixamo=MIXAMO, fps=24):
                     orient(rig.pose.bones[n], q)
                 pelvis = rig.pose.bones["pelvis"]
                 pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (rest["pelvis"][0]+sway[f]-pelvis.head)
+                bpy.context.view_layer.update()
+                for s, sign in (("l", 1), ("r", -1)):
+                    target, turn = targets[f][s]
+                    limb(rig, "thigh_"+s, "calf_"+s, "foot_"+s, target, (sign*.35, -1, .45), turn)
+            if name == "StairsDown":
+                poses, sway, drops, targets = descent
+                for n, q in poses[f].items():
+                    orient(rig.pose.bones[n], q)
+                pelvis = rig.pose.bones["pelvis"]
+                pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (rest["pelvis"][0]+sway[f]-Vector((0, 0, drops[f]))-pelvis.head)
                 bpy.context.view_layer.update()
                 for s, sign in (("l", 1), ("r", -1)):
                     target, turn = targets[f][s]

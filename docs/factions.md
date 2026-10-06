@@ -6,14 +6,16 @@ planet and a selfish reason for wanting it.
 
 | Faction | Holds | Wants | Base | What they hire you for |
 | --- | --- | --- | --- | --- |
-| **The Charter Families** | Land titles, the old company stores, the law of the charter | To be recognised as the "resident colony" and keep their estates | Charter Row | Legal work: debt collection, audits, quiet favours at the Exchange |
-| **The Crew** | The air plant, power and water; descended from the *Second Light*'s engineers | Pay for keeping everyone alive, and a vote that matches that | The Hull's lower decks | Maintenance runs, parts sourcing, protection |
-| **The Registrars** | The Exchange and its records | Neutrality, and for the Exchange to outlive whoever wins | The Exchange floor | Enforcement, arbitration evidence, auditing contractors |
-| **The Quiet Book** | Off-book credit, smuggling routes, fences | Things to stay ungoverned | Everywhere and nowhere; fronts in the Pads | Smuggling, theft, sabotage, forged filings |
-| **The Fringers** | Food: farms, seed stock, salvage claims outside the domes | Land of their own and the end of dome rents | The Fringe | Escort, salvage, getting goods past the dome gates |
+| **The Charter Families** | Land titles, the old company stores, the law of the charter | To be recognised as the "resident colony" and keep their estates | Charter Row, in Landfall | Legal work: debt collection, audits, quiet favours at the Exchange |
+| **The Crew** | The air plant, power and water; descended from the *Second Light*'s engineers | Pay for keeping everyone alive, and a vote that matches that | The Hull's lower decks, in Landfall | Maintenance runs, parts sourcing, protection |
+| **The Registrars** | The Exchange and its records | Neutrality, and for the Exchange to outlive whoever wins | The Exchange floor, in Landfall | Enforcement, arbitration evidence, auditing contractors |
+| **The Quiet Book** | Off-book credit, smuggling routes, fences | Things to stay ungoverned | A haven in the canyons, 9 km out with no road; fronts in the Pads | Smuggling, theft, sabotage, forged filings |
+| **The Fringers** | Food: farms, seed stock, salvage claims outside the domes | Land of their own and the end of dome rents | Their hold, 12 km south of Landfall | Escort, salvage, getting goods past the dome gates |
 | **Corvane Receivership** *(arriving)* | The charter itself, and Earth's backing | To collect: the planet as an asset for sale | A ship in orbit in Act 3 | Everything. They pay the best and trust nobody. |
 
-For where each faction lives, see [The settlement](settlement.md). For how each
+The seats are 8 to 15 km apart across open desert, so a faction's ground is a
+journey from the others'. For where each faction lives, see [The
+settlement](settlement.md). For how each
 one looks, see [Look and feel](look-and-feel.md).
 
 ## The Late Arrivals

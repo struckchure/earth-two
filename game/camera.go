@@ -42,6 +42,13 @@ const (
 	cameraClearance = 1.2
 )
 
+// clipNear and clipFar are how near and far the camera sees. raylib's
+// near default, 0.01 m, leaves the depth buffer too coarse for the pieces'
+// painted-on details at a distance; this is twenty times finer. The spring
+// arm keeps the camera further than this from anything. Far reaches past
+// the horizon, kilometres off, and the sky beyond it.
+const clipNear, clipFar = 0.2, 20000
+
 // orbitLook is the point above the player's capsule centre the camera looks
 // at: about their shoulders.
 var orbitLook = rl.Vector3{Y: .7}

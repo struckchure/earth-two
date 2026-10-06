@@ -45,7 +45,7 @@ func newLandfall(t *testing.T, feet rl.Vector3) *landfall {
 	l.app.AddPlugins(character.Plugin{}, world.Plugin{Manifest: "world/world.json"})
 	l.app.AddSystems(illusion.Startup, illusion.Fn2(func(cmd *illusion.Commands, kit *illusion.Res[world.Kit]) {
 		// The ground and the pieces on it, as setup has them.
-		cmd.Spawn(illusion.C(transform.Identity()), illusion.C(physics.Static), illusion.C(terrainCollider()))
+		terrainAround(cmd, feet.X, feet.Z, 1)
 		placed, err := world.Layout("../assets", "world/landfall.json")
 		if err != nil {
 			t.Fatal(err)
@@ -88,8 +88,10 @@ func (l *landfall) feet() rl.Vector3 {
 func TestArrivalStandsOnTheGround(t *testing.T) {
 	l := newLandfall(t, rl.Vector3Add(arrival, rl.Vector3{Y: .5}))
 	l.tick(60)
-	if f := l.feet(); !l.cc.Grounded || f.Y < -.1 || f.Y > .1 {
-		t.Fatalf("arriving, feet at %v (grounded %v), want on the ground", f, l.cc.Grounded)
+	// On the Pads' tiles, whose tops are at 0: not down through them to
+	// the ground under.
+	if f := l.feet(); !l.cc.Grounded || f.Y < -.01 || f.Y > .05 {
+		t.Fatalf("arriving, feet at %v (grounded %v), want on the floor, at 0", f, l.cc.Grounded)
 	}
 	// And free to walk off towards the Hull.
 	start := l.tr.Translation

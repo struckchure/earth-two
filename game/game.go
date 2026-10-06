@@ -23,9 +23,6 @@ import (
 )
 
 const (
-	// groundSize is the side of the square of ground, centred on the
-	// Hull: Landfall and the Fringe round it.
-	groundSize = 360
 	// cameraLag is how quickly the camera catches up with the player; higher
 	// is tighter.
 	cameraLag = 5
@@ -63,16 +60,21 @@ var makehuman = map[character.Anim]character.Clip{
 	character.LadderExit:    {Name: "Traversal_LadderExit"},
 	character.LadderEnter:   {Name: "Traversal_Ladder"},
 	character.Fall:          {Name: "Traversal_Fall"},
-	// Mixamo's Ascending Stairs, its feet stretched to the kit's steps; going
-	// down plays it backwards.
+	// Mixamo's Ascending and Descending Stairs, their feet put on the kit's
+	// steps.
 	character.StairsUp:   {Name: "Traversal_StairsUp", Step: stairStep},
-	character.StairsDown: {Name: "Traversal_StairsUp", Step: stairStep, Backward: true},
+	character.StairsDown: {Name: "Traversal_StairsDown", Step: stairDownStep},
 }
 
-// stairStep is where in the stair clip's cycle a foot lands on a step's
-// edge: the left foot lands 0.175 of the way in, 0.22 m above the ground
-// under the body (tools/makehuman/traversal.py).
-const stairStep = .54
+// stairStep and stairDownStep are where in the stair clips' cycles a foot
+// lands on a step's edge (tools/makehuman/traversal.py): going up, the left
+// foot lands 0.175 of the way in, 0.22 m above the ground under the body;
+// coming down, 5/28 of the way in, 0.209 m below it (the stairs' 0.3 m rise
+// over its 0.696 of the cycle planted, from ahead to behind the body).
+const (
+	stairStep     = .54
+	stairDownStep = .527
+)
 
 // people are the character models in assets/characters (see CREDITS.txt).
 // They're made in metres, so they keep their own heights.
@@ -107,6 +109,11 @@ func build(m *menu) *illusion.App {
 				RimThreshold: 0.35,
 				OutlineColor: rl.NewColor(60, 40, 55, 255),
 				OutlineWidth: 1.5,
+				// Dust in the air: the Fringe hazes into the sky's horizon
+				// with distance, so the seats loom out of it.
+				FogColor:    skyHorizon,
+				FogDistance: 3500,
+				FogEnd:      bodyDistance - 200,
 			},
 		).
 		InsertResource(
@@ -121,7 +128,7 @@ func build(m *menu) *illusion.App {
 		).
 		AddSystems(illusion.Startup, illusion.Fn7(setup)).
 		AddSystems(illusion.Update,
-			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn7(cull), illusion.Fn3(moveSky)),
+			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn8(cull), illusion.Fn3(moveSky)),
 			illusion.Fn1(respawn),
 		).
 		AddSystems(illusion.Render, illusion.Chain(illusion.Fn4(hud), illusion.Fn6(drawMaps), illusion.Fn5(drawMenus)).InSet(render.Draw2D))
@@ -149,17 +156,10 @@ func setup(
 		illusion.C(transform.Identity().LookingAt(rl.Vector3Negate(sunFrom), transform.Up)),
 	)
 	spawnSky(cmd, m, mat, textures.Get())
-	// The red ground under Landfall and out across the Fringe (see
-	// terrain.go). Floors have no colliders of their own: this is what
-	// everyone walks on. It takes shadows but casts none: its gentle slopes
-	// would only shade themselves, speckled.
-	cmd.Spawn(
-		illusion.C(render.Mesh3d{Mesh: m.Add(render.Mesh{Mesh: terrainMesh()})}),
-		illusion.C(render.MeshMaterial3d{Material: mat.Add(render.StandardMaterial{BaseColor: rl.NewColor(150, 82, 58, 255)})}),
-		illusion.C(transform.Identity()),
-		illusion.C(render.NotShadowCaster{}),
-	)
-	cmd.Spawn(illusion.C(transform.Identity()), illusion.C(physics.Static), illusion.C(terrainCollider()))
+	// The Red under the seats and out across the Fringe, round where the
+	// player arrives (see terrain.go). Floors have no colliders of their
+	// own: this is what everyone walks on.
+	cmd.InsertResource(illusion.R(spawnTerrain(cmd, m, mat, textures.Get(), arrival)))
 	placed, err := world.Layout(assetRoot(), "world/landfall.json")
 	if err != nil {
 		panic(err)
@@ -188,18 +188,19 @@ func startingOutfit(w *character.Wardrobe) character.Outfit {
 	return o
 }
 
-// floored is where Landfall's floors cover the ground, on the XZ plane (X
-// across, Y for the game's Z): the Hull's deck and the Pads' tiles. They're
-// HULL_* and PADS_* in tools/world/landfall.py, in the game's frame.
+// floored is where floors cover the ground, on the XZ plane (X across, Y
+// for the game's Z): the Hull's deck at Landfall, and the Pads' tiles out
+// at the spaceport. They're HULL_* and PADS_* (moved to PADS_AT) in
+// tools/world/landfall.py, in the game's frame.
 var floored = []rl.Rectangle{
 	{X: -40, Y: -12, Width: 48, Height: 32},
-	{X: 26, Y: -24, Width: 40, Height: 64},
+	{X: 9776, Y: -1830, Width: 44, Height: 64},
 }
 
 // arrival is where the player starts, and comes back to: on the Pads at
 // the foot of the drifter's ramp, where new players arrive. It's SPAWN in
 // tools/world/landfall.py, in the game's frame.
-var arrival = rl.Vector3{X: 54, Z: 30}
+var arrival = rl.Vector3{X: 9807, Z: -1770.5}
 
 // respawn puts characters that fell off the edge of the world back where
 // the player arrives.
