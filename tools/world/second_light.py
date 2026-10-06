@@ -937,4 +937,162 @@ def hull_vent(style: Style) -> Piece:
     return p
 
 
-PIECES = [hull_shell, hull_shell_corner, hull_bow, hull_stern, hull_rib_arch, hull_gantry, hull_cut_edge, hull_vent]
+def bridge_tower(style: Style) -> Piece:
+    """The Second Light's bridge, the one part of the ship left whole: its
+    island standing up out of the torch-cut prow, two decks of plated
+    alloy over the dome's roof, a band of windows (a few lit, where the Crew
+    keep a watch), the ship's name on its face, a radar dish, and a lattice
+    mast with sodium beacons the drifters steer by. Landfall's landmark,
+    seen across the Fringe over the dome.
+
+    Origin on the ground at the middle of its stalk, front to -Y (the way
+    the prow points): place it inside the prow, turned to face out. The
+    stalk, 5 × 6 m, rises hidden inside the prow to the island at 21 m; the
+    island is 12 m across and 11 m deep, its roof at 31 m and the mast's top
+    at 47 m. Nothing to collide with: it's all over the prow."""
+    p = Piece("bridge_tower", "prop", "the ship's bridge: island 12 × 11 m at 21-31 m, mast to 47 m")
+    p.budget = 40000
+    r = rng(style, p.name)
+    hw, hd = 6.0, 5.5  # the island's half width (X) and half depth (Y)
+    # The stalk, its plates in rows, up into the island.
+    p.span((-2.5, -3.0, 0), (2.5, 3.0, 21.2), "Hull dark")
+    for z in range(10, 21, 2):
+        for x0 in (-2.5, 0.0):
+            p.span((x0 + 0.04, -3.032, z + 0.04), (x0 + 2.46, -3.002, z + 1.96), r.choice(["Hull alloy", "Crew grey"]))
+    # The collar where the stalk meets the island.
+    p.span((-3.4, -3.9, 20.4), (3.4, 3.9, 20.97), "Hull alloy")
+    # The lower deck: plated alloy, a strake at its foot and its top, the
+    # window band round it.
+    p.span((-hw, -hd, 21.0), (hw, hd, 26.5), "Hull alloy")
+    for z0, z1 in ((21.05, 21.35), (26.15, 26.45)):  # rings, proud of its faces only
+        p.span((-hw - 0.03, -hd - 0.03, z0), (hw + 0.03, hd + 0.03, z1), "Hull dark")
+    for k in range(12):
+        x = -hw + 0.5 + k * (2 * hw - 1) / 11
+        mat = "Sodium lamp" if k in (2, 3, 7) else "Hull dark"
+        p.span((x - 0.38, -hd - 0.022, 24.0), (x + 0.38, -hd - 0.002, 25.1), mat)
+        p.span((x - 0.38, hd + 0.002, 24.0), (x + 0.38, hd + 0.022, 25.1), "Sodium lamp" if k == 9 else "Hull dark")
+    for k in range(10):
+        y = -hd + 0.5 + k * (2 * hd - 1) / 9
+        for x in (-hw - 0.02, hw):
+            x0 = x - 0.002 if x < 0 else x + 0.002
+            p.span((x0, y - 0.38, 24.0), (x0 + 0.02, y + 0.38, 25.1), "Sodium lamp" if (k, x > 0) in ((4, True),) else "Hull dark")
+    # Repaints over the years, patch by patch, on its back.
+    for k in range(6):  # each in its own slot, so none overlaps another
+        x, z = -hw + (k + 0.5) * 2 * hw / 6, r.uniform(21.6, 22.6)
+        w, h = r.uniform(0.8, 1.8), r.uniform(0.6, 1.2)
+        p.span((x - w / 2, hd + 0.002, z), (x + w / 2, hd + 0.014, z + h), r.choice(REPAINTS))
+    # The walkway round the bridge on the lower deck's roof, railed.
+    with p.plain():
+        for z in (27.05, 27.5):
+            for (a, b) in (((-hw + 0.1, -hd + 0.1), (hw - 0.1, -hd + 0.1)), ((hw - 0.1, -hd + 0.1), (hw - 0.1, hd - 0.1)),
+                           ((hw - 0.1, hd - 0.1), (-hw + 0.1, hd - 0.1)), ((-hw + 0.1, hd - 0.1), (-hw + 0.1, -hd + 0.1))):
+                p.tube([(a[0], a[1], z), (b[0], b[1], z)], 0.03, "Hazard yellow", segments=3)
+        for x in [-hw + 0.1 + k * (2 * hw - 0.2) / 8 for k in range(9)]:
+            for y in (-hd + 0.1, hd - 0.1):
+                p.tube([(x, y, 26.5), (x, y, 27.55)], 0.03, "Hazard yellow", segments=3)
+    # The bridge: set back, its windows raked forward round the front.
+    bw, by0, by1 = 4.6, -3.8, 4.4
+    p.span((-bw, by0, 26.5), (bw, by1, 31.0), "Hull alloy")
+    p.span((-bw - 0.05, by0 - 0.05, 30.7), (bw + 0.05, by1 + 0.05, 30.95), "Hull dark")
+    p.box((2 * bw - 0.4, 0.06, 1.7), (0, by0 - 0.32, 29.3), "Hull dark", rot=(-18, 0, 0))
+    for k in range(7):
+        x = -bw + 0.2 + k * (2 * bw - 0.4) / 6
+        p.box((0.12, 0.1, 1.85), (x, by0 - 0.36, 29.3), "Hull alloy", rot=(-18, 0, 0))
+    p.box((2 * bw, 0.9, 0.1), (0, by0 - 0.55, 30.35), "Hull alloy", rot=(-18, 0, 0))  # its sun visor
+    for x in (-bw - 0.02, bw):
+        x0 = x - 0.002 if x < 0 else x + 0.002
+        p.span((x0, -2.0, 28.6), (x0 + 0.02, 2.0, 29.8), "Hull dark")
+    # The ship's name on the lower deck's face.
+    with p.painted():
+        p.lettering("SECOND LIGHT", (0, -hd - 0.006, 22.6), 0.9, "Stencil white", spacing=1.15)
+        p.lettering("CCC-0001", (hw + 0.006, 0, 22.4), 0.5, "Stencil white", facing="+X")
+    # The radar on the roof, on its drum.
+    p.cyl(0.7, 1.0, (0, 1.8, 31.52), "Hull dark", segments=10)
+    p.lathe([(0.0, 0.0), (1.2, 0.08), (2.2, 0.45), (2.3, 0.5)], (0, 1.8, 32.6), "Charter white", rot=(70, 0, 0), segments=16)
+    # The mast: four posts tapering to its top, braced, and its beacons.
+    with p.plain():
+        legs = [(-1.2, -1.2), (1.2, -1.2), (1.2, 1.2), (-1.2, 1.2)]
+        top = 0.25
+        z0, z1 = 31.0, 46.0
+
+        def leg(i, z):
+            k = (z - z0) / (z1 - z0)
+            x, y = legs[i]
+            return (x * (1 - k) + x / 1.2 * top * k, y * (1 - k) + y / 1.2 * top * k - 2.0, z)
+
+        for i in range(4):
+            p.tube([leg(i, z0), leg(i, z1)], 0.07, "Crew orange", segments=4)
+        for z in [z0 + 1.5 * k for k in range(1, 10)]:
+            for i in range(4):
+                p.tube([leg(i, z), leg((i + 1) % 4, z)], 0.035, "Crew orange", segments=3)
+                p.tube([leg(i, z - 1.5), leg((i + 1) % 4, z)], 0.025, "Hull dark", segments=3)
+        p.tube([(0, -2.0, z1), (0, -2.0, 47.4)], 0.05, "Hull dark", segments=3)
+        for x in (-hw + 0.6, hw - 0.6):
+            p.tube([(x, hd - 0.6, 31.0 - 4.5), (x, hd - 0.6, 37.0)], 0.03, "Hull dark", segments=3)
+        p.tube([(-3.0, -2.0, 42.0), (3.0, -2.0, 42.0)], 0.04, "Hull dark", segments=3)
+    for at in ((0, -2.0, 46.4), (-3.0, -2.0, 42.15), (3.0, -2.0, 42.15)):
+        p.sphere(0.32 if at[0] == 0 else 0.2, at, "Sodium lamp", segments=8, rings=5)
+    p.light((0, -2.0, 46.4), intensity=1.6, reach=18)
+    p.light((0, -hd - 0.4, 24.6), intensity=0.8, reach=8)
+    return p
+
+
+def hull_stacks(style: Style) -> Piece:
+    """The engine end's two stacks, standing up out of the stern over the
+    dome: the reactor's old vents, now the air plant's exhausts, scorched
+    black at their mouths, banded and caged for the Crew who climb them, a
+    gantry across between them and warning lamps on top.
+
+    Origin on the ground on the end wall's centre line at its middle,
+    outside to -Y, as hull_stern: the stacks stand 2 m out, 6.5 m either
+    side, 4.6 m across and 33 m tall. Nothing to collide with: they rise
+    from inside the stern."""
+    p = Piece("hull_stacks", "prop", "two stacks 4.6 m across, 33 m tall, 13 m apart")
+    p.budget = 30000
+    r = rng(style, p.name)
+    y = -2.0
+    for x in (-6.5, 6.5):
+        profile = [(2.3, 0.0), (2.3, 18.0), (2.15, 30.0), (2.4, 30.4), (2.4, 31.4), (2.2, 31.6), (2.2, 33.0)]
+        p.lathe(profile, (x, y, 0), r.choice(["Hull alloy", "Crew grey"]), segments=20, cap=False)
+        p.lathe([(2.05, 32.9), (2.05, 25.0)], (x, y, 0), "Scorch", segments=20, cap=False)  # inside, sooted
+        # Soot down from the mouth, painted on.
+        with p.painted():
+            for k in range(14):
+                a = k / 14 * 2 * math.pi + r.uniform(-0.1, 0.1)
+                h = r.uniform(1.2, 3.0)
+                zc = 30.0 - h / 2
+                rz = 2.3 - (zc - 18.0) / 12 * 0.15 + 0.008  # on the taper
+                p.box((0.9, 0.01, h), (x + rz * math.cos(a), y + rz * math.sin(a), zc), "Scorch",
+                      rot=(0, 0, math.degrees(a) + 90))
+        for z in (6.0, 12.0, 18.0, 24.0):
+            rad = 2.3 - max(0.0, z - 18.0) / 12 * 0.15
+            p.torus(rad + 0.05, 0.08, (x, y, z), "Hull dark", segments=20, sides=3)
+        p.torus(2.25, 0.12, (x, y, 30.9), "Repaint oxide", segments=20, sides=3)
+        # The caged ladder up its outer side.
+        with p.plain():
+            lx = x + (2.55 if x > 0 else -2.55)
+            for dy in (-0.25, 0.25):
+                p.tube([(lx, y + dy, 18.0), (lx, y + dy, 33.6)], 0.03, "Steel", segments=3)
+            for z in [18.0 + 0.3 * k for k in range(1, 52)]:
+                p.tube([(lx, y - 0.25, z), (lx, y + 0.25, z)], 0.015, "Steel", segments=3)
+            for z in [19.5 + 1.5 * k for k in range(9)]:
+                p.torus(0.45, 0.02, (lx + (0.35 if x > 0 else -0.35), y, z), "Steel", segments=8, sides=3, arc=180,
+                        rot=(0, 0, -90 if x > 0 else 90))
+        # Warning lamps on the rim.
+        for a in (0, math.pi):
+            c = (x + 2.2 * math.cos(a), y + 2.2 * math.sin(a), 33.1)
+            p.sphere(0.18, c, "Sodium lamp", segments=6, rings=4)
+        p.light((x, y - 2.6, 33.2), intensity=1.2, reach=14)
+    # The gantry between them.
+    with p.plain():
+        for z in (24.0, 25.2):
+            for dy in (-0.7, 0.7):
+                p.tube([(-4.2, y + dy, z), (4.2, y + dy, z)], 0.06, "Crew orange", segments=4)
+        for x in [-4.2 + 8.4 * k / 6 for k in range(7)]:
+            for dy in (-0.7, 0.7):
+                p.tube([(x, y + dy, 24.0), (x, y + dy, 25.2)], 0.04, "Crew orange", segments=3)
+    p.span((-4.15, y - 0.65, 23.82), (4.15, y + 0.65, 23.96), "Grating")
+    return p
+
+
+PIECES = [hull_shell, hull_shell_corner, hull_bow, hull_stern, hull_rib_arch, hull_gantry, hull_cut_edge, hull_vent, bridge_tower, hull_stacks]

@@ -515,7 +515,7 @@ and the piece builder; the modules are:
 | `items.py` | What's carried: marks, scrip and filters; contracts, filings, ledgers, land claims and seals (and a forged one); water, food and Earth coffee; power cells, parts, valves and a Corvane data core; medicine, seeds, electronics, wine; tools |
 | `weapons.py` | Earth guns, lasers, a katana, a machete, a knife, a stun baton, armour, ammo, cell packs, a rack |
 | `vehicles.py` | Six-wheel haulers (flatbed and tanker), a bike, a trike, a buggy, a crew rover, a car under a tarp, the drifter *Patience* and the Receivership's shuttle |
-| `second_light.py` | The grounded colony ship round the Hull: hull skin sections and corners, the bow and the engine-end stern, rib arches over the streets, a maintenance gantry, cut deck edges, vents |
+| `second_light.py` | The grounded colony ship round the Hull: hull skin sections and corners, the bow and the engine-end stern, rib arches over the streets, a maintenance gantry, cut deck edges, vents, and what stands up through the dome's roof as Landfall's landmark: the bridge tower out of the prow, with its beacon mast, and the stacks over the stern |
 | `hull_levels.py` | Between the Hull's decks: ceiling undersides, a hatch with a ladder down, a stairwell to the lower decks, a freight lift, a shaft grate |
 | `ground.py` | Roads (straight, corner, junction, end), the salvage track, the gate street, Charter paving, lawn, farm furrows and crop rows, the drifter's landing pad |
 | `dressing.py` | District, deck and shop signs with real lettering, Crew marking panels, notice boards, rugs, faction banners, awnings and bunting across streets, doorway curtains |

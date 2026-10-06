@@ -3768,6 +3768,48 @@
    "category": "Vehicles",
    "budget": 6000,
    "colliders": []
+  },
+  "bridge_tower": {
+   "model": "world/bridge_tower.glb",
+   "kind": "prop",
+   "category": "The Hull",
+   "budget": 40000,
+   "colliders": [],
+   "lights": [
+    {
+     "at": [0.0, 46.4, 2.0],
+     "color": [1.0, 0.55, 0.12],
+     "intensity": 1.6,
+     "range": 18
+    },
+    {
+     "at": [0.0, 24.6, 5.9],
+     "color": [1.0, 0.55, 0.12],
+     "intensity": 0.8,
+     "range": 8
+    }
+   ]
+  },
+  "hull_stacks": {
+   "model": "world/hull_stacks.glb",
+   "kind": "prop",
+   "category": "The Hull",
+   "budget": 30000,
+   "colliders": [],
+   "lights": [
+    {
+     "at": [-6.5, 33.2, 4.6],
+     "color": [1.0, 0.55, 0.12],
+     "intensity": 1.2,
+     "range": 14
+    },
+    {
+     "at": [6.5, 33.2, 4.6],
+     "color": [1.0, 0.55, 0.12],
+     "intensity": 1.2,
+     "range": 14
+    }
+   ]
   }
  }
 }

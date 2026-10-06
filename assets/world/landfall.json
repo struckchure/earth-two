@@ -812,21 +812,6 @@
   },
   {
    "piece": "dome_roof",
-   "at": [-38.0, 20.0, 14.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
-   "at": [-38.0, 20.0, 6.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
-   "at": [-38.0, 20.0, -2.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
    "at": [-38.0, 20.0, -10.0],
    "turns": 0
   },
@@ -1112,21 +1097,6 @@
   },
   {
    "piece": "dome_roof",
-   "at": [10.0, 20.0, 14.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
-   "at": [10.0, 20.0, 6.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
-   "at": [10.0, 20.0, -2.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
    "at": [10.0, 20.0, -10.0],
    "turns": 0
   },
@@ -1158,21 +1128,6 @@
   {
    "piece": "dome_roof",
    "at": [18.0, 20.0, 22.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
-   "at": [18.0, 20.0, 14.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
-   "at": [18.0, 20.0, 6.0],
-   "turns": 0
-  },
-  {
-   "piece": "dome_roof",
-   "at": [18.0, 20.0, -2.0],
    "turns": 0
   },
   {
@@ -5147,6 +5102,16 @@
   },
   {
    "piece": "hull_stern",
+   "at": [-40.0, 0.0, 4.0],
+   "turns": 3
+  },
+  {
+   "piece": "bridge_tower",
+   "at": [13.5, 0.0, 4.0],
+   "turns": 1
+  },
+  {
+   "piece": "hull_stacks",
    "at": [-40.0, 0.0, 4.0],
    "turns": 3
   },

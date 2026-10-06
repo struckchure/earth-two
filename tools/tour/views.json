@@ -23,5 +23,7 @@
   {"name": "landfall_400m", "player": [0, 0, 400], "ground": true, "yaw": 0, "pitch": 0.0},
   {"name": "open_fringe", "player": [-800, 0, 5000], "ground": true, "yaw": 0.5, "pitch": 0.15},
   {"name": "dome_west", "player": [-62, 0, -12], "ground": true, "yaw": -2.4, "pitch": 0.2},
-  {"name": "dome_east", "player": [42, 0, 8], "ground": true, "yaw": 1.0, "pitch": 0.2}
+  {"name": "dome_east", "player": [42, 0, 8], "ground": true, "yaw": 1.0, "pitch": 0.2},
+  {"name": "landfall_1km", "player": [0, 0, 1000], "ground": true, "yaw": 0.35, "pitch": -0.05},
+  {"name": "bridge_from_charter", "player": [-6, 0, -30], "ground": true, "yaw": -2.6, "pitch": -0.45, "eye": [-6, 1.7, -34], "target": [12, 30, 4]}
 ]

@@ -63,6 +63,16 @@ BLOCK = (-16, -6)
 STACKS_X = range(-25, -4, 2)
 STACKS_Y0, STACKS_ROWS = 0.75, 9
 
+# What of the Second Light stands up through the dome's roof (see
+# second_light.bridge_tower and hull_stacks): the bridge, BRIDGE_OUT into
+# the prow, and the stacks over the stern, each as its middle and half its
+# size on the ground (x, y, half x, half y), with a metre round them.
+BRIDGE_OUT = 5.5
+THROUGH_ROOF = (
+    (HULL_E + BRIDGE_OUT, (HULL_S + HULL_N) / 2, 6.5, 7.0),
+    (HULL_W - 2.0, (HULL_S + HULL_N) / 2, 3.3, 10.0),
+)
+
 # Charter Row, behind its fence.
 CHARTER_S, CHARTER_N, CHARTER_W, CHARTER_E = 20, 52, -30, 22
 
@@ -158,11 +168,13 @@ def _dome(put):
             put("dome_wall", x, y, turns=turns)
             if v - 2 >= lo + HIP and v + 2 <= hi - HIP:
                 put("dome_roof_slope", x, y, turns=turns)
-    # The roof: open frame, tiled every 8 m over the middle, as many as fit.
+    # The roof: open frame, tiled every 8 m over the middle, as many as fit,
+    # but where the Second Light stands up through it.
     for xs, ys in ((_tiles(DOME_W + ROOF_IN, DOME_E - ROOF_IN), _tiles(DOME_S + ROOF_IN, DOME_N - ROOF_IN)),):
         for x in xs:
             for y in ys:
-                put("dome_roof", x, y, ROOF_UP)
+                if not any(abs(x - cx) < 4 + hx and abs(y - cy) < 4 + hy for cx, cy, hx, hy in THROUGH_ROOF):
+                    put("dome_roof", x, y, ROOF_UP)
     # The struts the glass hangs from, and a frame over the gate.
     for x in range(DOME_W + 15, DOME_E - 10, 16):
         if abs(x - GATE_X) > 8:
@@ -296,6 +308,10 @@ def _second_light(put):
         put("hull_rib_arch", x + 2, middle, 2 * DECK, 1)
     put("hull_bow", HULL_E, middle, turns=1)
     put("hull_stern", HULL_W, middle, turns=3)
+    # What stands up over the dome: the bridge out of the prow, the stacks
+    # out of the stern (the roof's left open round them, see _dome).
+    put("bridge_tower", HULL_E + BRIDGE_OUT, middle, turns=1)
+    put("hull_stacks", HULL_W, middle, turns=3)
     # Gantries against it, at least 4.8 m out from the wall, clear of the
     # doors and Charter Row's fence; vents on its outer faces.
     put("hull_gantry", -24, HULL_S - 5)
