@@ -8,7 +8,27 @@ import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/input"
+	"github.com/struckchure/illusion/render"
 )
+
+func TestShadowSwitch(t *testing.T) {
+	app := illusion.New()
+	shadows := &render.Shadows{Size: shadowSize, Range: shadowRange}
+	app.InsertResource(illusion.R(shadows))
+	s := shadowSwitch()
+	if s.Key != rl.KeyF7 || s.Get(app.World) != 0 {
+		t.Fatal("shadow switch should start at Full on F7")
+	}
+	for _, tt := range []struct {
+		mode int
+		size int32
+	}{{1, shadowSize / 2}, {2, 0}, {0, shadowSize}} {
+		s.Set(app.World, tt.mode)
+		if shadows.Size != tt.size || s.Get(app.World) != tt.mode || shadows.Range != shadowRange {
+			t.Fatalf("shadow mode %d: %+v", tt.mode, shadows)
+		}
+	}
+}
 
 // Switches get the free function keys in turn, and each press steps one
 // through its settings and back round: the weather from its schedule to

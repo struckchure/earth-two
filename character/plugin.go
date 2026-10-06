@@ -30,6 +30,9 @@ type Plugin struct {
 	// Outline is the pass that draws an outline around a model, but for the
 	// meshes in skip; nil for no outlines. Bodies and clothes get one.
 	Outline func(skip map[int]bool) render.Pass
+	// DisableCloth keeps clothes animated by their skeleton without the
+	// per-vertex cloth solver, for platforms with a tight frame budget.
+	DisableCloth bool
 }
 
 func (pl Plugin) Build(app *illusion.App) {
@@ -76,7 +79,7 @@ func (pl Plugin) Build(app *illusion.App) {
 		illusion.Chain(
 			illusion.Fn8(sit),
 			illusion.Fn8(dress),
-			illusion.Fn6(clothe),
+			illusion.Fn6(clothe).RunIf(illusion.Cond0(func() bool { return !pl.DisableCloth })),
 			illusion.Fn5(face),
 			illusion.Fn8(animate),
 		).InSet(Act),

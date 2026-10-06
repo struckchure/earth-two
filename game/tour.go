@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/mlange-42/ark/ecs"
@@ -70,6 +72,9 @@ func Tour(viewsFile, out string) error {
 		return err
 	}
 	at, frames := 0, 0
+	reportStats := os.Getenv("EARTH_TWO_TOUR_STATS") == "1"
+	var lastFrame time.Time
+	var frameTimes []float64
 	app := build(&menu{})
 	// After the camera's followed the player, and before transforms are
 	// propagated for drawing.
@@ -133,13 +138,30 @@ func Tour(viewsFile, out string) error {
 		if views[at].Use || views[at].Hold != "" {
 			settle = tourUseSettle
 		}
+		if reportStats {
+			now := time.Now()
+			if !lastFrame.IsZero() && frames >= settle-60 {
+				frameTimes = append(frameTimes, float64(now.Sub(lastFrame))/float64(time.Millisecond))
+			}
+			lastFrame = now
+		}
 		if frames++; frames < settle {
 			return
+		}
+		if reportStats && len(frameTimes) > 0 {
+			var total float64
+			for _, ms := range frameTimes {
+				total += ms
+			}
+			slices.Sort(frameTimes)
+			n := len(frameTimes)
+			fmt.Printf("tour %s: %.1f FPS, mean %.2f ms, p95 %.2f ms (%d frames)\n", views[at].Name, 1000*float64(n)/total, total/float64(n), frameTimes[min(n-1, n*95/100)], n)
 		}
 		img := rl.LoadImageFromScreen()
 		rl.ExportImage(*img, filepath.Join(out, views[at].Name+".png"))
 		rl.UnloadImage(img)
 		at, frames = at+1, 0
+		frameTimes, lastFrame = frameTimes[:0], time.Time{}
 	}).InSet(render.Draw2D))
 	app.Run()
 	return nil

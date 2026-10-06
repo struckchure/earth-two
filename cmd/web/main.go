@@ -31,12 +31,10 @@ func main() {
 		log.Fatalf("no browser build in %s (run make web first): %v", *dir, err)
 	}
 
-	files := http.FileServer(http.Dir(*dir))
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Revalidate every request so a rebuild shows up on reload.
-		w.Header().Set("Cache-Control", "no-cache")
-		files.ServeHTTP(w, r)
-	})
+	handler, err := newFileHandler(*dir)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	log.Printf("serving %s on http://localhost%s", *dir, *addr)
 	log.Fatal(http.ListenAndServe(*addr, handler))

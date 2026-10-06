@@ -66,6 +66,12 @@ const (
 type worldMap struct {
 	marks  []mark
 	bounds rl.Rectangle
+	// Footprints are static. Index their centres once so the minimap only
+	// visits nearby ones; candidate indices retain the original paint order.
+	markCells      map[[2]int][]int
+	markRadius     float32
+	markCandidates []int
+	nearMarks      []mark
 	// The full map's middle (in metres) and scale (pixels per metre, at
 	// the UI's scale of 1); zero until it's first opened.
 	at   rl.Vector2
@@ -237,7 +243,64 @@ func newWorldMap(k *world.Kit, placed []world.Placement) *worldMap {
 	for _, p := range pieces {
 		m.marks = append(m.marks, p.mark)
 	}
+	m.indexMarks()
 	return m
+}
+
+const mapCellSize = 256
+
+func mapCell(x float32) int { return int(math.Floor(float64(x / mapCellSize))) }
+
+func (m *worldMap) indexMarks() {
+	m.markCells = make(map[[2]int][]int)
+	m.markRadius = 0
+	m.markCandidates = make([]int, 0, 128)
+	m.nearMarks = make([]mark, 0, 128)
+	for i, mk := range m.marks {
+		half := rl.Vector2{X: mk.r.Width / 2, Y: mk.r.Height / 2}
+		centre := rl.Vector2{X: mk.r.X + half.X, Y: mk.r.Y + half.Y}
+		cell := [2]int{mapCell(centre.X), mapCell(centre.Y)}
+		m.markCells[cell] = append(m.markCells[cell], i)
+		m.markRadius = max(m.markRadius, rl.Vector2Length(half))
+	}
+}
+
+// marksNear returns a conservative subset in the same layering order as
+// marks. Keep the exact screen clipping and circle test in the draw paths.
+// Large map views use the linear path, avoiding a scan of empty grid cells.
+func (m *worldMap) marksNear(at rl.Vector2, reach float32) []mark {
+	if m.markCells == nil {
+		return m.marks
+	}
+	r := reach + m.markRadius
+	x0, x1 := mapCell(at.X-r), mapCell(at.X+r)
+	z0, z1 := mapCell(at.Y-r), mapCell(at.Y+r)
+	if int64(x1-x0+1)*int64(z1-z0+1) >= int64(len(m.markCells)) {
+		return m.marks
+	}
+	// In dense Landfall, sorting and copying most of the marks costs more
+	// than scanning them. Use the existing draw loop for those neighbourhoods.
+	count := 0
+	for z := z0; z <= z1; z++ {
+		for x := x0; x <= x1; x++ {
+			count += len(m.markCells[[2]int{x, z}])
+		}
+	}
+	if count >= len(m.marks)/3 {
+		return m.marks
+	}
+	m.markCandidates = m.markCandidates[:0]
+	for z := z0; z <= z1; z++ {
+		for x := x0; x <= x1; x++ {
+			m.markCandidates = append(m.markCandidates, m.markCells[[2]int{x, z}]...)
+		}
+	}
+	slices.Sort(m.markCandidates)
+	m.nearMarks = m.nearMarks[:0]
+	for _, i := range m.markCandidates {
+		m.nearMarks = append(m.nearMarks, m.marks[i])
+	}
+	return m.nearMarks
 }
 
 // footprint is the rectangle on the ground a collider of a piece at at,
@@ -323,7 +386,8 @@ func (f mapFrame) draw(m *worldMap) {
 		f.drawTurned(m)
 		return
 	}
-	for _, mk := range m.marks {
+	reach := float32(math.Hypot(float64(f.screen.Width), float64(f.screen.Height))) / 2 / f.scale
+	for _, mk := range m.marksNear(f.at, reach+1/f.scale) {
 		a := f.toScreen(rl.Vector2{X: mk.r.X, Y: mk.r.Y})
 		r := clip(rl.Rectangle{X: a.X, Y: a.Y, Width: mk.r.Width * f.scale, Height: mk.r.Height * f.scale}, f.screen)
 		// Anything thinner than a pixel still shows, as one.
@@ -340,7 +404,7 @@ func (f mapFrame) drawTurned(m *worldMap) {
 	x := f.screenDir(rl.Vector2{X: 1})
 	angle := float32(math.Atan2(float64(x.Y), float64(x.X))) * 180 / math.Pi
 	reach := float32(math.Hypot(float64(f.screen.Width), float64(f.screen.Height))) / 2 / f.scale
-	for _, mk := range m.marks {
+	for _, mk := range m.marksNear(f.at, reach+1/f.scale) {
 		half := rl.Vector2{X: mk.r.Width / 2, Y: mk.r.Height / 2}
 		centre := rl.Vector2{X: mk.r.X + half.X, Y: mk.r.Y + half.Y}
 		if rl.Vector2Distance(centre, f.at)-rl.Vector2Length(half) > reach {

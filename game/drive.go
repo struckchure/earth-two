@@ -125,7 +125,7 @@ func cullVehicles(
 		switch {
 		case v.sees(center, b.radius, sight(b.radius)):
 			s.show(cmd, e, seen)
-		case rl.Vector3Distance(center, v.at)-b.radius < shadowReach:
+		case rl.Vector3DistanceSqr(center, v.at) < (shadowReach+b.radius)*(shadowReach+b.radius):
 			s.show(cmd, e, shadowOnly)
 		default:
 			s.show(cmd, e, unseen)
@@ -149,6 +149,7 @@ func viewFrom(eye transform.Transform, cam render.Camera3d, ww *window.Window) v
 		aspect: float32(ww.Width) / max(float32(ww.Height), 1),
 	}
 	v.right = rl.Vector3CrossProduct(v.ahead, v.up)
+	v.prepare()
 	return v
 }
 

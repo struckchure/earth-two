@@ -1,7 +1,5 @@
 package shading
 
-import "github.com/struckchure/illusion/render"
-
 // The toon shader: light and shadow in hard bands (the ground smoothly),
 // see-through what's less than opaque (dithered),
 // shadows tinted rather than darkened, the sun's shadows cut as hard, an
@@ -10,7 +8,7 @@ import "github.com/struckchure/illusion/render"
 // glowing what glows, a rim of light on the lit side of rounded things, the
 // brightest colours rolled off rather than clipped, and haze with distance.
 
-const toonFragment = render.LightingGLSL + `
+const toonFragment = lightingGLSL + `
 in vec3 fragPosition;
 in vec2 fragTexCoord;
 in vec4 fragColor;
@@ -93,7 +91,9 @@ void main() {
     // fine screen-space pattern: clear glass (a third, so the dome's seen
     // through) and the soft edges of hair cards, without sorting what's
     // drawn. The shadow map still cuts at a half, so glass casts none.
-    if (base.a < bayer4(gl_FragCoord.xy)) {
+    // The largest threshold is 31/32. Above it no pixel can be discarded,
+    // so opaque surfaces skip the pattern lookup with identical coverage.
+    if (base.a < 0.96875 && base.a < bayer4(gl_FragCoord.xy)) {
         discard;
     }
     if (unlit > 0.5) {
@@ -117,8 +117,13 @@ void main() {
         float phase = dot(g, vec2(0.83, 0.55)) * 9.0 + grainNoise(g * 0.45) * 7.0;
         float ripple = sin(phase) * (1.0 - smoothstep(0.12, 0.45, fwidth(phase)));
         float px = length(fwidth(g));
-        float grain = (grainNoise(g * 9.0) - 0.5) * (1.0 - smoothstep(0.02, 0.06, px))
-            + 0.5 * (grainNoise(g * 23.0) - 0.5) * (1.0 - smoothstep(0.008, 0.02, px));
+        float grain = 0.0;
+        if (px < 0.06) {
+            grain = (grainNoise(g * 9.0) - 0.5) * (1.0 - smoothstep(0.02, 0.06, px));
+            if (px < 0.02) {
+                grain += 0.5 * (grainNoise(g * 23.0) - 0.5) * (1.0 - smoothstep(0.008, 0.02, px));
+            }
+        }
         float flat_ = smoothstep(0.85, 0.98, n.y);
         base.rgb *= 1.0 + 0.05 * ripple * flat_ + 0.12 * grain;
     }
@@ -161,9 +166,12 @@ void main() {
 
     // The rim, on what's lit. Flat things (the ground, walls) have none:
     // theirs would be a band across the whole face.
-    float edge = pow(1.0 - max(dot(n, normalize(viewPos - fragPosition)), 0.0), rimPower);
-    float rounded = step(0.0001, length(fwidth(n)));
-    float rim = smoothstep(rimThreshold, rimThreshold + softness, edge) * lit * rounded;
+    float rim = 0.0;
+    if (any(greaterThan(rimColor, vec3(0.0)))) {
+        float edge = pow(1.0 - max(dot(n, normalize(viewPos - fragPosition)), 0.0), rimPower);
+        float rounded = step(0.0001, length(fwidth(n)));
+        rim = smoothstep(rimThreshold, rimThreshold + softness, edge) * lit * rounded;
+    }
 
     finalColor = vec4(rollOff(base.rgb * (light + rimColor * rim) * exposure), 1.0);
     if (fogDistance > 0.0) {

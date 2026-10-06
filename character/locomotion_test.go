@@ -3,10 +3,63 @@ package character
 import (
 	"math"
 	"testing"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
+	"github.com/mlange-42/ark/ecs"
+	"github.com/struckchure/illusion"
+	"github.com/struckchure/illusion/input"
 	"github.com/struckchure/illusion/transform"
 )
+
+func TestInputRequestsSurviveHighRefreshFrames(t *testing.T) {
+	app := illusion.New()
+	keys := input.NewButtonInput[input.Key]()
+	app.InsertResource(illusion.R(keys), illusion.R(&Controls{Enabled: true}), illusion.R(&View{}))
+	app.AddSystems(illusion.Startup, illusion.Fn1(func(cmd *illusion.Commands) {
+		cmd.Spawn(illusion.C(Player{}), illusion.C(Intent{}))
+	}))
+	app.AddSystems(illusion.Update, illusion.Fn4(playerInput))
+	consumed := 0
+	app.AddSystems(illusion.FixedUpdate, illusion.Fn1(func(q *illusion.Query1[Intent]) {
+		q.Each(func(_ ecs.Entity, in *Intent) {
+			if in.Jump && in.Roll && in.Slide {
+				consumed++
+			}
+			in.Jump, in.Roll, in.Slide = false, false, false
+		})
+	}))
+	for _, key := range []input.Key{rl.KeySpace, rl.KeyR, rl.KeyLeftControl} {
+		keys.Press(key)
+	}
+	const frame = time.Second / 240
+	app.Tick(frame)
+	for _, key := range []input.Key{rl.KeySpace, rl.KeyR, rl.KeyLeftControl} {
+		keys.Release(key)
+	}
+	keys.Clear()
+	app.Tick(frame)
+	app.Tick(frame)
+	if consumed != 0 {
+		t.Fatal("physics advanced before its fixed timestep")
+	}
+	q := ecs.NewFilter1[Intent](app.World).Query()
+	for q.Next() {
+		in := q.Get()
+		if !in.Jump || !in.Roll || !in.Slide {
+			t.Fatal("render frames lost a pending physics input")
+		}
+	}
+	// Include the integer-nanosecond remainder of the fixed interval.
+	app.Tick(time.Second/60 - 3*frame)
+	if consumed != 1 {
+		t.Fatal("pending inputs were not consumed at the physics step")
+	}
+	app.Tick(time.Second / 60)
+	if consumed != 1 {
+		t.Fatal("released inputs repeated")
+	}
+}
 
 // turnAbout turns from 0 toward target at Default's walking turn, 60 times a
 // second, returning how long it takes to get there and the fastest it went.

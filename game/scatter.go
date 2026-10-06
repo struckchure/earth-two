@@ -24,7 +24,6 @@ import (
 // sight under the world.
 const (
 	scatterCell   = 40 // metres across a cell
-	scatterRadius = 3  // cells each way round the player's
 	scatterPer    = 14 // the most things a cell holds
 	scatterBodies = 2  // the most colliders a thing has
 	// scatterClear is how far the scatter keeps from level ground: the

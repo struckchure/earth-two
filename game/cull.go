@@ -66,12 +66,12 @@ const shadowReach = 2 * shadowRange
 func cull(
 	cmd *illusion.Commands,
 	cameras *illusion.Query2[transform.Transform, render.Camera3d],
-	pieces *illusion.Query2Where[render.Model3d, transform.GlobalTransform, illusion.Without[render.AnimationPlayer]],
+	pieces *illusion.Query2Where[render.Model3d, transform.GlobalTransform, illusion.And[illusion.Without[render.AnimationPlayer], illusion.Without[illusion.ChildOf]]],
 	models *illusion.Res[asset.Assets[render.Model]],
 	win *illusion.Res[window.Window],
-	hier *illusion.Hierarchy,
 	state *illusion.Local[culling],
 	tiles *illusion.Query2[transform.Transform, terrainTile],
+	chunks *illusion.Query2[transform.Transform, terrainChunk],
 ) {
 	_, eye, cam, ok := cameras.Single()
 	if !ok {
@@ -90,15 +90,13 @@ func cull(
 		aspect: float32(ww.Width) / max(float32(ww.Height), 1),
 	}
 	v.right = rl.Vector3CrossProduct(v.ahead, v.up)
+	v.prepare()
 	s := state.Get()
 	if s.bounds == nil {
 		s.bounds, s.drawn = map[asset.Handle[render.Model]]sphere{}, map[ecs.Entity]drawn{}
 	}
 	store := models.Get()
 	pieces.Each(func(e ecs.Entity, m *render.Model3d, g *transform.GlobalTransform) {
-		if _, child := hier.Parent(e); child {
-			return
-		}
 		b, ok := s.bounds[m.Model]
 		if !ok {
 			model := store.Get(m.Model)
@@ -116,7 +114,7 @@ func cull(
 		switch {
 		case v.sees(center, b.radius, sight(b.radius)):
 			s.show(cmd, e, seen)
-		case rl.Vector3Distance(center, v.at)-b.radius < shadowReach:
+		case rl.Vector3DistanceSqr(center, v.at) < (shadowReach+b.radius)*(shadowReach+b.radius):
 			s.show(cmd, e, shadowOnly)
 		default:
 			s.show(cmd, e, unseen)
@@ -131,6 +129,22 @@ func cull(
 		}
 		s.show(cmd, e, d)
 	})
+	// Detail meshes cast no shadows, so offscreen chunks can be skipped
+	// completely. Allow for the terrain's relief as well as its XZ extent.
+	chunks.Each(func(e ecs.Entity, tr *transform.Transform, _ *terrainChunk) {
+		d := unseen
+		b := chunkSphere(tr.Translation)
+		if v.sees(b.center, b.radius, clipFar) {
+			d = seen
+		}
+		s.show(cmd, e, d)
+	})
+}
+
+// chunkSphere covers a chunk's square and the world's relief, including
+// canyon floors (-66 m) and the high rim (200 m).
+func chunkSphere(at rl.Vector3) sphere {
+	return sphere{center: rl.Vector3Add(at, rl.Vector3{Y: 60}), radius: chunkSize * .9}
 }
 
 // show tells the engine how to draw e, if that's changed.
@@ -160,13 +174,22 @@ func (s *culling) show(cmd *illusion.Commands, e ecs.Entity, d drawn) {
 type view struct {
 	at, ahead, up, right rl.Vector3
 	tanV, aspect         float32
+	tanH, edgeH, edgeV   float32
+}
+
+// prepare computes the side-plane slopes once per camera, rather than
+// taking two square roots for each of the world's thousands of pieces.
+func (v *view) prepare() {
+	v.tanH = v.tanV * v.aspect
+	v.edgeH = float32(math.Sqrt(float64(1 + v.tanH*v.tanH)))
+	v.edgeV = float32(math.Sqrt(float64(1 + v.tanV*v.tanV)))
 }
 
 // sees reports whether any of a sphere about center of radius is in view,
 // no further than far.
 func (v view) sees(center rl.Vector3, radius, far float32) bool {
 	d := rl.Vector3Subtract(center, v.at)
-	if rl.Vector3Length(d)-radius > far {
+	if rl.Vector3LengthSqr(d) > (far+radius)*(far+radius) {
 		return false
 	}
 	z := rl.Vector3DotProduct(d, v.ahead)
@@ -176,9 +199,9 @@ func (v view) sees(center rl.Vector3, radius, far float32) bool {
 	// Outside a side of the view: further across than the view is wide at
 	// that depth, by more than the sphere reaches (the side planes slope,
 	// so a sphere touching one reaches radius/cos across).
-	edge := func(across, tan float32) bool {
-		return float32(math.Abs(float64(across)))-z*tan > radius*float32(math.Sqrt(float64(1+tan*tan)))
+	if v.edgeV == 0 {
+		v.prepare()
 	}
-	tanH := v.tanV * v.aspect
-	return !edge(rl.Vector3DotProduct(d, v.right), tanH) && !edge(rl.Vector3DotProduct(d, v.up), v.tanV)
+	return abs(rl.Vector3DotProduct(d, v.right))-z*v.tanH <= radius*v.edgeH &&
+		abs(rl.Vector3DotProduct(d, v.up))-z*v.tanV <= radius*v.edgeV
 }

@@ -74,11 +74,36 @@ type testPlugin struct{}
 
 func (testPlugin) Build(app *illusion.App) {
 	addTestSwitch(app, weatherSwitch())
+	addTestSwitch(app, shadowSwitch())
 	app.AddSystems(illusion.Update,
 		illusion.Fn5(teleport).Before(character.Input),
 		illusion.Fn3(flipSwitches).Before(character.Input),
 	)
 	app.AddSystems(illusion.Render, illusion.Fn5(drawTestPanel).InSet(render.Draw2D))
+}
+
+// Shadows can be lowered or turned off while playing to check the GPU cost
+// on the current device, without rebuilding or restarting the game.
+func shadowSwitch() testSwitch {
+	return testSwitch{
+		Name: "Shadows", Key: rl.KeyF7,
+		Settings: []string{"Full", "Low", "Off"},
+		Get: func(w *ecs.World) int {
+			s := ecs.GetResource[render.Shadows](w)
+			if s == nil || s.Size == 0 {
+				return 2
+			}
+			if s.Size < shadowSize {
+				return 1
+			}
+			return 0
+		},
+		Set: func(w *ecs.World, i int) {
+			if s := ecs.GetResource[render.Shadows](w); s != nil {
+				s.Size = []int32{shadowSize, shadowSize / 2, 0}[i]
+			}
+		},
+	}
 }
 
 // weatherSwitch holds the weather: clear, dusty or a dust storm, or as the

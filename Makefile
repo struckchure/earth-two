@@ -21,6 +21,7 @@ build:
 # cmd/web compiled for the browser is the game (cmd/web/game_js.go).
 web:
 	sh "$(ILLUSION)/web/build.sh" -m . -o build/web -a assets -t "$(TITLE)" ./cmd/web
+	go run ./tools/webcompress build/web
 
 serve: web
 	go run ./cmd/web -addr :$(PORT) -dir build/web
