@@ -1,5 +1,5 @@
-"""Builds Earth Two's wardrobe: clothes, hair, glasses and skins for the
-people tools/makehuman/people.py makes.
+"""Builds Earth Two's wardrobe: clothes, hair, glasses, masks and skins for the
+people tools/makehuman/people.py makes, and the factions' looks.
 
 Run it in Blender with MPFB installed and the MakeHuman asset packs loaded
 (see the README), after people.py has built the bodies into BODIES_DIR:
@@ -40,7 +40,7 @@ from mathutils.kdtree import KDTree
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import people  # noqa: E402  (after the path: people.py sits next to this file)
-from cast import CATALOGUE, FACE, FACES, PEOPLE, SKINS  # noqa: E402
+from cast import CATALOGUE, FACE, FACES, LOOKS, PEOPLE, SKINS  # noqa: E402
 
 from bl_ext.user_default.mpfb.services import HumanService  # noqa: E402
 
@@ -84,7 +84,7 @@ LAYER_SMOOTH = 6
 # body regions each slot drapes over, DRAPE_BINS how many ways round the body
 # and DRAPE_STEP how often up it it's worked out, and DRAPE_MOST the furthest
 # it moves cloth out.
-DRAPED = {"top": {"torso", "hips"}, "outfit": {"torso"}}
+DRAPED = {"top": {"torso", "hips"}, "outfit": {"torso"}, "coat": {"torso", "hips"}}
 DRAPE_BINS = 72
 DRAPE_STEP = 0.01
 DRAPE_MOST = 0.12
@@ -101,9 +101,14 @@ ARMPIT = 0.05
 DRAPE_FADE = 0.06
 # What each slot is worn over, besides the skin and underwear: tops go over
 # bottoms.
-WORN_OVER = {"top": ["bottom"], "bottom": [], "outfit": [], "shoes": []}
+WORN_OVER = {"top": ["bottom"], "bottom": [], "outfit": [], "coat": ["bottom"], "shoes": []}
 
-TEXTURE_SIZE = {"hair": 512, "top": 1024, "bottom": 1024, "outfit": 1024, "glasses": 512, "shoes": 512}
+TEXTURE_SIZE = {"hair": 512, "top": 1024, "bottom": 1024, "outfit": 1024, "coat": 1024, "glasses": 512, "mask": 512,
+                "shoes": 512}
+# Worn over the face or head, on top of the skin: they hide none of it.
+OVER_FACE = ("hair", "glasses", "mask")
+# A repainted item keeps this much of its texture's own colour.
+RECOLOUR_KEEP = 0.12
 # Items whose textures need their alpha (cutout hair cards, glasses frames,
 # a ragged hem; see uses_alpha) stay PNG; the rest export as JPEG, several
 # times smaller.
@@ -238,6 +243,53 @@ def fit(slot, item, basemesh):
             mod.levels = mod.render_levels
     people.shrink_textures(obj, TEXTURE_SIZE[slot])
     return obj
+
+
+def base_colour_node(tree):
+    """The image node behind a material's base colour, through what's
+    between them (MPFB mixes some with a colour)."""
+    bsdf = next((n for n in tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+    if bsdf is None:
+        return None
+    todo = [link.from_node for link in tree.links if link.to_node == bsdf and link.to_socket.name == "Base Color"]
+    seen = set()
+    while todo:
+        node = todo.pop(0)
+        if node.name in seen:
+            continue
+        seen.add(node.name)
+        if node.type == "TEX_IMAGE" and node.image:
+            return node
+        todo += [link.from_node for link in tree.links if link.to_node == node]
+    return None
+
+
+def recolour(obj, colour):
+    """Repaints obj's base colour textures colour (sRGB, as textures hold
+    it), keeping their light and dark (folds, seams, wear) and a little of
+    their own colour: an item in a faction's colours."""
+    for slot in obj.material_slots:
+        tree = slot.material.node_tree if slot.material else None
+        node = base_colour_node(tree) if tree else None
+        if node is None:
+            continue
+        old = node.image
+        w, h = old.size
+        px = numpy.empty(w * h * 4, dtype=numpy.float32)
+        old.pixels.foreach_get(px)
+        px = px.reshape(-1, 4)
+        lum = px[:, :3] @ numpy.array([0.299, 0.587, 0.114], dtype=numpy.float32)
+        used = px[:, 3] > 0.5
+        mid = float(numpy.median(lum[used])) if used.any() else float(lum.mean())
+        shade = numpy.clip(lum / max(mid, 1e-3), 0.35, 1.6)[:, None]
+        paint = numpy.clip(shade * numpy.array(colour, dtype=numpy.float32), 0.0, 1.0)
+        px[:, :3] = (1 - RECOLOUR_KEEP) * paint + RECOLOUR_KEEP * px[:, :3]
+        # A new image, so the item's plain version (and its file) keeps its own.
+        new = bpy.data.images.new(old.name + " recoloured", w, h, alpha=True)
+        new.colorspace_settings.name = old.colorspace_settings.name
+        new.pixels.foreach_set(px.ravel())
+        new.update()
+        node.image = new
 
 
 def underwear_covered(obj, underwear):
@@ -702,8 +754,10 @@ def main():
         kept = {}
         slots = {}
         for slot, items in order:
-            for item, label in items:
+            for item, label, *colour in items:
                 obj = fit(slot, item, basemesh)
+                if colour:
+                    recolour(obj, colour[0])
                 hides, covers, patches = [], [], []
                 if slot in DRAPED:
                     drape(obj, body, DRAPED[slot], armpit)
@@ -712,7 +766,7 @@ def main():
                     clothes = [o for s in WORN_OVER[slot] for o in kept.get(s, [])]
                     if clothes:
                         layer_over(obj, clothes, CLOTHES_GAP)
-                if slot not in ("hair", "glasses"):
+                if slot not in OVER_FACE:
                     over, share = body.covered(obj)
                     hides = sorted(r for r, x in share.items() if x >= HIDES)
                     under = underwear_covered(obj, underwear_objs)
@@ -723,7 +777,10 @@ def main():
                         covers.append("torso")
                         covers.sort()
                     patches = [p for p in (body.patch(r, over, set(hides)) for r in hides) if p]
-                path = os.path.join(out, name, slot, item + ".glb")
+                # A repainted item is named for what it's called: the
+                # plain one may be in the catalogue too.
+                stem = item if not colour else item + "_" + label.lower().replace(" ", "_")
+                path = os.path.join(out, name, slot, stem + ".glb")
                 keep_alpha = slot in KEEP_ALPHA or uses_alpha(obj)
                 if keep_alpha and slot not in KEEP_ALPHA:
                     print("ALPHA", name, item)
@@ -762,6 +819,15 @@ def main():
                 "hides": ["head"], "covers": [], "skinMeshes": skin_patches})
             print("FACE", name, item, "%.0f KB" % (os.path.getsize(path) / 1024))
 
+        # The factions' looks: each slot's item by name, or None to take off
+        # what's there.
+        looks = []
+        for look, wear in LOOKS.get(name, {}).items():
+            for slot, label in wear.items():
+                if label is not None and label not in [it["name"] for it in slots.get(slot, [])]:
+                    raise SystemExit("%s: the %s look wears %r in %s, which isn't in the catalogue" % (name, look, label, slot))
+            looks.append({"name": look, "wear": wear})
+
         wardrobe["bodies"].append({
             "name": name,
             "model": os.path.relpath(os.path.join(out, name + ".glb"), os.path.dirname(out)),
@@ -771,6 +837,7 @@ def main():
             "underwear": underwear,
             "skins": skins,
             "slots": slots,
+            "looks": looks,
         })
     with open(os.path.join(out, "wardrobe.json"), "w") as f:
         json.dump(wardrobe, f, indent=1)

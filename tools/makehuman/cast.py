@@ -5,7 +5,8 @@ builds assets/characters from it: people.py builds each person in PEOPLE
 with the face in FACE and the clips in CLIPS and MIXAMO_CLIPS, traversal.py
 authors their traversal clips (the ladder climb's hips move by
 LADDER_HIPS), and wardrobe.py builds what each can wear from CATALOGUE, FACES and
-SKINS (see the README).
+SKINS, and the factions' looks from LOOKS (see the README). community.py
+fetches the community clothes in COMMUNITY that the catalogue uses.
 """
 
 # name: (gender 0 female .. 1 male, skin, clothes). The clothes are
@@ -45,24 +46,58 @@ FACE = {
     "neck/neck-scale-vert-incr": 0.25,
 }
 
-# What each person can wear: slot -> [(item, display name)]. Items are
-# MakeHuman assets (system assets and the shirts01, pants01 and glasses01
-# packs); "hair" items are in MPFB's hair folder, the rest in clothes. An
-# outfit is a one-piece top and bottom: wearing one takes off the top and
-# bottom, and the other way round.
+# Community clothes the catalogue uses besides the packs: folder name ->
+# the asset's number on makehumancommunity.org. All CC-BY, credited in
+# assets/characters/CREDITS.txt; community.py fetches and installs them.
+COMMUNITY = {
+    "elvs_male_coveralls_1": 2698,  # Elvs Male Coveralls 1, Elvaerwyn
+    "elvs_male_trench_coat_1": 1815,  # Elvs Male Trench Coat1, Elvaerwyn
+    "brkurt_big_desert_poncho": 64,  # Big Desert Poncho, brkurt
+    "punkduck_uniform_jacket": 629,  # uniform jacket (train driver), punkduck
+    "punkduck_uniform_pants": 630,  # uniform pants (train driver), punkduck
+    "punkduck_goggles": 664,  # Goggles, punkduck
+    "mathias_gredal_gas_mask": 2715,  # Gas Mask, Mathias_Gredal
+    "wojackowl_surgical_mask": 3644,  # Surgical Mask, WojackOWL
+}
+
+# The factions' colours (docs/look-and-feel.md), in sRGB as textures hold
+# them: an item given one is repainted in it, keeping its texture's folds,
+# seams and wear.
+CREW_ORANGE = (0.90, 0.47, 0.14)
+CHARTER_NAVY = (0.12, 0.16, 0.32)
+CHARTER_WHITE = (0.90, 0.90, 0.87)
+REGISTRAR_BLACK = (0.16, 0.16, 0.17)
+REGISTRAR_GREY = (0.40, 0.39, 0.37)
+BLEACHED = (0.80, 0.72, 0.56)
+
+# What each person can wear: slot -> [(item, display name)], or (item,
+# display name, colour) for an item repainted in one of the colours above.
+# Items are MakeHuman assets (system assets, the shirts01, pants01 and
+# glasses01 packs, and COMMUNITY); "hair" items are in MPFB's hair folder,
+# the rest in clothes. An outfit is a one-piece top and bottom: wearing one
+# takes off the top and bottom, and the other way round. A coat is worn over
+# either. A mask is worn over the face: out of the dome and the Hull the
+# air's thin and dusty (docs/settlement.md).
 CATALOGUE = {
     "man": {
         "hair": [("short02", "Short"), ("short04", "Crop"), ("short01", "Side part"),
                  ("afro01", "Afro"), ("braid01", "Braids")],
         "glasses": [("frankyaye_glasses_library_male", "Library"), ("kwnet_at_optical_glasses", "Optical"),
-                    ("toigo_round_glasses_leopard", "Round")],
+                    ("toigo_round_glasses_leopard", "Round"), ("punkduck_goggles", "Goggles")],
+        "mask": [("mathias_gredal_gas_mask", "Rebreather"), ("wojackowl_surgical_mask", "Dust mask")],
         "top": [("joepal_crude_t-shirt_female", "T-shirt"), ("namuhekam_male_polo_shirt", "Polo"),
-                ("toigo_fisherman_sweater", "Sweater")],
+                ("toigo_fisherman_sweater", "Sweater"),
+                ("punkduck_uniform_jacket", "Charter jacket"),
+                ("toigo_fisherman_sweater", "Grey sweater", REGISTRAR_GREY)],
         "bottom": [("cortu_cargo_pants", "Cargo pants"), ("toigo_wool_pants", "Trousers"),
-                   ("cortu_jeans_shorts", "Jeans shorts")],
+                   ("cortu_jeans_shorts", "Jeans shorts"),
+                   ("punkduck_uniform_pants", "Charter trousers", CHARTER_WHITE)],
         "outfit": [("male_casualsuit01", "Denim shirt & jeans"), ("male_casualsuit03", "Striped shirt & jeans"),
                    ("male_casualsuit05", "Jacket & jeans"), ("male_casualsuit06", "White tee & jeans"),
-                   ("male_worksuit01", "Overalls"), ("male_elegantsuit01", "Suit & tie")],
+                   ("male_worksuit01", "Overalls"), ("male_elegantsuit01", "Suit & tie"),
+                   ("elvs_male_coveralls_1", "Crew coveralls", CREW_ORANGE),
+                   ("brkurt_big_desert_poncho", "Desert poncho", BLEACHED)],
+        "coat": [("elvs_male_trench_coat_1", "Registrar coat", REGISTRAR_BLACK)],
         "shoes": [("shoes05", "White trainers"), ("shoes06", "Blue trainers"), ("shoes02", "Grey sneakers"),
                   ("shoes01", "Brown brogues"), ("shoes04", "Black shoes"), ("shoes03", "Boots")],
     },
@@ -70,16 +105,42 @@ CATALOGUE = {
         "hair": [("bob02", "Bob"), ("ponytail01", "Ponytail"), ("long01", "Long"),
                  ("afro01", "Afro"), ("braid01", "Braids"), ("short03", "Pixie")],
         "glasses": [("kwnet_at_optical_glasses", "Optical"), ("toigo_round_glasses_leopard", "Round"),
-                    ("spamrakuen_sagerfrogs_glasses_02", "Frames")],
+                    ("spamrakuen_sagerfrogs_glasses_02", "Frames"), ("punkduck_goggles", "Goggles")],
+        "mask": [("mathias_gredal_gas_mask", "Rebreather"), ("wojackowl_surgical_mask", "Dust mask")],
         "top": [("joepal_crude_t-shirt_female", "T-shirt"), ("toigo_keyhole_tank_top", "Tank top"),
-                ("toigo_camisole_top", "Camisole"), ("toigo_fisherman_sweater", "Sweater")],
+                ("toigo_camisole_top", "Camisole"), ("toigo_fisherman_sweater", "Sweater"),
+                ("punkduck_uniform_jacket", "Charter jacket"),
+                ("toigo_fisherman_sweater", "Grey sweater", REGISTRAR_GREY)],
         "bottom": [("cortu_cargo_pants", "Cargo pants"), ("toigo_harem_pants", "Harem pants"),
-                   ("cortu_jeans_shorts", "Jeans shorts")],
+                   ("cortu_jeans_shorts", "Jeans shorts"),
+                   ("punkduck_uniform_pants", "Charter trousers", CHARTER_WHITE)],
         "outfit": [("female_casualsuit01", "Tee & jeans"), ("female_casualsuit02", "Tee & shorts"),
-                   ("female_sportsuit01", "Sportswear"), ("female_elegantsuit01", "Blouse & skirt")],
+                   ("female_sportsuit01", "Sportswear"), ("female_elegantsuit01", "Blouse & skirt"),
+                   ("elvs_male_coveralls_1", "Crew coveralls", CREW_ORANGE),
+                   ("brkurt_big_desert_poncho", "Desert poncho", BLEACHED)],
+        "coat": [("elvs_male_trench_coat_1", "Registrar coat", REGISTRAR_BLACK)],
         "shoes": [("shoes05", "White trainers"), ("shoes06", "Blue trainers"), ("shoes04", "Black shoes"),
                   ("shoes03", "Boots")],
     },
+}
+
+# The factions' looks (docs/look-and-feel.md, docs/factions.md): a whole
+# outfit to put on at once, so each reads at a glance, and so a contract can
+# dress someone as one of them. Slot -> display name from CATALOGUE; None
+# takes off what's in that slot, and slots left out (hair, face) are kept.
+_LOOKS = {
+    "Crew": {"outfit": "Crew coveralls", "coat": None, "shoes": "Boots", "mask": None, "glasses": None},
+    "Charter": {"top": "Charter jacket", "bottom": "Charter trousers", "coat": None, "shoes": "Black shoes",
+                "mask": None, "glasses": None},
+    "Registrar": {"top": "Grey sweater", "bottom": "Cargo pants", "coat": "Registrar coat", "shoes": "Black shoes",
+                  "mask": None},
+    "Fringer": {"outfit": "Desert poncho", "coat": None, "shoes": "Boots", "mask": "Rebreather", "glasses": None},
+    "Corvane": {"outfit": None, "coat": None, "shoes": "Black shoes", "mask": None, "glasses": None},
+}
+LOOKS = {
+    "man": {**_LOOKS, "Registrar": {**_LOOKS["Registrar"], "bottom": "Trousers"},
+            "Corvane": {**_LOOKS["Corvane"], "outfit": "Suit & tie"}},
+    "woman": {**_LOOKS, "Corvane": {**_LOOKS["Corvane"], "outfit": "Blouse & skirt"}},
 }
 
 # The faces on offer besides the one the bodies are built with (FACE,

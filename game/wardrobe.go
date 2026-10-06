@@ -16,10 +16,12 @@ import (
 // their front; Up/Down pick a row and Left/Right change it, or click its
 // arrows.
 
-// Rows: the body, the skin tone, then one per character.Slot.
+// Rows: the body, the skin tone, a faction's look, then one per
+// character.Slot.
 const (
 	rowBody = iota
 	rowTone
+	rowLook
 	rowSlots
 	rowCount = rowSlots + int(character.SlotCount)
 )
@@ -40,6 +42,19 @@ func cycleRow(w *character.Wardrobe, o character.Outfit, row, step int) characte
 			o.Tone = wrap(o.Tone+step, n)
 		}
 		return o
+	case rowLook:
+		// Looks cycle on from whichever is worn, or from the first.
+		n := len(w.Bodies[o.Body].Looks)
+		if n == 0 {
+			return o
+		}
+		next := 0
+		if i, ok := w.LookOf(o); ok {
+			next = wrap(i+step, n)
+		} else if step < 0 {
+			next = n - 1
+		}
+		return w.Wear(o, next)
 	}
 	slot := character.Slot(row - rowSlots)
 	n := len(w.Bodies[o.Body].Items[slot])
@@ -69,6 +84,11 @@ func rowText(w *character.Wardrobe, o character.Outfit, row int) (label, value s
 			return "Skin", body.Tones[o.Tone].Name
 		}
 		return "Skin", "-"
+	case rowLook:
+		if i, ok := w.LookOf(o); ok {
+			return "Look", body.Looks[i].Name
+		}
+		return "Look", "Own"
 	}
 	slot := character.Slot(row - rowSlots)
 	if i, ok := o.Item(slot); ok && i < len(body.Items[slot]) {

@@ -24,6 +24,26 @@ shirts01, pants01 and glasses01 packs
 (https://static.makehumancommunity.org/assets/assetpacks.html), fitted to
 the bodies with MPFB.
 
+Faction clothes and masks, MakeHuman community assets (CC-BY 4.0), fitted
+to the bodies with MPFB and some repainted in the factions' colours:
+  "Elvs Male Coveralls 1" by Elvaerwyn (Crew coveralls),
+       http://www.makehumancommunity.org/clothes/elvs_male_coveralls_1.html
+  "Elvs Male Trench Coat1" by Elvaerwyn (Registrar coat),
+       http://www.makehumancommunity.org/clothes/elvs_male_trench_coat1.html
+  "Big Desert Poncho" by brkurt (Desert poncho),
+       http://www.makehumancommunity.org/clothes/big_desert_poncho.html
+  "uniform jacket (train driver)" and "uniform pants (train driver)" by
+       punkduck (Charter jacket and trousers),
+       http://www.makehumancommunity.org/clothes/uniform_jacket_train_driver.html
+       http://www.makehumancommunity.org/clothes/uniform_pants_train_driver.html
+  "Goggles" by punkduck, http://www.makehumancommunity.org/clothes/goggles.html
+  "Gas Mask" by Mathias_Gredal (Rebreather),
+       http://www.makehumancommunity.org/clothes/gas_mask.html
+  "Surgical Mask" by WojackOWL (Dust mask),
+       http://www.makehumancommunity.org/clothes/surgical_mask.html
+  Each is listed by number in tools/makehuman/cast.py's COMMUNITY; their
+  materials are trimmed to the base colour texture.
+
 Built by tools/makehuman/people.py (make people) and
 tools/makehuman/wardrobe.py (make wardrobe); see the README.
 https://creativecommons.org/publicdomain/zero/1.0/

@@ -317,6 +317,18 @@ skins to `assets/characters/skins/`, and lists it all in
 `assets/characters/wardrobe.json`, which the game loads. The items are the
 MakeHuman system hair, shoes and suits, and the shirts01, pants01 and
 glasses01 packs, all CC0: install those three packs like the others below.
+The factions' clothes and the masks are MakeHuman community assets (CC-BY,
+credited in `assets/characters/CREDITS.txt`): `make wardrobe` first runs
+`tools/makehuman/community.py`, which fetches the ones in `cast.py`'s
+`COMMUNITY` into `build/makehuman/` and installs them for MPFB. An item can
+be repainted in a faction's colour (a third value in its `CATALOGUE` entry),
+keeping its texture's folds and wear.
+
+The slots are face, hair, glasses, mask (a rebreather or dust mask, for the
+air outside), top, bottom, outfit (a one-piece), coat (worn over either) and
+shoes. `cast.py`'s `LOOKS` are the factions' looks (Crew, Charter,
+Registrar, Fringer, Corvane): a whole outfit put on at once, from the
+wardrobe's Look row in the game, or by code with `Wardrobe.Wear`.
 
 ### The look
 

@@ -21,7 +21,10 @@ import (
 // stood at Player, and the camera orbiting them at Yaw and Pitch (as the
 // mouse turns it in play), or, if Eye is set, there looking at Target. All
 // in the game's frame (Y up), in metres. With Ground, the player stands on
-// the terrain at Player's X and Z, whatever its Y.
+// the terrain at Player's X and Z, whatever its Y. With Look, the player
+// wears that faction's look (docs/look-and-feel.md), by name. Keep an Eye
+// near its Player: the scene is still culled from where the orbit camera
+// round the Player would be, so pieces vanish from an Eye far from it.
 type View struct {
 	Name   string      `json:"name"`
 	Player [3]float32  `json:"player"`
@@ -30,6 +33,7 @@ type View struct {
 	Pitch  float32     `json:"pitch"`
 	Eye    *[3]float32 `json:"eye,omitempty"`
 	Target *[3]float32 `json:"target,omitempty"`
+	Look   string      `json:"look,omitempty"`
 }
 
 // tourSettle is how many frames the tour waits at a view before taking it:
@@ -55,10 +59,12 @@ func Tour(viewsFile, out string) error {
 	app := build(&menu{})
 	// After the camera's followed the player, and before transforms are
 	// propagated for drawing.
-	app.AddSystems(illusion.PostUpdate, illusion.Fn3(func(
+	app.AddSystems(illusion.PostUpdate, illusion.Fn5(func(
 		players *illusion.Query2Where[transform.Transform, physics.CharacterController, illusion.With[character.Player]],
 		cameras *illusion.Query2[transform.Transform, render.Camera3d],
 		o *illusion.Res[orbit],
+		outfits *illusion.Query1Where[character.Outfit, illusion.With[character.Player]],
+		wardrobe *illusion.Res[character.Wardrobe],
 	) {
 		if at >= len(views) {
 			return
@@ -67,6 +73,16 @@ func Tour(viewsFile, out string) error {
 		p := rl.Vector3{X: v.Player[0], Y: v.Player[1], Z: v.Player[2]}
 		if v.Ground {
 			p.Y = groundHeight(p.X, p.Z) + groundLevel + 1
+		}
+		if v.Look != "" && frames == 0 {
+			w := wardrobe.Get()
+			outfits.Each(func(_ ecs.Entity, out *character.Outfit) {
+				for i, l := range w.Bodies[out.Body].Looks {
+					if l.Name == v.Look {
+						*out = w.Wear(*out, i)
+					}
+				}
+			})
 		}
 		// Held there until they've landed, then left to stand.
 		if frames < 40 {

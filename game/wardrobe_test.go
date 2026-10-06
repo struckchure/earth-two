@@ -65,3 +65,29 @@ func TestCycleBodyAndTone(t *testing.T) {
 		t.Errorf("body wraps: %q, want Man", got)
 	}
 }
+
+func TestCycleLook(t *testing.T) {
+	w := menuWardrobe()
+	man := &w.Bodies[0]
+	man.Looks = []character.Look{
+		character.NewLook("Corvane", map[character.Slot]int{character.OnePiece: 0}),
+		character.NewLook("Casual", map[character.Slot]int{character.Top: 1}, character.OnePiece),
+	}
+	var o character.Outfit
+	if _, got := rowText(w, o, rowLook); got != "Own" {
+		t.Fatalf("bare: %q, want Own", got)
+	}
+	for _, want := range []string{"Corvane", "Casual", "Corvane"} {
+		o = cycleRow(w, o, rowLook, 1)
+		if _, got := rowText(w, o, rowLook); got != want {
+			t.Fatalf("cycling looks: %q, want %q", got, want)
+		}
+	}
+	if _, got := rowText(w, o, rowSlots+int(character.OnePiece)); got != "Suit & tie" {
+		t.Errorf("Corvane's one-piece: %q, want Suit & tie", got)
+	}
+	o = cycleRow(w, o, rowSlots+int(character.Top), 1)
+	if _, got := rowText(w, o, rowLook); got != "Own" {
+		t.Errorf("after changing the top: %q, want Own", got)
+	}
+}

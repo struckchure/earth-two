@@ -22,17 +22,22 @@ const (
 	Face Slot = iota
 	Hair
 	Glasses
+	// Mask is worn over the face: a rebreather or a dust mask, for the thin,
+	// dusty air outside the dome and the Hull.
+	Mask
 	Top
 	Bottom
 	// OnePiece is a top and bottom in one (a suit, overalls): wearing one
 	// takes off the Top and Bottom, and wearing either takes it off.
 	OnePiece
+	// Coat is worn over the top and bottom, or a one-piece.
+	Coat
 	Shoes
 	SlotCount
 )
 
 // slotKeys are the slots' names in wardrobe.json.
-var slotKeys = [SlotCount]string{"face", "hair", "glasses", "top", "bottom", "outfit", "shoes"}
+var slotKeys = [SlotCount]string{"face", "hair", "glasses", "mask", "top", "bottom", "outfit", "coat", "shoes"}
 
 func (s Slot) String() string {
 	switch s {
@@ -42,12 +47,16 @@ func (s Slot) String() string {
 		return "Hair"
 	case Glasses:
 		return "Glasses"
+	case Mask:
+		return "Mask"
 	case Top:
 		return "Top"
 	case Bottom:
 		return "Bottom"
 	case OnePiece:
 		return "Outfit"
+	case Coat:
+		return "Coat"
 	case Shoes:
 		return "Shoes"
 	}
@@ -97,6 +106,27 @@ type Item struct {
 	unlined map[int]bool // the meshes that get no outline
 }
 
+// Look is a faction's whole outfit, put on at once (Wardrobe.Wear): what it
+// wears in each slot it names, by item index + 1, or -1 to take off what's
+// there; 0 leaves a slot as it is (the hair, the face).
+type Look struct {
+	Name string
+	wear [SlotCount]int
+}
+
+// NewLook makes a look that puts on put's items (slot -> item index) and
+// takes off what's in off.
+func NewLook(name string, put map[Slot]int, off ...Slot) Look {
+	l := Look{Name: name}
+	for s, i := range put {
+		l.wear[s] = i + 1
+	}
+	for _, s := range off {
+		l.wear[s] = -1
+	}
+	return l
+}
+
 // Tone is a skin: the texture that replaces the body's.
 type Tone struct {
 	Name    string
@@ -118,6 +148,8 @@ type BodyWardrobe struct {
 	FaceMeshes []int
 	Tones      []Tone
 	Items      [SlotCount][]Item
+	// Looks are the factions' looks (docs/look-and-feel.md).
+	Looks []Look
 }
 
 // Wardrobe is a resource: what each body in the roster can wear, by the
@@ -156,6 +188,42 @@ func (b *BodyWardrobe) unlined() map[int]bool {
 func (w *Wardrobe) Find(body int, slot Slot, name string) (int, bool) {
 	for i, it := range w.Bodies[body].Items[slot] {
 		if it.Name == name {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+// Wear returns o in look (an index into its body's Looks).
+func (w *Wardrobe) Wear(o Outfit, look int) Outfit {
+	l := w.Bodies[o.Body].Looks[look]
+	// Take off first, then put on, so a one-piece and a top and bottom
+	// named in one look don't take each other off.
+	for s, x := range l.wear {
+		if x < 0 {
+			o.Remove(Slot(s))
+		}
+	}
+	for s, x := range l.wear {
+		if x > 0 {
+			o.Put(Slot(s), x-1)
+		}
+	}
+	return o
+}
+
+// LookOf returns which of its body's Looks o is wearing: the first whose
+// every named slot matches.
+func (w *Wardrobe) LookOf(o Outfit) (int, bool) {
+	for i, l := range w.Bodies[o.Body].Looks {
+		match := true
+		for s, x := range l.wear {
+			if x != 0 && (x < 0 && o.wear[s] != 0 || x > 0 && o.wear[s] != x) {
+				match = false
+				break
+			}
+		}
+		if match {
 			return i, true
 		}
 	}
@@ -245,6 +313,10 @@ type wardrobeFile struct {
 			Covers     []string `json:"covers"`
 			SkinMeshes []int    `json:"skinMeshes"`
 		} `json:"slots"`
+		Looks []struct {
+			Name string             `json:"name"`
+			Wear map[string]*string `json:"wear"`
+		} `json:"looks"`
 	} `json:"bodies"`
 }
 
@@ -299,6 +371,24 @@ func loadWardrobe(
 					}
 					bw.Items[s] = append(bw.Items[s], item)
 				}
+			}
+			for _, l := range b.Looks {
+				look := Look{Name: l.Name}
+				for s, key := range slotKeys {
+					name, named := l.Wear[key]
+					switch {
+					case !named:
+					case name == nil:
+						look.wear[s] = -1
+					default:
+						item, ok := w.Find(i, Slot(s), *name)
+						if !ok {
+							return nil, fmt.Errorf("%s: %s's %s look wears %q, which it hasn't got", path, b.Name, l.Name, *name)
+						}
+						look.wear[s] = item + 1
+					}
+				}
+				bw.Looks = append(bw.Looks, look)
 			}
 		}
 	}

@@ -137,6 +137,29 @@
       "hides": [],
       "covers": [],
       "skinMeshes": []
+     },
+     {
+      "name": "Goggles",
+      "path": "characters/man/glasses/punkduck_goggles.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     }
+    ],
+    "mask": [
+     {
+      "name": "Rebreather",
+      "path": "characters/man/mask/mathias_gredal_gas_mask.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Dust mask",
+      "path": "characters/man/mask/wojackowl_surgical_mask.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
      }
     ],
     "top": [
@@ -157,6 +180,33 @@
      {
       "name": "Sweater",
       "path": "characters/man/top/toigo_fisherman_sweater.glb",
+      "hides": [
+       "torso",
+       "upperarms"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2
+      ]
+     },
+     {
+      "name": "Charter jacket",
+      "path": "characters/man/top/punkduck_uniform_jacket.glb",
+      "hides": [
+       "forearms",
+       "torso",
+       "upperarms"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2
+      ]
+     },
+     {
+      "name": "Grey sweater",
+      "path": "characters/man/top/toigo_fisherman_sweater_grey_sweater.glb",
       "hides": [
        "torso",
        "upperarms"
@@ -196,6 +246,19 @@
       "hides": [],
       "covers": [],
       "skinMeshes": []
+     },
+     {
+      "name": "Charter trousers",
+      "path": "characters/man/bottom/punkduck_uniform_pants_charter_trousers.glb",
+      "hides": [
+       "calves",
+       "hips",
+       "thighs"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1
+      ]
      }
     ],
     "outfit": [
@@ -292,6 +355,38 @@
        4,
        5
       ]
+     },
+     {
+      "name": "Crew coveralls",
+      "path": "characters/man/outfit/elvs_male_coveralls_1_crew_coveralls.glb",
+      "hides": [
+       "calves",
+       "forearms",
+       "torso",
+       "upperarms"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2,
+       3
+      ]
+     },
+     {
+      "name": "Desert poncho",
+      "path": "characters/man/outfit/brkurt_big_desert_poncho_desert_poncho.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     }
+    ],
+    "coat": [
+     {
+      "name": "Registrar coat",
+      "path": "characters/man/coat/elvs_male_trench_coat_1_registrar_coat.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
      }
     ],
     "shoes": [
@@ -397,7 +492,60 @@
       ]
      }
     ]
-   }
+   },
+   "looks": [
+    {
+     "name": "Crew",
+     "wear": {
+      "outfit": "Crew coveralls",
+      "coat": null,
+      "shoes": "Boots",
+      "mask": null,
+      "glasses": null
+     }
+    },
+    {
+     "name": "Charter",
+     "wear": {
+      "top": "Charter jacket",
+      "bottom": "Charter trousers",
+      "coat": null,
+      "shoes": "Black shoes",
+      "mask": null,
+      "glasses": null
+     }
+    },
+    {
+     "name": "Registrar",
+     "wear": {
+      "top": "Grey sweater",
+      "bottom": "Trousers",
+      "coat": "Registrar coat",
+      "shoes": "Black shoes",
+      "mask": null
+     }
+    },
+    {
+     "name": "Fringer",
+     "wear": {
+      "outfit": "Desert poncho",
+      "coat": null,
+      "shoes": "Boots",
+      "mask": "Rebreather",
+      "glasses": null
+     }
+    },
+    {
+     "name": "Corvane",
+     "wear": {
+      "outfit": "Suit & tie",
+      "coat": null,
+      "shoes": "Black shoes",
+      "mask": null,
+      "glasses": null
+     }
+    }
+   ]
   },
   {
    "name": "woman",
@@ -546,6 +694,29 @@
       "hides": [],
       "covers": [],
       "skinMeshes": []
+     },
+     {
+      "name": "Goggles",
+      "path": "characters/woman/glasses/punkduck_goggles.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     }
+    ],
+    "mask": [
+     {
+      "name": "Rebreather",
+      "path": "characters/woman/mask/mathias_gredal_gas_mask.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
+     },
+     {
+      "name": "Dust mask",
+      "path": "characters/woman/mask/wojackowl_surgical_mask.glb",
+      "hides": [],
+      "covers": [],
+      "skinMeshes": []
      }
     ],
     "top": [
@@ -590,6 +761,32 @@
        1,
        2
       ]
+     },
+     {
+      "name": "Charter jacket",
+      "path": "characters/woman/top/punkduck_uniform_jacket.glb",
+      "hides": [
+       "forearms"
+      ],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": []
+     },
+     {
+      "name": "Grey sweater",
+      "path": "characters/woman/top/toigo_fisherman_sweater_grey_sweater.glb",
+      "hides": [
+       "torso",
+       "upperarms"
+      ],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": [
+       1,
+       2
+      ]
      }
     ],
     "bottom": [
@@ -620,6 +817,20 @@
       "hides": [],
       "covers": [],
       "skinMeshes": []
+     },
+     {
+      "name": "Charter trousers",
+      "path": "characters/woman/bottom/punkduck_uniform_pants_charter_trousers.glb",
+      "hides": [
+       "calves",
+       "hips",
+       "thighs"
+      ],
+      "covers": [],
+      "skinMeshes": [
+       1,
+       2
+      ]
      }
     ],
     "outfit": [
@@ -665,6 +876,41 @@
       "covers": [
        "torso"
       ],
+      "skinMeshes": []
+     },
+     {
+      "name": "Crew coveralls",
+      "path": "characters/woman/outfit/elvs_male_coveralls_1_crew_coveralls.glb",
+      "hides": [
+       "calves",
+       "forearms",
+       "torso",
+       "upperarms"
+      ],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": [
+       1,
+       2
+      ]
+     },
+     {
+      "name": "Desert poncho",
+      "path": "characters/woman/outfit/brkurt_big_desert_poncho_desert_poncho.glb",
+      "hides": [],
+      "covers": [
+       "torso"
+      ],
+      "skinMeshes": []
+     }
+    ],
+    "coat": [
+     {
+      "name": "Registrar coat",
+      "path": "characters/woman/coat/elvs_male_trench_coat_1_registrar_coat.glb",
+      "hides": [],
+      "covers": [],
       "skinMeshes": []
      }
     ],
@@ -745,7 +991,60 @@
       ]
      }
     ]
-   }
+   },
+   "looks": [
+    {
+     "name": "Crew",
+     "wear": {
+      "outfit": "Crew coveralls",
+      "coat": null,
+      "shoes": "Boots",
+      "mask": null,
+      "glasses": null
+     }
+    },
+    {
+     "name": "Charter",
+     "wear": {
+      "top": "Charter jacket",
+      "bottom": "Charter trousers",
+      "coat": null,
+      "shoes": "Black shoes",
+      "mask": null,
+      "glasses": null
+     }
+    },
+    {
+     "name": "Registrar",
+     "wear": {
+      "top": "Grey sweater",
+      "bottom": "Cargo pants",
+      "coat": "Registrar coat",
+      "shoes": "Black shoes",
+      "mask": null
+     }
+    },
+    {
+     "name": "Fringer",
+     "wear": {
+      "outfit": "Desert poncho",
+      "coat": null,
+      "shoes": "Boots",
+      "mask": "Rebreather",
+      "glasses": null
+     }
+    },
+    {
+     "name": "Corvane",
+     "wear": {
+      "outfit": "Blouse & skirt",
+      "coat": null,
+      "shoes": "Black shoes",
+      "mask": null,
+      "glasses": null
+     }
+    }
+   ]
   }
  ]
 }

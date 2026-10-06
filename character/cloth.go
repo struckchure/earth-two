@@ -38,6 +38,8 @@ var clothKinds = map[Slot]clothKind{
 	Top:      {Touching: 0.02, Rate: 0.3, Most: 0.08, Stiffness: 0.045, Damping: 0.12, Bending: 0.6, Support: 0.10},
 	Bottom:   {Touching: 0.02, Rate: 0.25, Most: 0.05, Stiffness: 0.06, Damping: 0.16, Bending: 0.75},
 	OnePiece: {Touching: 0.02, Rate: 0.3, Most: 0.08, Stiffness: 0.045, Damping: 0.12, Bending: 0.6, Support: 0.10},
+	// A coat hangs looser than what's under it, and swings further.
+	Coat: {Touching: 0.03, Rate: 0.3, Most: 0.12, Stiffness: 0.04, Damping: 0.12, Bending: 0.55, Support: 0.10},
 }
 
 // bodyCapsules are the body's colliders: from one bone's origin to

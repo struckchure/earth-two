@@ -140,3 +140,45 @@ func TestTopReplacesTorsoUnderwear(t *testing.T) {
 		t.Fatalf("dress: hidden = %v, want torso underwear", got)
 	}
 }
+
+func TestWearLook(t *testing.T) {
+	b := BodyWardrobe{Name: "man"}
+	b.Items[Hair] = []Item{{Name: "Short"}}
+	b.Items[Mask] = []Item{{Name: "Rebreather"}}
+	b.Items[Top] = []Item{{Name: "T-shirt"}}
+	b.Items[OnePiece] = []Item{{Name: "Crew coveralls"}, {Name: "Desert poncho"}}
+	b.Looks = []Look{
+		NewLook("Crew", map[Slot]int{OnePiece: 0}, Mask),
+		NewLook("Fringer", map[Slot]int{OnePiece: 1, Mask: 0}),
+	}
+	w := &Wardrobe{Bodies: []BodyWardrobe{b}}
+	var o Outfit
+	o.Put(Hair, 0)
+	o.Put(Top, 0)
+	if _, ok := w.LookOf(o); ok {
+		t.Fatalf("a T-shirt is in a look")
+	}
+	o = w.Wear(o, 1)
+	if i, ok := o.Item(OnePiece); !ok || i != 1 {
+		t.Errorf("Fringer's one-piece: %d %v, want the poncho", i, ok)
+	}
+	if _, ok := o.Item(Mask); !ok {
+		t.Errorf("Fringer's rebreather isn't on")
+	}
+	if _, ok := o.Item(Top); ok {
+		t.Errorf("the T-shirt is still on under the poncho")
+	}
+	if i, ok := w.LookOf(o); !ok || i != 1 {
+		t.Errorf("LookOf: %d %v, want Fringer", i, ok)
+	}
+	o = w.Wear(o, 0)
+	if _, ok := o.Item(Mask); ok {
+		t.Errorf("the Crew look keeps the rebreather on")
+	}
+	if _, ok := o.Item(Hair); !ok {
+		t.Errorf("a look took off the hair, which it doesn't name")
+	}
+	if i, ok := w.LookOf(o); !ok || i != 0 {
+		t.Errorf("LookOf: %d %v, want Crew", i, ok)
+	}
+}

@@ -57,6 +57,7 @@ people:
 	$(PAINT_CHARACTERS)
 
 wardrobe:
+	python3 tools/makehuman/community.py
 	$(MAKEHUMAN) tools/makehuman/wardrobe.py -- assets/characters
 	$(PAINT_CHARACTERS)
 
