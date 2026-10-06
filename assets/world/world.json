@@ -2506,6 +2506,7 @@
       "rotation": [0.0, 0.0, 0.0, 1.0]
      }
     ],
+    "headlamps": [{"at": [-0.9, 1.4, 3.67], "radius": 0.065}, {"at": [0.9, 1.4, 3.67], "radius": 0.065}],
     "handling": "truck"
    },
    "sources": ["sketchfab:89ea8e69b87942a881f9b89fd04ec00f"]
@@ -2633,6 +2634,7 @@
       "rotation": [0.0, 0.0, 0.0, 1.0]
      }
     ],
+    "headlamps": [{"at": [-0.9, 1.4, 3.67], "radius": 0.065}, {"at": [0.9, 1.4, 3.67], "radius": 0.065}],
     "handling": "truck"
    },
    "sources": ["sketchfab:89ea8e69b87942a881f9b89fd04ec00f"]
@@ -2697,6 +2699,7 @@
       "rotation": [0.0, 0.0, 0.0, 1.0]
      }
     ],
+    "headlamps": [{"at": [0, 0.85, 0.53], "radius": 0.06}],
     "handling": "bike"
    },
    "sources": ["sketchfab:99290272e69d4cd8a56af2d2e1274e0d"]
@@ -2772,6 +2775,7 @@
       "rotation": [0.0, -0.70711, 0.0, 0.70711]
      }
     ],
+    "headlamps": [{"at": [-0.065, 0.475, 1.356], "radius": 0.032}, {"at": [0.065, 0.475, 1.356], "radius": 0.032}],
     "handling": "trike",
     "centerOfMass": [0.0, 0.25, 0.4]
    },
@@ -2850,6 +2854,7 @@
       "rotation": [0.0, 0.0, 0.0, 1.0]
      }
     ],
+    "headlamps": [{"at": [-0.68, 0.8, 1.845], "radius": 0.06}, {"at": [0.68, 0.8, 1.845], "radius": 0.06}],
     "handling": "buggy"
    },
    "sources": ["sketchfab:085bd97876a64eacbc041299ac945e9c"]
@@ -2957,6 +2962,7 @@
       "rotation": [0.0, 0.0, 0.0, 1.0]
      }
     ],
+    "headlamps": [{"at": [-0.9, 1.05, 1.895], "radius": 0.06}, {"at": [0.9, 1.05, 1.895], "radius": 0.06}],
     "handling": "rover"
    },
    "sources": ["sketchfab:e76d2a9172b54a62b89c9f18710d9cbc"]

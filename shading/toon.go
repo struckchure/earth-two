@@ -4,7 +4,7 @@ import "github.com/struckchure/illusion/render"
 
 // The toon shader: light and shadow in hard bands (the ground smoothly),
 // see-through what's less than opaque (dithered),
-// shadows tinted rather than darkened, the sun's shadows cut as hard, an
+// shaded faces tinted, cast shadows darkened to black with hard edges, an
 // ambient light from the sky above and the ground below, zones lit their own
 // way (inside the Hull, under the dome), lamps' light in soft-edged pools,
 // glowing what glows, a rim of light on the lit side of rounded things, the
@@ -44,6 +44,11 @@ uniform vec3 zoneMax[4];
 uniform float zoneBlend[4];
 uniform vec3 zoneAmbient[4];
 uniform vec3 zoneSun[4];
+uniform float spotCount;
+uniform vec4 spotPos[8]; // position and range
+uniform vec3 spotDir[8];
+uniform vec3 spotColor[8];
+uniform vec2 spotCone[8]; // cosines of outer and inner half angles
 
 out vec4 finalColor;
 
@@ -127,7 +132,8 @@ void main() {
         + 0.5 * smoothstep(midBand - softness, midBand + softness, facing);
     // In the shadow of something nearer the sun: as hard an edge as the
     // bands'.
-    lit *= smoothstep(0.25, 0.75, sunShadow(fragPosition, n, -lightDir));
+    float visibility = smoothstep(0.25, 0.75, sunShadow(fragPosition, n, -lightDir));
+    lit *= visibility;
 
     // The fill: from the sky above and the ground below. Then the zones,
     // each its own fill and its own share of the sun.
@@ -143,7 +149,10 @@ void main() {
         fill = mix(fill, zoneAmbient[i] * (0.8 + 0.2 * n.y), w);
         sun = mix(sun, lightColor * zoneSun[i], w);
     }
-    vec3 light = mix(fill * shadowColor, fill + sun, lit);
+    // Cast shadows darken the fill too, rather than painting the ground
+    // with the sky's blue or the shaded faces' violet. Lamps and emissive
+    // surfaces still add their own light below.
+    vec3 light = mix(fill * shadowColor * visibility, fill + sun, lit);
 
     // The lamps: each a pool of light, brighter nearer in, its edge soft;
     // fainter in the sun, which outshines them.
@@ -156,6 +165,19 @@ void main() {
         lamps += pointColor[i] * (0.45 * smoothstep(0.0, 0.12, a) + 0.55 * smoothstep(0.15, 0.5, a));
     }
     light += lamps * (1.0 - 0.75 * lit);
+    // Headlamps: forward cones with soft edges and distance falloff.
+    // They illuminate even a cast shadow, independently of the sun.
+    for (int i = 0; i < 8; i++) {
+        if (float(i) >= spotCount) {
+            break;
+        }
+        vec3 from = fragPosition - spotPos[i].xyz;
+        float d = length(from);
+        vec3 direction = from / max(d, 0.0001);
+        float cone = smoothstep(spotCone[i].x, spotCone[i].y, dot(direction, spotDir[i]));
+        float fall = max(1.0 - d / spotPos[i].w, 0.0);
+        light += spotColor[i] * cone * fall * fall * max(dot(n, -direction), 0.0);
+    }
     // What glows is lit at least as brightly as it glows.
     light = max(light, emissive);
 

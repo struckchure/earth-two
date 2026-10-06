@@ -774,6 +774,11 @@ class Piece:
         if camera:
             self.vehicle["camera"] = camera
 
+    def headlamp(self, at, radius: float = 0.06) -> None:
+        """A switchable forward lamp on the vehicle's bodywork. The game
+        draws its lens and lights the road from this mount."""
+        self.vehicle.setdefault("headlamps", []).append({"at": game_vec(at), "radius": radius})
+
     def wheel(self, at, radius: float, width: float, piece: str, steer: bool = False, drive: bool = True,
               handbrake: bool = False) -> None:
         """A wheel, its centre at at as the vehicle's parked, drawn with
@@ -829,6 +834,8 @@ class Piece:
             box["rotation"] = [round(v, 5) + 0.0 for v in (r.x, r.y, r.z, r.w)]
         for w in self.vehicle.get("wheels", []):
             w["at"] = [round(v, 4) + 0.0 for v in q @ Vector(w["at"])]
+        for lamp in self.vehicle.get("headlamps", []):
+            lamp["at"] = [round(v, 4) + 0.0 for v in q @ Vector(lamp["at"])]
         for seat in self.vehicle.get("seats", []):
             seat["at"] = [round(v, 4) + 0.0 for v in q @ Vector(seat["at"])]
             for k in ("exits", "grips", "pegs"):

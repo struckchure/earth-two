@@ -9,12 +9,14 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/render"
+	"github.com/struckchure/illusion/transform"
 )
 
 // Plugin draws the world with the toon shader. It goes after the default
 // plugins.
 type Plugin struct {
-	// ShadowColor tints the ambient light in the shadows.
+	// ShadowColor tints the ambient light on shaded faces. Cast shadows
+	// darken this fill towards black.
 	ShadowColor color.RGBA
 	// Softness is how wide the edges between the bands are, in the cosine
 	// of the angle to the light; MidBand is where the half-lit band ends.
@@ -131,9 +133,11 @@ func (pl Plugin) Build(app *illusion.App) {
 		uniforms[fmt.Sprintf("zoneSun[%d]", i)] = rgb(z.Sun)
 	}
 	uniforms["veil"] = []float32{0}
+	uniforms["spotCount"] = []float32{0}
 	toon := &render.Shader{Fragment: toonFragment, Uniforms: uniforms}
 	app.InsertResource(illusion.R(toon))
 	app.InsertResource(illusion.R(&Haze{Color: pl.FogColor, Distance: pl.FogDistance, End: pl.FogEnd}))
+	app.AddSystems(illusion.PostUpdate, illusion.Fn3(gatherSpots).After(transform.Propagate))
 	Outline.Uniforms = map[string][]float32{
 		"outlineColor": rgb(pl.OutlineColor),
 		"reach":        {outlineReach},

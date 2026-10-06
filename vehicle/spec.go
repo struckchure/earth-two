@@ -35,6 +35,15 @@ type Spec struct {
 	Chassis []Box       `json:"chassis"`
 	Wheels  []WheelSpec `json:"wheels"`
 	Seats   []SeatSpec  `json:"seats"`
+	// Headlamps are mounts on the bodywork. Omitted mounts are inferred
+	// from the chassis for vehicles without authored lamp positions.
+	Headlamps []HeadlampSpec `json:"headlamps"`
+}
+
+// HeadlampSpec is a lamp's lens centre and radius, in metres.
+type HeadlampSpec struct {
+	At     [3]float32 `json:"at"`
+	Radius float32    `json:"radius"`
 }
 
 // Box is a box of a vehicle's chassis: its middle, its full size along its
