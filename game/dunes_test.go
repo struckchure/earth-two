@@ -29,11 +29,12 @@ func TestVehiclesKeepToTheDunes(t *testing.T) {
 		t.Run(piece, func(t *testing.T) {
 			worst, rocks := driveDunes(t, piece)
 			t.Logf("%s: worst %.1f° off the ground, rocked side to side %d times", piece, worst, rocks)
-			// A bike leans into its turns; the rest keep to the ground but
-			// for their suspension.
+			// A bike leans into its turns, as far as its lean goes, and a
+			// dune's slope across a turn adds to that off the ground; the
+			// rest keep to the ground but for their suspension.
 			limit := 30.0
 			if piece == "bike" {
-				limit = 45
+				limit = float64(vehicle.Handlings["bike"].Lean.MaxAngle*rl.Rad2deg) + 15
 			}
 			// (Light vehicles hop dunes at speed, a side's wheels off the
 			// ground for a moment; rocking that's a fault leans them far
