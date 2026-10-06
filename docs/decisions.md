@@ -25,6 +25,8 @@ links to the doc that covers it in full.
 | Seasons | Three months; filings are tallied and the world resets | [Story](story.md) |
 | Season winner | The richest player by net worth, whatever their rank, wins a share of the season's economy | [Shared world](shared-world.md) |
 | Late joiners | A story runs from arrival to season end, so late joiners get less time | [Story](story.md) |
+| Day and night | The Red turns once a real day at Landfall (against the tidal-locking science, for the real-time clock): the sun rises about 05:00 Landfall time (UTC), crosses the south low at noon and sets about 19:00, with a violet dusk and dawn and a dark, starred night | [Look and feel](look-and-feel.md) |
+| Weather | Mostly clear. Now and then a dusty spell, and once in a while a dust storm, the same for everyone, by the real clock | [Look and feel](look-and-feel.md) |
 | Player killing | Allowed; respawning costs points, or becomes a debt to whoever covers it | [The Exchange](exchange.md) |
 | Debt trading | Players can buy and sell each other's debts | [Economy](economy.md) |
 | Selling a slot | By auction or direct sale; the buyer inherits everything but the avatar's name and look | [Shared world](shared-world.md) |
@@ -32,8 +34,6 @@ links to the doc that covers it in full.
 | Walk-out estate | Whoever takes the open slot inherits whatever hasn't sold yet | [Shared world](shared-world.md) |
 
 ## Open
-
-- **Day and night.** TRAPPIST-1e is most likely tidally locked, one face always to its star, so its sun wouldn't move and a "day" would last its 6.1-day orbit. That doesn't fit a real-time clock where one in-game day is one real day, or a violet dusk. Is Landfall on a slowly turning Red (a day cycle against the science), or on the lit side's edge with the sun always low and dusk only in storms? The game draws the sun fixed, low, for now.
 
 - **Respawn points.** What are "points", and how does a player earn them? Are they marks, or a separate currency?
 - **The Receivership's arrival.** Act 2 ends with the ship entering orbit, but the ship is a shared world event and stories are personal. Does the ship arrive at a fixed point in each season (say, the last few weeks), with players who aren't at Act 3 yet still able to work for or against it?

@@ -3,6 +3,7 @@ package game
 import (
 	"math"
 	"testing"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
@@ -12,8 +13,38 @@ func TestTheSunIsTRAPPIST1FromTheRed(t *testing.T) {
 	if d := 2 * sunRadius() * 180 / math.Pi; d < 2.1 || d > 2.3 {
 		t.Errorf("the sun is %.2f° across, want about 2.2°", d)
 	}
-	if up := math.Asin(float64(sunFrom.Y)) * 180 / math.Pi; up < 10 || up > 30 {
-		t.Errorf("the sun is %.0f° up, want it low (10° to 30°)", up)
+}
+
+func TestTheSunRisesAndSets(t *testing.T) {
+	// Over a day: up from about 05:00 to 19:00, low even at noon, down in
+	// the night; dusk's colour at the ends of the day, dark at midnight.
+	day := time.Date(2026, 10, 6, 0, 0, 0, 0, time.UTC)
+	at := func(h float64) rl.Vector3 { return sunAt(day.Add(time.Duration(h * float64(time.Hour)))) }
+	upAt := func(h float64) float64 { return math.Asin(float64(at(h).Y)) * 180 / math.Pi }
+	for _, h := range []float64{6, 9, 12, 15, 18} {
+		if up := upAt(h); up <= 0 {
+			t.Errorf("at %v:00 the sun's down (%.1f°), want it up", h, up)
+		}
+	}
+	for _, h := range []float64{0, 2, 22} {
+		if up := upAt(h); up >= 0 {
+			t.Errorf("at %v:00 the sun's up (%.1f°), want night", h, up)
+		}
+	}
+	if noon := upAt(12); noon > 32 {
+		t.Errorf("at noon the sun's %.1f° up, want it low", noon)
+	}
+	if d := duskAt(at(12)); d > 0 {
+		t.Errorf("at noon, %v of dusk's colour", d)
+	}
+	if d := duskAt(at(18.7)); d < .5 {
+		t.Errorf("at 18:42, only %v of dusk's colour", d)
+	}
+	if n := nightAt(at(0)); n < 1 {
+		t.Errorf("at midnight, only %v of the way into night", n)
+	}
+	if n := nightAt(at(12)); n > 0 {
+		t.Errorf("at noon, %v of the way into night", n)
 	}
 }
 
@@ -95,5 +126,41 @@ func TestGlareThinsOut(t *testing.T) {
 	}
 	if g := glare(90 * math.Pi / 180); g > .1 {
 		t.Errorf("glare a quarter of the sky away %v, want it all but gone", g)
+	}
+}
+
+func TestTheStarsAreMostlyFaint(t *testing.T) {
+	// Brightest first; most faint, a few bright; every colour there.
+	if len(stars) != starCount+starBand {
+		t.Fatalf("%d stars, want %d", len(stars), starCount+starBand)
+	}
+	bright, colours := 0, map[rl.Color]bool{}
+	for i, s := range stars {
+		if i > 0 && s.bright > stars[i-1].bright {
+			t.Fatalf("star %d is brighter than the one before it", i)
+		}
+		if s.bright > .75 {
+			bright++
+		}
+		colours[s.colour] = true
+	}
+	if bright < 10 || bright > len(stars)/20 {
+		t.Errorf("%d bright stars of %d, want a few", bright, len(stars))
+	}
+	if len(colours) != len(starClasses) {
+		t.Errorf("%d star colours, want %d", len(colours), len(starClasses))
+	}
+	if median := stars[len(stars)/2].bright; median > .35 {
+		t.Errorf("the median star is %v bright, want most faint", median)
+	}
+}
+
+func TestTheMilkyWayIsABand(t *testing.T) {
+	// Bright along its plane, nothing at its poles.
+	if b := milkyWay(galaxyCore); b < .2 {
+		t.Errorf("at its core the Milky Way is %v bright", b)
+	}
+	if b := milkyWay(galaxyPole); b > .01 {
+		t.Errorf("at its pole the Milky Way is %v bright, want none", b)
 	}
 }

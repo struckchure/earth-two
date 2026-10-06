@@ -362,14 +362,31 @@ dome is seen through without sorting what's drawn. To go with it,
 painted look, in place. It marks what it paints and skips it next time, so
 it's safe to run again.
 
-Dust storms are the weather (`game/weather.go`). They come by the real
-clock, so everyone in the shared world sees the same one: each eight hours
-may bring one, half an hour to an hour and a half long, blowing up and
-dying down over minutes. A storm draws the haze in brown to a couple of
-hundred metres, puts the sky and the sun behind the dust, dims the sun and
-browns the fill, and blows grit across the view; under the dome the glass
-keeps most of it out. `EARTH_TWO_STORM=1` (0 to 1) holds a storm that hard,
-for looking at one: `EARTH_TWO_STORM=1 go run ./tools/tour`.
+The sun moves on the real clock (`game/daylight.go`), Landfall time being
+UTC: it rises about 05:00, crosses the south no higher than 30° at noon,
+and sets about 19:00, with a violet dusk and dawn and a dark night under
+the stars, lit by the lamps and beacons and the neighbour planets. The sky
+is painted again round the sun as it moves, off the main thread. The night
+sky (`game/stars.go`) is about 14,000 stars drawn as points, most faint and
+a few bright, coloured by how hot they are and thick along the Milky Way,
+with the Milky Way itself (dust lanes and a brighter core) and the airglow
+painted into the sky; they wheel round the pole through the night, twinkle,
+fade low down, and go behind any dust in the air. In the browser only the
+brightest 2,500 are drawn. `EARTH_TWO_HOUR` (0 to 24) holds it at that
+hour, and the test panel's Time of day switch does too. The clock under the
+minimap (`game/clock.go`) shows the time, the part of the day, the weather,
+and the day as a strip with now on it.
+
+The weather is dust (`game/weather.go`), by the real clock, so everyone in
+the shared world has the same: mostly clear; now and then (about a tenth of
+the time) a dusty spell of an hour or two; and once in a while (a storm
+every few days, two in a hundred hours) a dust storm of half an hour to an
+hour and a half, blowing up and dying down over minutes. A storm draws the
+haze in brown to a couple of hundred metres, puts the sky and the sun
+behind the dust, dims the sun and browns the fill, and blows grit across
+the view; under the dome the glass keeps most of it out.
+`EARTH_TWO_STORM=1` (0 to 1) holds a storm that hard, for looking at one:
+`EARTH_TWO_STORM=1 go run ./tools/tour`.
 
 The ground itself is built in `game/terrain.go` from one height function:
 dunes, ridges, canyons whose steep sides show their rock in beds, sand

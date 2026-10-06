@@ -15,31 +15,51 @@ import (
 	"github.com/struckchure/illusion/window"
 )
 
-// The weather: dust storms, the Red's main weather (docs/look-and-feel.md).
-// A storm turns the light brown and close: the haze draws in to a couple
-// of hundred metres and browns, the sky and the sun go behind the dust,
-// the sun dims to a disc and the shadows with it, and dust blows across
-// the view. Under the dome the air's filtered, so the blown dust is mostly
-// kept out, though the haze still closes in.
+// The weather: dust, the Red's only weather (docs/look-and-feel.md). It's
+// mostly clear. Now and then a dusty spell comes through, the air thick
+// and brown and the far off gone; once in a while a dust storm, the light
+// brown and close: the haze draws in to a couple of hundred metres, the
+// sky and the sun go behind the dust, the sun dims and the shadows with
+// it, and dust blows across the view. Under the dome the air's filtered,
+// so the blown dust is mostly kept out, though the haze still closes in.
 //
-// Storms come by the real clock, as everything in the shared world does
-// (docs/shared-world.md), so everyone sees the same one at the same time:
-// each stormSlot of the day may have one, at a time, for a length and as
-// hard as its hash says. EARTH_TWO_STORM, from 0 to 1, holds a storm that
-// hard instead, for looking at one (go run ./tools/tour, say).
+// The weather comes by the real clock, as everything in the shared world
+// does (docs/shared-world.md), so everyone has the same: each weatherSlot
+// may bring one spell (spells), at a time, for a length and as thick as
+// its hash says. How thick it is, 0 to 1, is the weather's storm.
+// EARTH_TWO_STORM, from 0 to 1, holds the weather that thick instead, for
+// looking at it (go run ./tools/tour, say), as the test panel's Weather
+// switch does.
 const (
-	stormSlot   = 8 * time.Hour
-	stormChance = 0.6 // of a slot having a storm
-	stormMin    = 30 * time.Minute
-	stormMax    = 90 * time.Minute
-	stormRise   = 5 * time.Minute // how long a storm takes to blow up, and to die down
+	weatherSlot = 3 * time.Hour
 	// stormReach is how far the haze reaches (as shading.Haze's Distance)
 	// in the hardest storm.
 	stormReach = 70
 	// stormEase is how quickly the weather follows a change it's told to
 	// make at once (the forced storm's), the share 1 - e^-stormEase a second.
 	stormEase = 1.5
+	// dustyFrom and stormFrom are how thick the air is for it to be dusty,
+	// and a storm.
+	dustyFrom, stormFrom = .15, .6
 )
+
+// A spell of weather a slot may bring: what it's called, how likely it is,
+// how long it lasts, how thick it gets at its height, and how long it
+// takes to blow up and to die down.
+type spell struct {
+	name               string
+	chance             float32
+	shortest, longest  time.Duration
+	thinnest, thickest float32
+	rise               time.Duration
+}
+
+// spells are the slots' weather, by how likely: the rest of the time it's
+// clear.
+var spells = []spell{
+	{"Dust storm", .06, 30 * time.Minute, 90 * time.Minute, .75, 1, 5 * time.Minute},
+	{"Dusty", .2, 60 * time.Minute, 150 * time.Minute, .28, .45, 12 * time.Minute},
+}
 
 // What a storm turns things towards: the dust's brown, for the haze and
 // the sky; the light through it, for the sun and the fill.
@@ -47,10 +67,12 @@ var (
 	stormDust = rl.NewColor(150, 96, 64, 255)
 	stormSun  = rl.NewColor(222, 150, 104, 255)
 	stormFill = rl.NewColor(196, 138, 100, 255)
+	// A storm by night: the dust dark, the haze it makes near black.
+	nightDust = rl.NewColor(40, 30, 28, 255)
 )
 
-// weather is a resource: how hard a storm is blowing, 0 to 1, and what it
-// was all made from (the clear day's haze, sun and fill), and the clock the
+// weather is a resource: how thick the dust is, 0 to 1 (a storm from
+// stormFrom), and what it was all made from (the clear day's haze, sun and fill), and the clock the
 // blown dust is drawn by.
 type weather struct {
 	storm  float32
@@ -74,12 +96,12 @@ func newWeather() *weather {
 	return w
 }
 
-// stormAt is how hard a storm is blowing at t, 0 to 1, by the schedule.
+// stormAt is how thick the air is at t, 0 to 1, by the schedule.
 func stormAt(t time.Time) float32 {
-	slot := t.UnixNano() / int64(stormSlot)
-	// A storm late in the slot before may still be blowing.
-	for _, s := range []int64{slot, slot - 1} {
-		start, length, peak, ok := stormIn(s)
+	slot := t.UnixNano() / int64(weatherSlot)
+	// A spell late in the slot before may still be blowing.
+	for _, n := range []int64{slot, slot - 1} {
+		sp, start, length, peak, ok := spellIn(n)
 		if !ok {
 			continue
 		}
@@ -87,22 +109,37 @@ func stormAt(t time.Time) float32 {
 		if since < 0 || until < 0 {
 			continue
 		}
-		rise := float32(stormRise.Seconds())
+		rise := float32(sp.rise.Seconds())
 		return peak * smoothstep(0, rise, float32(since.Seconds())) * smoothstep(0, rise, float32(until.Seconds()))
 	}
 	return 0
 }
 
-// stormIn is the storm in a slot, if it has one: when it starts, how long
-// it blows and how hard at its height.
-func stormIn(slot int64) (start time.Time, length time.Duration, peak float32, ok bool) {
+// spellIn is the spell of weather in a slot, if it has one: which, when it
+// starts, how long it lasts and how thick it gets.
+func spellIn(slot int64) (sp spell, start time.Time, length time.Duration, peak float32, ok bool) {
 	h := func(k uint32) float32 { return lattice(int32(slot), int32(slot>>31), 0x5701+k) }
-	if h(0) >= stormChance {
-		return time.Time{}, 0, 0, false
+	pick := h(0)
+	for _, s := range spells {
+		if pick < s.chance {
+			length = s.shortest + time.Duration(h(1)*float32(s.longest-s.shortest))
+			start = time.Unix(0, slot*int64(weatherSlot)).Add(time.Duration(h(2) * float32(weatherSlot-length)))
+			return s, start, length, s.thinnest + (s.thickest-s.thinnest)*h(3), true
+		}
+		pick -= s.chance
 	}
-	length = stormMin + time.Duration(h(1)*float32(stormMax-stormMin))
-	start = time.Unix(0, slot*int64(stormSlot)).Add(time.Duration(h(2) * float32(stormSlot-length)))
-	return start, length, .55 + .45*h(3), true
+	return spell{}, time.Time{}, 0, 0, false
+}
+
+// conditions is what the weather's called, as thick as storm is.
+func conditions(storm float32) string {
+	switch {
+	case storm >= stormFrom:
+		return "Dust storm"
+	case storm >= dustyFrom:
+		return "Dusty"
+	}
+	return "Clear"
 }
 
 // weatherPlugin is the storms: the weather as the clock has it, the light
@@ -113,22 +150,31 @@ type weatherPlugin struct{}
 const dustSet illusion.SystemSet = "game.dust"
 
 func (weatherPlugin) Build(app *illusion.App) {
-	app.InsertResource(illusion.R(newWeather()))
+	app.InsertResource(illusion.R(newWeather()), illusion.R(newDaylight()))
 	app.ConfigureSets(illusion.Render, dustSet.After(render.End2D).Before(render.Draw2D))
-	app.AddSystems(illusion.Update, illusion.Fn5(blow))
-	app.AddSystems(illusion.Render, illusion.Fn3(drawDust).InSet(dustSet))
+	// The sun where it is this hour (daylight.go), then the weather on it.
+	app.AddSystems(illusion.Update, illusion.Chain(illusion.Fn5(turnSun), illusion.Fn6(blow)))
+	app.AddSystems(illusion.Render, illusion.Fn4(drawDust).InSet(dustSet))
+	// The stars, over the sky and behind the world (stars.go).
+	app.ConfigureSets(illusion.Render, starSet.After(render.Draw3D).Before(render.End3D))
+	app.AddSystems(illusion.Render, illusion.Fn4(drawStars).InSet(starSet))
+	// The world's clock under the minimap (clock.go).
+	app.AddSystems(illusion.Render, illusion.Fn5(drawClock).InSet(render.Draw2D))
+	addTestSwitch(app, daylightSwitch())
 }
 
 // blow sets the weather by the clock (or the storm held), and the haze,
-// the sun and the fill by it.
+// the sun and the fill by it, on the light of the hour (daylight.go).
 func blow(
 	w *illusion.Res[weather],
+	day *illusion.Res[daylight],
 	haze *illusion.Res[shading.Haze],
 	ambient *illusion.Res[render.AmbientLight],
 	suns *illusion.Query1[render.DirectionalLight],
 	clk *illusion.Res[illusion.Time],
 ) {
 	wt, hz, am := w.Get(), haze.Get(), ambient.Get()
+	dusk, night := day.Get().dusk, day.Get().night
 	dt := clk.Get().DeltaSecs()
 	wt.t += dt
 	c := &wt.clear
@@ -146,21 +192,33 @@ func blow(
 	wt.storm += (want - wt.storm) * float32(1-math.Exp(-stormEase*float64(dt)))
 	s := wt.storm
 
-	hz.Color = mixColour(c.haze.Color, stormDust, s)
+	// The clear air at this hour: at dusk the haze takes the horizon's
+	// rose, the fill goes violet (and stronger: the sky's the light then),
+	// and the low sun deep orange and dimmer. At night it's dark: the haze
+	// the night's horizon, a faint cold fill, and only the planets' light.
+	clearHaze := mixColour(mixColour(c.haze.Color, duskHorizon, dusk), nightHorizon, night)
+	clearFill := mixColour(mixColour(c.ambient.Color, duskFill, dusk), nightFill, night)
+	fill := c.ambient.Brightness * (1 + .35*dusk) * (1 - .2*night)
+	clearSun := mixColour(mixColour(c.sun, duskSun, dusk), planetLight, night)
+	bright := c.brightest * (1 - .4*dusk) * (1 - .75*night)
+	// And the storm on it, its dust as dark as the hour.
+	dust := mixColour(stormDust, nightDust, night)
+	hz.Color = mixColour(clearHaze, dust, s)
 	// Drawn in towards stormReach, by the same share of the way each step.
 	hz.Distance = c.haze.Distance * float32(math.Pow(float64(stormReach/c.haze.Distance), float64(s)))
 	hz.Veil = .97 * smoothstep(0, .8, s)
-	am.Color = mixColour(c.ambient.Color, stormFill, s)
-	am.Brightness = c.ambient.Brightness * (1 + .7*s)
+	am.Color = mixColour(clearFill, mixColour(stormFill, nightFill, night), s)
+	am.Brightness = fill * (1 + .7*s)
 	suns.Each(func(_ ecs.Entity, l *render.DirectionalLight) {
-		l.Color = mixColour(c.sun, stormSun, s)
-		l.Brightness = c.brightest * (1 - .8*s)
+		l.Color = mixColour(clearSun, stormSun, s)
+		l.Brightness = bright * (1 - .8*s)
 	})
 }
 
 // Blown dust: dustMotes motes blowing across the view on the wind, grit
-// and the odd longer streak, nearer ones faster, longer and brighter; gusts, broad bands of thicker dust
-// sweeping through; and over it all a brown cast. The wind blows from the
+// and the odd longer streak, nearer ones faster, longer and brighter;
+// gusts, broad bands of thicker dust sweeping through; and over it all a
+// brown cast. The wind blows from the
 // east (from +X), so it crosses the view as the camera faces across it.
 const (
 	dustMotes = 420
@@ -174,10 +232,16 @@ var dustWind = rl.Vector3{X: -1, Z: .25}
 // camera's out in it.
 func drawDust(
 	w *illusion.Res[weather],
+	day *illusion.Res[daylight],
 	win *illusion.Res[window.Window],
 	cameras *illusion.Query2[transform.Transform, render.Camera3d],
 ) {
 	wt, ww := w.Get(), win.Get()
+	// By night the dust's as dark as the night.
+	dark := 1 - .8*day.Get().night
+	dim := func(c rl.Color) rl.Color {
+		return rl.NewColor(uint8(float32(c.R)*dark), uint8(float32(c.G)*dark), uint8(float32(c.B)*dark), c.A)
+	}
 	_, eye, _, ok := cameras.Single()
 	if !ok || ww.Width == 0 || wt.storm < .02 {
 		return
@@ -197,7 +261,7 @@ func drawDust(
 	into := -rl.Vector3DotProduct(wind, ahead)
 	t := wt.t
 	// The cast.
-	rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(stormDust.R, stormDust.G, stormDust.B, uint8(70*k)))
+	rl.DrawRectangle(0, 0, int32(width), int32(height), dim(rl.NewColor(stormDust.R, stormDust.G, stormDust.B, uint8(70*k))))
 	// The gusts: broad soft bands crossing the view.
 	for i := range dustGusts {
 		u := lattice(int32(i), 7, 0xd05)
@@ -211,7 +275,7 @@ func drawDust(
 		// gradients).
 		for j := range gustSteps {
 			f := (float32(j) + .5) / gustSteps
-			c := rl.NewColor(stormDust.R, stormDust.G, stormDust.B, uint8(float32(a)*(1-abs(2*f-1))))
+			c := dim(rl.NewColor(stormDust.R, stormDust.G, stormDust.B, uint8(float32(a)*(1-abs(2*f-1)))))
 			rl.DrawRectangle(int32(x+bw*float32(j)/gustSteps), int32(y-bh/2), int32(bw/gustSteps)+1, int32(bh), c)
 		}
 	}
@@ -243,6 +307,7 @@ func drawDust(
 		dy := dx * slant
 		shade := mixColour(rl.NewColor(170, 112, 76, 255), rl.NewColor(222, 176, 134, 255), lattice(int32(i), 6, 0xd17))
 		shade.A = uint8((25 + 75*depth) * k)
+		shade = dim(shade)
 		// A thin rectangle along the streak (the browser's raylib has no
 		// thick lines).
 		thick := .8 + 1.6*depth

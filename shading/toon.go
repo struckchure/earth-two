@@ -98,7 +98,7 @@ void main() {
     }
     if (unlit > 0.5) {
         // The sky and the sun (all that's unlit), behind the storm's dust.
-        finalColor = vec4(mix(base.rgb, fogColor, veil), base.a);
+        finalColor = vec4(mix(base.rgb, fogColor, veil), 1.0);
         return;
     }
     vec3 n = normalize(fragNormal);

@@ -646,11 +646,12 @@ func drawMinimap(p painter, m *worldMap, at, facing, looking rl.Vector2) {
 	f.drawRoute(m, at, max(1.5, p.px(2)), p.px(10))
 	you(f.toScreen(at), f.screenDir(facing), p.px(5))
 	// North, at the edge the way it is, and the key for the full map
-	// under it.
+	// under it, below the clock.
 	n := edgePoint(r, rl.Vector2Normalize(f.screenDir(north)), p.px(9))
 	rl.DrawRectangleRec(rl.Rectangle{X: n.X - p.px(8), Y: n.Y - p.px(8), Width: p.px(16), Height: p.px(16)}, rl.NewColor(0, 0, 0, 170))
 	p.textIn("N", rl.Rectangle{X: n.X - p.px(8), Y: n.Y - p.px(8), Width: p.px(16), Height: p.px(16)}, 12, semibold, colAccent, centre)
-	x, y := r.X, r.Y+r.Height+border+p.px(6)
+	// (Under the world's clock: see clock.go.)
+	x, y := r.X, r.Y+r.Height+border+clockSpace(p)+p.px(6)
 	x += p.keycap("M", rl.Vector2{X: x, Y: y}, 11) + p.px(6)
 	p.text("Map", rl.Vector2{X: x, Y: y + p.px(2)}, 12, semibold, colText)
 }

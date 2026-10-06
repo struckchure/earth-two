@@ -9,11 +9,19 @@ wrong world.
 The air is thin and dusty, so the sky is pale ochre by day and violet at dusk.
 The sun is TRAPPIST-1, a red dwarf: orange-red, and four times the size the
 Sun looks from Earth, because the Red orbits so close to it. It hangs low over
-Landfall. Beside it the Red's neighbour planets show as discs along the sky,
+Landfall even at noon. It rises in the east about 05:00, Landfall time (UTC),
+and sets in the west about 19:00: at dusk and dawn the sky goes violet
+overhead and rose at the horizon and the light deep orange and long, and
+the night is dark and starred, lit by the town's lamps and beacons and the
+faint cold light off the neighbour planets. The thin air makes for a clear
+night sky: thousands of stars, the Milky Way across it with dark lanes of
+dust down it, wheeling round the pole as the Red turns, and a faint rusty
+glow low round the horizon from the dust in the air. Beside it the Red's neighbour planets show as discs along the sky,
 dark when they're between the Red and the sun, lit when they're beyond it. The light inside the domes is filtered and
 warm. Indoors in the Hull it's sodium-orange work lamps and cold blue status
-lights. Dust storms are the main weather and should turn the lighting brown and
-close.
+lights. Dust is the only weather. It's mostly clear; now and then a dusty spell
+thickens the air, and once in a while a dust storm turns the lighting brown
+and close.
 
 ## Materials
 

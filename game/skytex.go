@@ -73,7 +73,7 @@ func paintMesh(m rl.Mesh, w, h int, f surface) []byte {
 				}
 				d := rl.Vector3Normalize(rl.Vector3Add(rl.Vector3Add(rl.Vector3Scale(p[0], b0), rl.Vector3Scale(p[1], b1)), rl.Vector3Scale(p[2], b2)))
 				c := f(d)
-				copy(pixels[(y*w+x)*4:], []byte{c.R, c.G, c.B, 255})
+				copy(pixels[(y*w+x)*4:], []byte{c.R, c.G, c.B, c.A})
 				painted[y*w+x] = true
 			}
 		}
