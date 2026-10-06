@@ -111,6 +111,7 @@ func build(m *menu) *illusion.App {
 			// Outlines on people only: the world is painted, not inked.
 			world.Plugin{Manifest: "world/world.json"},
 			vehicle.Plugin{},
+			testPlugin{},
 			shading.Plugin{
 				// Violet, but light enough that what's in shadow still
 				// reads.

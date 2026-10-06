@@ -51,6 +51,8 @@ Esc goes back. In play:
 | WASD / arrows | Walk, relative to the camera |
 | Mouse | Look around (in the browser, while a button is held); moving, the camera swings round behind you |
 | M | Open or close the map (drag to move it, scroll to zoom) |
+| P | Testing: teleport to the point under the pointer on the full map, or in play to the marked destination (driving, the vehicle comes too) |
+| F1 | Testing: show the test panel; its switches (F5 weather, then the others in turn) step a condition through its settings on demand |
 | Shift | Run |
 | Space | Jump; vault/mantle an obstacle ahead; kick away from a nearby wall in the air |
 | Ctrl | Slide while running (at least 3 m/s); Space jumps out |

@@ -725,7 +725,7 @@ func drawFullMap(p painter, m *worldMap, at, facing rl.Vector2, width, height fl
 		mark = "Mark, or take off"
 	}
 	x, y := r.X+p.px(16), r.Y+r.Height-p.px(14*1.7)-p.px(14)
-	for _, k := range []struct{ key, does string }{{"M", "Close"}, {"Esc", "Close"}, {"Drag", "Move"}, {"Scroll", "Zoom"}, {"Click", mark}} {
+	for _, k := range []struct{ key, does string }{{"M", "Close"}, {"Esc", "Close"}, {"Drag", "Move"}, {"Scroll", "Zoom"}, {"Click", mark}, {"P", "Teleport"}} {
 		x += p.keycap(k.key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
 		p.text(k.does, rl.Vector2{X: x, Y: y + p.px(4)}, 15, semibold, colText)
 		x += p.measure(k.does, 15, semibold).X + p.px(20)
