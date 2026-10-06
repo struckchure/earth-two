@@ -58,6 +58,11 @@ var orbitLook = rl.Vector3{Y: .7}
 // and still how long since the mouse last turned it.
 type orbit struct {
 	yaw, pitch, still float32
+	// distance is how far it follows, if not orbitDistance (driving), and
+	// exclude what its spring arm passes through, if not the player (the
+	// vehicle they're driving): see steerDriving.
+	distance float32
+	exclude  ecs.Entity
 }
 
 func newOrbit() *orbit { return &orbit{pitch: orbitPitch} }
@@ -70,7 +75,11 @@ func (o *orbit) shot() shot {
 		Y: float32(math.Sin(float64(o.pitch))),
 		Z: float32(math.Cos(float64(o.yaw))) * cp,
 	}
-	return shot{offset: rl.Vector3Add(orbitLook, rl.Vector3Scale(dir, orbitDistance)), look: orbitLook}
+	d := float32(orbitDistance)
+	if o.distance > 0 {
+		d = o.distance
+	}
+	return shot{offset: rl.Vector3Add(orbitLook, rl.Vector3Scale(dir, d)), look: orbitLook}
 }
 
 // forward is the way the camera faces on the XZ plane.
@@ -171,7 +180,7 @@ func steerCamera(
 	m *illusion.Res[menu],
 	ptr *pointer,
 	view *illusion.Res[character.View],
-	players *illusion.Query1Where[character.Intent, illusion.With[character.Player]],
+	players *illusion.Query1Where[character.Intent, illusion.And[illusion.With[character.Player], illusion.Without[character.Seated]]],
 	bodies *illusion.Query1Where[transform.Transform, illusion.With[character.Body]],
 	hier *illusion.Hierarchy,
 	t *illusion.Res[illusion.Time],

@@ -12,6 +12,7 @@ import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/earth-two/character"
 	"github.com/struckchure/earth-two/shading"
+	"github.com/struckchure/earth-two/vehicle"
 	"github.com/struckchure/earth-two/world"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/asset"
@@ -64,6 +65,9 @@ var makehuman = map[character.Anim]character.Clip{
 	// steps.
 	character.StairsUp:   {Name: "Traversal_StairsUp", Step: stairStep},
 	character.StairsDown: {Name: "Traversal_StairsDown", Step: stairDownStep},
+	// In a vehicle's seat (Ride, astride a bike or a trike, falls back to
+	// it): the library's driving loop.
+	character.Drive: {Name: "Driving_Loop"},
 }
 
 // stairStep and stairDownStep are where in the stair clips' cycles a foot
@@ -97,6 +101,7 @@ func build(m *menu) *illusion.App {
 			physics.Plugin{},
 			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass},
 			world.Plugin{Manifest: "world/world.json", Outline: shading.OutlinePass},
+			vehicle.Plugin{},
 			shading.Plugin{
 				ShadowColor: rl.NewColor(185, 165, 240, 255),
 				Softness:    0.03,
@@ -124,14 +129,17 @@ func build(m *menu) *illusion.App {
 			illusion.R(&render.Shadows{Size: 4096, Range: shadowRange}),
 			illusion.R(m),
 			illusion.R(newOrbit()),
+			illusion.R(&vehicle.Ground{}),
 			illusion.R(&uiFonts{}),
 		).
 		AddSystems(illusion.Startup, illusion.Fn7(setup)).
 		AddSystems(illusion.Update,
-			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn8(cull), illusion.Fn3(moveSky)),
+			// After the characters act, so the camera follows a vehicle where
+			// it's drawn this frame.
+			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
 			illusion.Fn1(respawn),
 		).
-		AddSystems(illusion.Render, illusion.Chain(illusion.Fn4(hud), illusion.Fn6(drawMaps), illusion.Fn5(drawMenus)).InSet(render.Draw2D))
+		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn6(drawMaps), illusion.Fn5(drawMenus)).InSet(render.Draw2D))
 }
 
 func setup(

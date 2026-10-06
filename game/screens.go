@@ -7,6 +7,7 @@ import (
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/earth-two/character"
+	"github.com/struckchure/earth-two/vehicle"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/physics"
 	"github.com/struckchure/illusion/render"
@@ -103,8 +104,10 @@ func menuButtons(p painter, l layout, s screen, focus int) {
 	}
 }
 
-// hud draws the frame rate, and in play the keys for the menus.
-func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illusion.Res[menu], players *illusion.Query1Where[character.Traversal, illusion.With[character.Player]]) {
+// hud draws the frame rate, and in play the keys for the menus, what the
+// player can do (get into a vehicle), and driving, the speed.
+func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illusion.Res[menu], players *illusion.Query1Where[character.Traversal, illusion.With[character.Player]],
+	prompt *illusion.Res[vehicle.Prompt], driving *illusion.Res[vehicle.Driving]) {
 	ww := win.Get()
 	p := newPainter(fonts.Get(), ww)
 	width, height := float32(ww.Width), float32(ww.Height)
@@ -123,8 +126,13 @@ func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illu
 			p.text(s.Hint, rl.Vector2{X: p.px(20), Y: height - p.px(80)}, 15, semibold, colOnLight)
 		}
 	})
+	drawDriving(p, prompt.Get(), driving.Get(), width, height)
+	keys := []struct{ key, does string }{{"Esc", "Menu"}}
+	if driving.Get().Active() {
+		keys = append(keys, struct{ key, does string }{"E", "Get out"}, struct{ key, does string }{"Space", "Hand brake"})
+	}
 	x, y := p.px(20), height-p.px(48)
-	for _, h := range []struct{ key, does string }{{"Esc", "Menu"}} {
+	for _, h := range keys {
 		x += p.keycap(h.key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
 		p.text(h.does, rl.Vector2{X: x + 1, Y: y + p.px(4) + 1}, 15, semibold, rl.NewColor(0, 0, 0, 110))
 		p.text(h.does, rl.Vector2{X: x, Y: y + p.px(4)}, 15, semibold, colText)
@@ -219,8 +227,8 @@ func follow(
 		if s == playing || s == mapping {
 			// Pulled in short of a wall in the way; easing back out, once
 			// it's clear, as it eases anywhere.
-			look = clearAbove(p, position, a.at, e)
-			tr.Translation = springArm(p, look, tr.Translation, e)
+			look = clearAbove(p, position, a.at, o.Get().avoid(e))
+			tr.Translation = springArm(p, look, tr.Translation, o.Get().avoid(e))
 			// Never skimming the ground: on a slope, a dune between it and
 			// the player would hide their legs.
 			if floor := groundHeight(tr.Translation.X, tr.Translation.Z) + groundLevel + cameraClearance; tr.Translation.Y < floor {

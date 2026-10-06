@@ -56,7 +56,7 @@ Esc goes back. In play:
 | Ctrl | Slide while running (at least 3 m/s); Space jumps out |
 | R | Roll in the movement direction, or forward when stationary |
 | W/S or Up/Down on a ladder | Climb/descend; release to hold; Space jumps off |
-| E | Interact |
+| E | Interact; beside a vehicle, get in; in one, get out (once it's slow) |
 | F | Punch |
 | Q | Pick up |
 | Esc | Pause: Resume, Wardrobe, Controls, Main menu, Quit |
@@ -81,6 +81,49 @@ License), embedded in the binary and rasterised in the screen's own pixels
 at about each size it's drawn at (rounded up a little, so resizing the
 window loads a few sizes, not hundreds), so it stays sharp at any window
 size and pixel ratio, Retina included.
+
+## Vehicles
+
+The buggy, bike, trike, rover and both haulers can be driven: walk up to
+one's seat and E gets in, and the keys drive it. W and S are throttle and
+brake (and reverse, from a stop), A and D steer (less at speed), and Space
+is the hand brake. E gets out at the first of the seat's exits there's room
+to stand at, once it's going slower than 4 m/s; on its side or roof, holding
+R for a second rights it. The camera follows the vehicle instead, further
+back for a bigger one, swinging round behind it as it goes. The HUD shows
+the speed and the gear.
+
+They're Jolt's wheeled vehicles (illusion's `physics.Vehicle`, and its
+motorcycle controller for the bike): each wheel finds the ground by itself
+on a sprung suspension, and an engine drives them through an automatic
+gearbox and differentials. (No anti-roll bars: Jolt's, stiff enough to
+keep these bodies flat, rock them side to side on the dunes.) The `vehicle`
+package spawns them and drives them. A vehicle is a root physics body with
+its chassis model as a child, drawn between physics steps from
+`physics.Interpolated`, and its wheels as children of that, posed from
+`physics.VehicleState`, so they spin, steer and ride their suspension. The
+driver sits in it as a `character.Seated` character: no capsule while it
+sits (so it can't bump what it's in), posed at the seat, playing
+`Driving_Loop`; shut in the rover's or a hauler's cab, it's hidden.
+Astride the bike or the trike, that clip is reshaped as it plays
+(`character/ride.go`): the body leans over the tank just as far as it must
+for the hands to reach the seat's grips, which they take palms down, and the
+feet go back on its pegs (`Piece.seat`'s grips and pegs).
+
+Parked, a vehicle is Static, so it costs nothing and needs no ground
+colliders under it (they exist only round the player); getting in makes it
+Dynamic. Left alone, it holds its brakes and parks itself again once it's
+still, or at once if the ground it's on is about to stream away. Its
+springs are as stiff as makes its wheels sink to where they're modelled,
+so it doesn't move when it wakes.
+
+How a vehicle is built comes from `tools/world/vehicles.py` (`Piece.wheel`,
+`seat`, `chassis` and `drive` in `kit.py`), in world.json under "vehicle".
+The Sketchfab models' wheels are cut out of them (every part lying wholly
+inside a wheel's cylinder) and exported as wheel pieces of their own
+(`polyhaven.wheel_of`). How each kind handles (mass, engine, gears,
+suspension, steering, grip) is `vehicle.Handlings`, in Go, so tuning needs
+no rebuild.
 
 ## Traversal
 
