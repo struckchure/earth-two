@@ -643,3 +643,59 @@ func TestMantleFromTheAir(t *testing.T) {
 		t.Fatalf("after the mantle: mode=%v grounded=%v at %v, want standing on the block", h.s.Mode, h.cc.Grounded, h.tr.Translation)
 	}
 }
+
+// Holding C crouches, and walks crouched; letting go stands it up, once
+// there's room.
+func TestHoldCToCrouch(t *testing.T) {
+	h := newTraversalHarness(t, rl.Vector3{}, func(cmd *illusion.Commands) {
+		staticBox(cmd, rl.Vector3{X: 5, Y: 1.2}, rl.Vector3{X: 2, Y: .2, Z: 3})
+	})
+	h.faceTo(rl.Vector3{X: 1})
+	h.in.Crouch = true
+	h.tick(2)
+	if h.s.Mode != Crouch || h.cc.Height != .9 {
+		t.Fatalf("holding C should crouch: %v, height %v", h.s.Mode, h.cc.Height)
+	}
+	h.tick(60)
+	if h.s.Mode != Crouch || h.cc.Height != .9 {
+		t.Fatalf("held, it should stay down in the open: %v, height %v", h.s.Mode, h.cc.Height)
+	}
+	h.in.Crouch = false
+	h.tick(30)
+	if h.s.Mode == Crouch || h.cc.Height != 1.8 {
+		t.Fatalf("let go, it should stand: %v, height %v", h.s.Mode, h.cc.Height)
+	}
+
+	// Held, it walks crouched, slowly, in under the slab at x 4 to 6 (its
+	// underside 1.1 up); let go there, it stays down until it's out.
+	h.in.Crouch = true
+	h.tick(2)
+	start := h.tr.Translation
+	h.in.Move = rl.Vector3{X: 1}
+	h.tick(60)
+	if gone := h.tr.Translation.X - start.X; gone < .5 || gone > 1 {
+		t.Fatalf("it should walk crouched, slowly: went %v m in a second", gone)
+	}
+	for range 600 {
+		h.tick(1)
+		if h.tr.Translation.X > 5 {
+			break
+		}
+	}
+	h.in.Crouch = false
+	h.tick(10)
+	if h.tr.Translation.X < 4.5 || h.s.Mode != Crouch || h.cc.Height != .9 {
+		t.Fatalf("under the slab it can't stand: at %v, %v, height %v", h.tr.Translation, h.s.Mode, h.cc.Height)
+	}
+	for range 600 {
+		h.tick(1)
+		if h.tr.Translation.X > 7 {
+			break
+		}
+	}
+	h.in.Move = rl.Vector3{}
+	h.tick(30)
+	if h.tr.Translation.X < 7 || h.s.Mode == Crouch || h.cc.Height != 1.8 {
+		t.Fatalf("out from under it, it should stand: at %v, %v, height %v", h.tr.Translation, h.s.Mode, h.cc.Height)
+	}
+}

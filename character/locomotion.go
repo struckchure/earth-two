@@ -88,12 +88,13 @@ func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *i
 		case emote != Idle:
 			in.Hold = emote
 		case dir != (rl.Vector3{}) || act != Idle || k.JustPressed(rl.KeySpace) || k.JustPressed(rl.KeyR) ||
-			k.JustPressed(rl.KeyLeftControl) || k.JustPressed(rl.KeyRightControl):
+			k.JustPressed(rl.KeyLeftControl) || k.JustPressed(rl.KeyRightControl) || k.JustPressed(rl.KeyC):
 			in.Hold = Idle
 		}
 		in.Move = dir
 		in.Slide = in.Slide || k.JustPressed(rl.KeyLeftControl) || k.JustPressed(rl.KeyRightControl)
 		in.Roll = in.Roll || k.JustPressed(rl.KeyR)
+		in.Crouch = k.AnyPressed(rl.KeyC)
 		in.Run = k.AnyPressed(rl.KeyLeftShift, rl.KeyRightShift)
 		if k.JustPressed(rl.KeySpace) {
 			in.Jump = true

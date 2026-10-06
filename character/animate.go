@@ -36,6 +36,10 @@ const (
 	stairsFrom = 18 * math.Pi / 180
 	stairsTo   = 50 * math.Pi / 180
 	stairsHold = .15
+	// crouchStride is how far a crouched walk's cycle goes, two steps:
+	// tools/makehuman/traversal.py measures 1.2 m on the man, 1.05 m on the
+	// woman.
+	crouchStride = 1.13
 	// fallFade is how long the fall's leg swing takes to fade in out of the
 	// jump's pose.
 	fallFade = .3
@@ -248,9 +252,15 @@ func animate(
 					next = WallKickRight
 				}
 			}
+			// Crouched and going somewhere, it walks crouched.
+			speed := samples.Speed(float32(fixed.Get().Timestep.Seconds()))
+			if next == Crouch && speed > moving && skin.Has(CrouchWalk) {
+				next = CrouchWalk
+			}
 			if next != st.Current {
+				crouched := st.Current == Crouch || st.Current == CrouchWalk
 				st.Current = next
-				play(p, skin.clip(next), next != LadderClimb && next != LadderEnter && next != Crouch)
+				play(p, skin.clip(next), next != LadderClimb && next != LadderEnter && next != Crouch && next != CrouchWalk)
 				p.FadeIn(.22)
 				if next == Slide || next == Roll {
 					p.FadeIn(.09)
@@ -260,6 +270,11 @@ func animate(
 				}
 				if next == StandUp {
 					p.FadeIn(.08)
+					// Its clip starts from a deeper squat than a crouch:
+					// blended in slowly, the body doesn't drop into it.
+					if crouched {
+						p.FadeIn(.25)
+					}
 				}
 				if next == LadderExit && !traversal.ExitTop {
 					p.FadeIn(.12)
@@ -288,7 +303,15 @@ func animate(
 						phase := traversal.Phase - float32(math.Floor(float64(traversal.Phase)))
 						p.Seek(phase * duration)
 					case Crouch:
-						p.Seek(0)
+						// Crouched and still: Mixamo's Crouching Idle, on its clock.
+						st.crouchIdle = float32(math.Mod(float64(st.crouchIdle+dt), float64(duration)))
+						p.Seek(st.crouchIdle)
+					case CrouchWalk:
+						// A cycle a crouchStride gone, so the feet keep to
+						// the ground.
+						st.crouchPhase += speed * dt / crouchStride
+						st.crouchPhase -= float32(math.Floor(float64(st.crouchPhase)))
+						p.Seek(st.crouchPhase * duration)
 					case LadderExit:
 						if !traversal.ExitTop {
 							p.Seek(duration)

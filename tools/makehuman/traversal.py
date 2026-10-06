@@ -114,6 +114,23 @@ DESCENT_FEET = {"l": (5/28, 24.5/28), "r": (19/28, 11.5/28)}
 DESCENT_CLEAR = .06  # how far a swinging foot rises over the edge it passes
 DESCENT_REACH = .97  # the share of a leg's length it stretches to, at most
 
+# Walking crouched is Mixamo's "Crouched Walking" (downloaded the same way),
+# in place: CROUCH_WALK_FRAMES is one cycle of it, a step with each foot.
+# It walks taller than the crouch it's for (under a 1.1 m duct the capsule is
+# 0.9 m), so its hips go CROUCH_DROP lower and its back leans CROUCH_LEAN
+# degrees further over, and its feet keep to the capture's own steps by leg
+# IK, set back on the ground. The game sets the clip by how far the body has
+# gone, CROUCH_STRIDE a cycle (character/animate.go): what its planted foot
+# slides back through in one.
+CROUCH_WALK = "Crouched Walking"
+CROUCH_WALK_FRAMES = (1, 44)
+CROUCH_DROP, CROUCH_LEAN = .05, 6
+# Crouched and still is Mixamo's "Crouching Idle" (downloaded the same
+# way), lower than the walk: CROUCH_IDLE_FRAMES is a loop of it. Its feet
+# stay where they stand, set on the ground by leg IK.
+CROUCH_IDLE = "Crouching Idle"
+CROUCH_IDLE_FRAMES = (1, 76)
+
 # The ladder climb is authored (hands on the rails, feet on the rungs), but
 # its hips and spine move as in Mixamo's "Climbing Ladder" (downloaded the
 # same way), which climbs facing the other way, two rungs a cycle like ours:
@@ -163,7 +180,8 @@ MIRRORED = {"Punching": "Punching Mirrored"}
 
 DURATIONS = {"Slide": .8, "Ladder": 1., "Vault": 1., "Mantle": .8, "WallKick": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30,
              "WallKickRight": (WALL_KICK_FRAMES[1]-WALL_KICK_FRAMES[0])/30, "WallKickFall": 1.2, "WallKickFallRight": 1.2, "WallLand": .45, "Crouch": 1., "StandUp": .28, "LadderExit": 3., "Fall": .9,
-             "StairsUp": (STAIRS_FRAMES[1]-STAIRS_FRAMES[0])/30, "StairsDown": (DESCENT_FRAMES[1]-DESCENT_FRAMES[0])/30}
+             "StairsUp": (STAIRS_FRAMES[1]-STAIRS_FRAMES[0])/30, "StairsDown": (DESCENT_FRAMES[1]-DESCENT_FRAMES[0])/30,
+             "CrouchWalk": (CROUCH_WALK_FRAMES[1]-CROUCH_WALK_FRAMES[0])/30, "CrouchIdle": (CROUCH_IDLE_FRAMES[1]-CROUCH_IDLE_FRAMES[0])/30}
 
 
 def smooth(a, b, t):
@@ -730,6 +748,83 @@ def descent_cycle(rig, folder, base, rest):
     return poses, sway, drops, targets
 
 
+def crouch_walk_cycle(rig, folder, base, rest):
+    """The crouched walk's frames: the capture's pose at each, where its hips
+    are (in place, and lowered), and where each foot goes and how it's
+    turned, on the ground."""
+    frames = round(DURATIONS["CrouchWalk"]*30)
+    poses, hips, metre = capture(rig, folder, CROUCH_WALK, [CROUCH_WALK_FRAMES[0]+(CROUCH_WALK_FRAMES[1]-CROUCH_WALK_FRAMES[0])*f/frames for f in range(frames+1)], Quaternion())
+    mean = sum((hips[f] for f in range(frames)), Vector())/frames
+    pelvis_at = [Vector((rest["pelvis"][0].x+hips[f].x-mean.x, rest["pelvis"][0].y+hips[f].y-mean.y, hips[f].z)) for f in range(frames+1)]
+    feet = []
+    for f in range(frames+1):
+        for b in rig.pose.bones:
+            q, loc, scale = base[b.name]
+            b.rotation_mode = "QUATERNION"; b.rotation_quaternion = q.copy(); b.location = loc.copy(); b.scale = scale.copy()
+        bpy.context.view_layer.update()
+        for n, q in poses[f].items():
+            orient(rig.pose.bones[n], q)
+        pelvis = rig.pose.bones["pelvis"]
+        pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (pelvis_at[f]-pelvis.head)
+        bpy.context.view_layer.update()
+        feet.append({s: (rig.pose.bones["foot_"+s].head.copy(), rig.pose.bones["foot_"+s].matrix.to_quaternion()) for s in "lr"})
+    targets = [{} for _ in range(frames+1)]
+    for s in "lr":
+        # Planted, the ankle is as high as standing; and the cycle closes.
+        lift = rest["foot_"+s][0].z-min(feet[f][s][0].z for f in range(frames+1))
+        gap = feet[0][s][0]-feet[-1][s][0]
+        for f in range(frames+1):
+            p, turn = feet[f][s]
+            targets[f][s] = (p+Vector((0, 0, lift))+gap*(f/frames), turn)
+    # How far the body covers in a cycle: as far as a planted foot would
+    # slide back, at its steady pace (the median of its steps back).
+    back = sorted(d for d in (feet[f+1][s][0].y-feet[f][s][0].y for s in "lr" for f in range(frames)) if d > 0)
+    stride = back[len(back)//2]*frames
+    print(f"crouch walk: {stride/metre:.3f} m a cycle in the capture, {stride:.3f} on the rig", flush=True)
+    for b in rig.pose.bones:
+        q, loc, scale = base[b.name]
+        b.rotation_quaternion = q.copy(); b.location = loc.copy(); b.scale = scale.copy()
+    bpy.context.view_layer.update()
+    return poses, pelvis_at, targets
+
+
+def crouch_idle_cycle(rig, folder, base, rest):
+    """The crouched idle's frames: the capture's pose at each, where its
+    hips are (over the feet), and where each foot stands, on the ground."""
+    frames = round(DURATIONS["CrouchIdle"]*30)
+    poses, hips, metre = capture(rig, folder, CROUCH_IDLE, [CROUCH_IDLE_FRAMES[0]+(CROUCH_IDLE_FRAMES[1]-CROUCH_IDLE_FRAMES[0])*f/frames for f in range(frames+1)], Quaternion())
+    mean = sum((hips[f] for f in range(frames)), Vector())/frames
+    pelvis_at = [Vector((rest["pelvis"][0].x+hips[f].x-mean.x, rest["pelvis"][0].y+hips[f].y-mean.y, hips[f].z)) for f in range(frames+1)]
+    feet = {s: [] for s in "lr"}
+    for f in range(frames+1):
+        for b in rig.pose.bones:
+            q, loc, scale = base[b.name]
+            b.rotation_mode = "QUATERNION"; b.rotation_quaternion = q.copy(); b.location = loc.copy(); b.scale = scale.copy()
+        bpy.context.view_layer.update()
+        for n, q in poses[f].items():
+            orient(rig.pose.bones[n], q)
+        pelvis = rig.pose.bones["pelvis"]
+        pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (pelvis_at[f]-pelvis.head)
+        bpy.context.view_layer.update()
+        for s in "lr":
+            foot = rig.pose.bones["foot_"+s]
+            # And how high the ball of the foot is over the ankle, turned
+            # as it is.
+            feet[s].append((foot.head.copy(), foot.matrix.to_quaternion(), rig.pose.bones["ball_"+s].head.z-foot.head.z))
+    stand = {}
+    for s in "lr":
+        # Where the capture has it, on the ball of the foot with the heel
+        # up: the ball as high as it is standing.
+        at = sum((p for p, _, _ in feet[s][:frames]), Vector())/frames
+        at.z = rest["ball_"+s][0].z-feet[s][0][2]
+        stand[s] = (at, feet[s][0][1])
+    for b in rig.pose.bones:
+        q, loc, scale = base[b.name]
+        b.rotation_quaternion = q.copy(); b.location = loc.copy(); b.scale = scale.copy()
+    bpy.context.view_layer.update()
+    return poses, pelvis_at, stand
+
+
 def author(rig, suffix="", mixamo=MIXAMO, fps=24):
     scene = bpy.context.scene
     scene.render.fps = 30; scene.render.fps_base = 1
@@ -758,6 +853,8 @@ def author(rig, suffix="", mixamo=MIXAMO, fps=24):
     slide = capture(rig, mixamo, SLIDE, [SLIDE_FRAMES[0]+(SLIDE_FRAMES[1]-SLIDE_FRAMES[0])*f/steps for f in range(steps+1)], Quaternion())
     stairs = stairs_cycle(rig, mixamo, base, rest)
     descent = descent_cycle(rig, mixamo, base, rest)
+    crouched = crouch_walk_cycle(rig, mixamo, base, rest)
+    still = crouch_idle_cycle(rig, mixamo, base, rest)
     moves = ladder_moves(rig, mixamo)
     frames = round(DURATIONS["LadderExit"]*30)
     # Its last sample is where the hop begins.
@@ -807,6 +904,30 @@ def author(rig, suffix="", mixamo=MIXAMO, fps=24):
                 bpy.context.view_layer.update()
                 for s, sign in (("l", 1), ("r", -1)):
                     target, turn = targets[f][s]
+                    limb(rig, "thigh_"+s, "calf_"+s, "foot_"+s, target, (sign*.35, -1, .45), turn)
+            if name == "CrouchWalk":
+                poses, pelvis_at, targets = crouched
+                for n, q in poses[f].items():
+                    orient(rig.pose.bones[n], q)
+                pelvis = rig.pose.bones["pelvis"]
+                pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (pelvis_at[f]-Vector((0, 0, CROUCH_DROP))-pelvis.head)
+                bpy.context.view_layer.update()
+                # Further over, from the small of the back up.
+                for n, share in (("spine_01", .5), ("spine_02", .3), ("spine_03", .2)):
+                    b = rig.pose.bones[n]
+                    orient(b, Quaternion((1, 0, 0), math.radians(CROUCH_LEAN*share)) @ b.matrix.to_quaternion())
+                for s, sign in (("l", 1), ("r", -1)):
+                    target, turn = targets[f][s]
+                    limb(rig, "thigh_"+s, "calf_"+s, "foot_"+s, target, (sign*.35, -1, .45), turn)
+            if name == "CrouchIdle":
+                poses, pelvis_at, stand = still
+                for n, q in poses[f].items():
+                    orient(rig.pose.bones[n], q)
+                pelvis = rig.pose.bones["pelvis"]
+                pelvis.location += pelvis.bone.matrix_local.to_quaternion().inverted() @ (pelvis_at[f]-pelvis.head)
+                bpy.context.view_layer.update()
+                for s, sign in (("l", 1), ("r", -1)):
+                    target, turn = stand[s]
                     limb(rig, "thigh_"+s, "calf_"+s, "foot_"+s, target, (sign*.35, -1, .45), turn)
             if name == "StairsDown":
                 poses, sway, drops, targets = descent

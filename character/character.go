@@ -54,6 +54,9 @@ const (
 	// Drive sits at a wheel, and Ride astride a bike or a trike: see Seated.
 	Drive
 	Ride
+	// CrouchWalk walks crouched, under a low ceiling: its clip's cycle is
+	// set by how far the body has gone, not by time (see crouchStride).
+	CrouchWalk
 	// SitDown, Sitting and SitUp sit on a bench, a stool or a bunk and get
 	// up again (see Seated: whatever seats the character plays them).
 	SitDown
@@ -127,6 +130,8 @@ func (a Anim) String() string {
 		return "drive"
 	case Ride:
 		return "ride"
+	case CrouchWalk:
+		return "crouch walk"
 	case SitDown:
 		return "sit down"
 	case Sitting:
@@ -179,6 +184,9 @@ type Intent struct {
 	Jump bool
 	// Slide/Roll are edge-triggered requests consumed by traversal.
 	Slide, Roll bool
+	// Crouch holds a crouch for as long as it's set (and longer, under
+	// something low, until there's room to stand).
+	Crouch bool
 	// Act asks for a one-shot action; Idle means none. It's cleared as soon
 	// as it's read, so an ignored request isn't kept for later. Airborne
 	// characters, characters already acting, and skins without the clip
@@ -210,6 +218,9 @@ type State struct {
 	stairsLeft float32
 	// rightPunch is whether the next punch is with the right hand.
 	rightPunch bool
+	// crouchPhase is how far through its cycle a crouched walk is, 0 to 1,
+	// and crouchIdle how long into its clip a still crouch is.
+	crouchPhase, crouchIdle float32
 	// hidden is whether it's hidden, seated out of sight (see Seated).
 	hidden bool
 

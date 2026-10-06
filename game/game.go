@@ -56,7 +56,7 @@ var makehuman = map[character.Anim]character.Clip{
 	character.WallFall:      {Name: "Traversal_WallKickFall"},
 	character.WallFallRight: {Name: "Traversal_WallKickFallRight"},
 	character.WallLand:      {Name: "Traversal_WallLand"},
-	character.Crouch:        {Name: "Traversal_Crouch"},
+	character.Crouch:        {Name: "Traversal_CrouchIdle"}, // Mixamo's Crouching Idle
 	character.StandUp:       {Name: "Traversal_StandUp"},
 	character.LadderExit:    {Name: "Traversal_LadderExit"},
 	character.LadderEnter:   {Name: "Traversal_Ladder"},
@@ -65,6 +65,8 @@ var makehuman = map[character.Anim]character.Clip{
 	// steps.
 	character.StairsUp:   {Name: "Traversal_StairsUp", Step: stairStep},
 	character.StairsDown: {Name: "Traversal_StairsDown", Step: stairDownStep},
+	// Mixamo's Crouched Walking, a little lower to pass under the ducts.
+	character.CrouchWalk: {Name: "Traversal_CrouchWalk"},
 	// In a vehicle's seat (Ride, astride a bike or a trike, falls back to
 	// it): the library's driving loop.
 	character.Drive: {Name: "Driving_Loop"},

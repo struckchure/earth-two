@@ -56,6 +56,7 @@ Esc goes back. In play:
 | Shift | Run |
 | Space | Jump; vault/mantle an obstacle ahead; kick away from a nearby wall in the air |
 | Ctrl | Slide while running (at least 3 m/s); Space jumps out |
+| C | Hold to crouch, and walk crouched; let go to stand, once there's room |
 | R | Roll in the movement direction, or forward when stationary |
 | W/S or Up/Down on a ladder | Climb/descend; release to hold; Space jumps off |
 | E | Interact; beside a vehicle, get in; in one, get out (once it's slow); at a bench, stool, chair or bunk, sit down (E or move to get up); at a machine, kneel and work on it (move to stop) |
@@ -162,7 +163,9 @@ Ctrl slides from a run and R rolls about two metres. Both shorten the
 collision capsule. Rolls settle over 0.7 seconds, and slides get up by
 themselves over 0.8; still holding Shift and a direction, either runs straight
 on out of it. Under a low ceiling, the character stays crouched and
-can move slowly until there is room to stand. There is no stamina cost or
+can move slowly, walking crouched (Mixamo's Crouched Walking, a little
+lower to pass under the ducts, and Crouching Idle still), until there is
+room to stand. Holding C crouches anywhere. There is no stamina cost or
 invulnerability; actions require fresh presses with a short repeat guard.
 Pause and wardrobe menus freeze traversal. Falling below the world resets
 movement and the standing capsule.

@@ -188,7 +188,7 @@ func traverse(
 	}
 	q.Each(func(e ecs.Entity, c *Character, in *Intent, cc *physics.CharacterController, tr *transform.Transform, s *Traversal, cfg *TraversalConfig) {
 		s.impulse = false
-		slide, roll, jump := in.Slide, in.Roll, in.Jump
+		slide, roll, jump, crouch := in.Slide, in.Roll, in.Jump, in.Crouch
 		in.Slide, in.Roll = false, false
 		s.Guard = max(0, s.Guard-dt)
 		s.Detach = max(0, s.Detach-dt)
@@ -227,14 +227,17 @@ func traverse(
 			s.WallLocked = false
 		}
 		acting := st != nil && st.Current.OneShot()
-		// Stay low until the full capsule fits; never grow through an overhead obstacle.
+		// Stay low while C is held, and until the full capsule fits; never
+		// grow through an overhead obstacle.
 		if s.Mode == Crouch {
-			if p.ResizeCharacter(e, cc, tr, capsuleHeight) {
+			if !crouch && p.ResizeCharacter(e, cc, tr, capsuleHeight) {
 				standUp(s, cc)
 			} else {
 				cc.Walk = rl.Vector3Scale(direction(in.Move), .8)
 				in.Jump = false
-				s.Hint = "Move out to stand"
+				if !crouch {
+					s.Hint = "Move out to stand"
+				}
 				return
 			}
 		}
@@ -245,6 +248,14 @@ func traverse(
 				in.Jump = false
 				return
 			}
+		}
+		// Holding C crouches, on the ground and not in the middle of
+		// something.
+		if crouch && !s.active() && cc.Grounded && !acting && p.ResizeCharacter(e, cc, tr, cfg.LowHeight) {
+			s.Mode = Crouch
+			cc.Walk = rl.Vector3Scale(direction(in.Move), .8)
+			in.Jump = false
+			return
 		}
 		if s.active() {
 			in.Jump = false

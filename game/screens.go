@@ -26,6 +26,7 @@ var bindings = []struct {
 	{[]string{"Shift"}, "Run"},
 	{[]string{"Space"}, "Jump / vault / mantle / wall kick"},
 	{[]string{"Ctrl"}, "Slide while running"},
+	{[]string{"C"}, "Crouch (hold)"},
 	{[]string{"R"}, "Roll"},
 	{[]string{"W / S"}, "Climb ladder (move toward to attach)"},
 	{[]string{"E"}, "Interact"},
