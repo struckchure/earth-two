@@ -12,6 +12,7 @@ import (
 	"github.com/struckchure/earth-two/world"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/input"
+	"github.com/struckchure/illusion/render"
 	"github.com/struckchure/illusion/transform"
 	"github.com/struckchure/illusion/window"
 )
@@ -19,10 +20,13 @@ import (
 // The maps: a minimap in the top left corner in play, a compass along the top, and
 // the full map, which M opens and closes (as a screen: it pauses, like the
 // menus). Both maps are drawn from the layout, each piece as the footprint
-// of its colliders, coloured by the part of the world it's from; north
-// (the game's -Z) is up. They don't turn with the camera: the browser
-// build's raylib can't clip drawing to the minimap's frame, but a
-// rectangle that doesn't turn can be cut to it exactly.
+// of its colliders, coloured by the part of the world it's from. The
+// minimap turns with the camera, so what's ahead is up; the full map has
+// north (the game's -Z) up.
+//
+// A click on the full map marks a destination (another click on it takes
+// it off). It's shown on both maps, on the compass and over the world, with
+// how far it is, until the player gets there.
 
 // Sizes, in points, and how much of the world the minimap shows.
 const (
@@ -66,7 +70,18 @@ type worldMap struct {
 	// the UI's scale of 1); zero until it's first opened.
 	at   rl.Vector2
 	zoom float32
+	// dest is the destination marked on the map (X, Z), if marked.
+	dest   rl.Vector2
+	marked bool
 }
+
+// arrived is how near the destination, in metres, the player has to get
+// for it to be reached, and taken off the map.
+const arrived = 6
+
+// markReach is how near a click has to be to the destination's mark, in
+// points, to take it off rather than move it.
+const markReach = 14
 
 // The map's colours: the Fringe's ground, the ground inside the dome, the
 // floors, and each part of the world.
@@ -252,24 +267,62 @@ func lighten(c rl.Color, by float32) rl.Color {
 }
 
 // mapFrame is where the map is drawn: the part of the screen, the point
-// of the world in its middle and how many pixels a metre is.
+// of the world in its middle, how many pixels a metre is, and the way in
+// the world (X, Z) that's up on it: north, unless it turns.
 type mapFrame struct {
 	screen rl.Rectangle
 	at     rl.Vector2
 	scale  float32
+	up     rl.Vector2 // a unit vector; zero for north
+}
+
+// north is the way north is in the world (X, Z): the game's -Z.
+var north = rl.Vector2{Y: -1}
+
+// axes are the ways in the world that are right and up on the frame.
+func (f mapFrame) axes() (right, up rl.Vector2) {
+	up = f.up
+	if up == (rl.Vector2{}) {
+		up = north
+	}
+	return rl.Vector2{X: -up.Y, Y: up.X}, up
+}
+
+// turned reports whether the frame turns away from north up.
+func (f mapFrame) turned() bool { return f.up != (rl.Vector2{}) && f.up != north }
+
+// middle is the frame's middle on the screen.
+func (f mapFrame) middle() rl.Vector2 {
+	return rl.Vector2{X: f.screen.X + f.screen.Width/2, Y: f.screen.Y + f.screen.Height/2}
 }
 
 // toScreen is where a point of the world (X, Z) is in the frame.
 func (f mapFrame) toScreen(p rl.Vector2) rl.Vector2 {
-	return rl.Vector2{
-		X: f.screen.X + f.screen.Width/2 + (p.X-f.at.X)*f.scale,
-		Y: f.screen.Y + f.screen.Height/2 + (p.Y-f.at.Y)*f.scale,
-	}
+	return rl.Vector2Add(f.middle(), rl.Vector2Scale(f.screenDir(rl.Vector2Subtract(p, f.at)), f.scale))
 }
 
-// draw draws the map's marks in the frame, cut to its edges.
+// toWorld is the point of the world (X, Z) at a point of the frame.
+func (f mapFrame) toWorld(s rl.Vector2) rl.Vector2 {
+	right, up := f.axes()
+	d := rl.Vector2Scale(rl.Vector2Subtract(s, f.middle()), 1/f.scale)
+	return rl.Vector2Add(f.at, rl.Vector2Add(rl.Vector2Scale(right, d.X), rl.Vector2Scale(up, -d.Y)))
+}
+
+// screenDir is a way in the world (X, Z) as a way on the frame.
+func (f mapFrame) screenDir(v rl.Vector2) rl.Vector2 {
+	right, up := f.axes()
+	return rl.Vector2{X: rl.Vector2DotProduct(v, right), Y: -rl.Vector2DotProduct(v, up)}
+}
+
+// draw draws the map's marks in the frame, cut to its edges. (A turned
+// frame's marks are turned rectangles, drawn whole: draw it in scissor
+// mode, cut to the frame.)
 func (f mapFrame) draw(m *worldMap) {
 	rl.DrawRectangleRec(f.screen, mapFringe)
+	if f.turned() {
+		f.drawTurned(m)
+		return
+	}
 	for _, mk := range m.marks {
 		a := f.toScreen(rl.Vector2{X: mk.r.X, Y: mk.r.Y})
 		r := clip(rl.Rectangle{X: a.X, Y: a.Y, Width: mk.r.Width * f.scale, Height: mk.r.Height * f.scale}, f.screen)
@@ -278,6 +331,24 @@ func (f mapFrame) draw(m *worldMap) {
 			r.Width, r.Height = max(r.Width, 1), max(r.Height, 1)
 			rl.DrawRectangleRec(r, mk.c)
 		}
+	}
+}
+
+// drawTurned draws the marks turned with the frame: those that reach
+// within the circle round it.
+func (f mapFrame) drawTurned(m *worldMap) {
+	x := f.screenDir(rl.Vector2{X: 1})
+	angle := float32(math.Atan2(float64(x.Y), float64(x.X))) * 180 / math.Pi
+	reach := float32(math.Hypot(float64(f.screen.Width), float64(f.screen.Height))) / 2 / f.scale
+	for _, mk := range m.marks {
+		half := rl.Vector2{X: mk.r.Width / 2, Y: mk.r.Height / 2}
+		centre := rl.Vector2{X: mk.r.X + half.X, Y: mk.r.Y + half.Y}
+		if rl.Vector2Distance(centre, f.at)-rl.Vector2Length(half) > reach {
+			continue
+		}
+		w, h := max(mk.r.Width*f.scale, 1), max(mk.r.Height*f.scale, 1)
+		pos := f.toScreen(centre)
+		rl.DrawRectanglePro(rl.Rectangle{X: pos.X, Y: pos.Y, Width: w, Height: h}, rl.Vector2{X: w / 2, Y: h / 2}, angle, mk.c)
 	}
 }
 
@@ -332,10 +403,9 @@ func clip(r, to rl.Rectangle) rl.Rectangle {
 	return rl.Rectangle{X: x0, Y: y0, Width: x1 - x0, Height: y1 - y0}
 }
 
-// you draws the player as an arrow at at, pointing along the yaw facing
-// (radians about Up, 0 facing +Z: down the map).
-func you(at rl.Vector2, facing, size float32) {
-	dir := rl.Vector2{X: float32(math.Sin(float64(facing))), Y: float32(math.Cos(float64(facing)))}
+// you draws the player as an arrow at at, pointing along dir (on the
+// screen, a unit vector).
+func you(at, dir rl.Vector2, size float32) {
 	side := rl.Vector2{X: -dir.Y, Y: dir.X}
 	tip := rl.Vector2Add(at, rl.Vector2Scale(dir, size))
 	back := rl.Vector2Subtract(at, rl.Vector2Scale(dir, size*.6))
@@ -347,21 +417,108 @@ func you(at rl.Vector2, facing, size float32) {
 	}
 }
 
-// player is where the player is on the map (X, Z) and the way their body
-// faces, as a yaw.
-func player(players *illusion.Query2Where[transform.Transform, character.MotionSamples, illusion.With[character.Player]], bodies *illusion.Query1Where[transform.Transform, illusion.With[character.Body]], hier *illusion.Hierarchy) (rl.Vector2, float32, bool) {
+// player is where the player is on the map (X, Z), how high, and the way
+// their body faces (X, Z), a unit vector.
+func player(players *illusion.Query2Where[transform.Transform, character.MotionSamples, illusion.With[character.Player]], bodies *illusion.Query1Where[transform.Transform, illusion.With[character.Body]], hier *illusion.Hierarchy) (at rl.Vector2, y float32, facing rl.Vector2, ok bool) {
 	root, tr, _, ok := players.Single()
 	if !ok {
-		return rl.Vector2{}, 0, false
+		return rl.Vector2{}, 0, rl.Vector2{}, false
 	}
-	var facing float32
+	facing = rl.Vector2{Y: 1}
 	bodies.Each(func(e ecs.Entity, b *transform.Transform) {
 		if parent, ok := hier.Parent(e); ok && parent == root {
-			f := rl.Vector3RotateByQuaternion(rl.Vector3{Z: 1}, b.Rotation)
-			facing = float32(math.Atan2(float64(f.X), float64(f.Z)))
+			facing = facingOf(tr.Rotation, b.Rotation)
 		}
 	})
-	return rl.Vector2{X: tr.Translation.X, Y: tr.Translation.Z}, facing, true
+	return rl.Vector2{X: tr.Translation.X, Y: tr.Translation.Z}, tr.Translation.Y, facing, true
+}
+
+// facingOf is the way (X, Z) a body turned by body, in a root turned by
+// root, faces: on foot the body turns; seated, the root turns with what
+// carries it.
+func facingOf(root, body rl.Quaternion) rl.Vector2 {
+	f := rl.Vector3RotateByQuaternion(rl.Vector3{Z: 1}, rl.QuaternionMultiply(root, body))
+	if d := (rl.Vector2{X: f.X, Y: f.Z}); rl.Vector2Length(d) > 1e-4 {
+		return rl.Vector2Normalize(d)
+	}
+	return rl.Vector2{Y: 1}
+}
+
+// looking is the way the camera looks as it's drawn (it eases after where
+// it's steered, and follows a vehicle round), or else where it's steered.
+func looking(v *render.View3D, steered rl.Vector3) rl.Vector3 {
+	if v.Active {
+		if f := rl.Vector3Subtract(v.Camera.Target, v.Camera.Position); rl.Vector2Length(rl.Vector2{X: f.X, Y: f.Z}) > 1e-4 {
+			return rl.Vector3Normalize(f)
+		}
+	}
+	return steered
+}
+
+// edgePoint is where a line from the middle of r along dir meets r's edge,
+// pad in from it.
+func edgePoint(r rl.Rectangle, dir rl.Vector2, pad float32) rl.Vector2 {
+	mid := rl.Vector2{X: r.X + r.Width/2, Y: r.Y + r.Height/2}
+	hw, hh := r.Width/2-pad, r.Height/2-pad
+	t := float32(math.Inf(1))
+	if dir.X != 0 {
+		t = hw / float32(math.Abs(float64(dir.X)))
+	}
+	if dir.Y != 0 {
+		t = min(t, hh/float32(math.Abs(float64(dir.Y))))
+	}
+	if math.IsInf(float64(t), 1) {
+		return mid
+	}
+	return rl.Vector2Add(mid, rl.Vector2Scale(dir, t))
+}
+
+// within reports whether p is in r, pad in from its edges.
+func within(r rl.Rectangle, p rl.Vector2, pad float32) bool {
+	return p.X >= r.X+pad && p.X <= r.X+r.Width-pad && p.Y >= r.Y+pad && p.Y <= r.Y+r.Height-pad
+}
+
+// distance is how far a way is, for the destination: to the 10 m under a
+// kilometre, and in tenths of a kilometre over.
+func distance(m float32) string {
+	switch {
+	case m < 100:
+		return fmt.Sprintf("%.0f m", m)
+	case m < 995:
+		return fmt.Sprintf("%.0f m", math.Round(float64(m)/10)*10)
+	default:
+		return fmt.Sprintf("%.1f km", m/1000)
+	}
+}
+
+// destMark draws the destination's mark: a diamond, size across, centred
+// at at.
+func destMark(at rl.Vector2, size float32) {
+	o := size * 1.35
+	rl.DrawRectanglePro(rl.Rectangle{X: at.X, Y: at.Y, Width: o, Height: o}, rl.Vector2{X: o / 2, Y: o / 2}, 45, rl.NewColor(0, 0, 0, 220))
+	rl.DrawRectanglePro(rl.Rectangle{X: at.X, Y: at.Y, Width: size, Height: size}, rl.Vector2{X: size / 2, Y: size / 2}, 45, colDest)
+	d := size * .3
+	rl.DrawRectanglePro(rl.Rectangle{X: at.X, Y: at.Y, Width: d, Height: d}, rl.Vector2{X: d / 2, Y: d / 2}, 45, rl.NewColor(0, 0, 0, 220))
+}
+
+// colDest is the destination's colour: bright against the map's reds and
+// the accent's orange.
+var colDest = rl.NewColor(120, 220, 255, 255)
+
+// drawRoute draws the way from the player to the destination in the frame:
+// a line, and the mark at its end, or at the frame's edge if it's off it.
+func (f mapFrame) drawRoute(m *worldMap, from rl.Vector2, line, size float32) {
+	if !m.marked {
+		return
+	}
+	a, b := f.toScreen(from), f.toScreen(m.dest)
+	if a, b, ok := clipSegment(a, b, f.screen); ok {
+		stroke(a, b, line, rl.NewColor(colDest.R, colDest.G, colDest.B, 150))
+	}
+	if !within(f.screen, b, size) {
+		b = edgePoint(f.screen, rl.Vector2Normalize(rl.Vector2Subtract(b, f.middle())), size)
+	}
+	destMark(b, size)
 }
 
 // heading is the way the camera looks, as a compass bearing in degrees:
@@ -374,18 +531,20 @@ func heading(forward rl.Vector3) float32 {
 	return b
 }
 
-// mapPlayers is the player and their body, for the maps (one parameter,
-// to stay within Fn8).
+// mapPlayers is the player and their body, and the camera's view, for the
+// maps (one parameter, to stay within Fn8).
 type mapPlayers struct {
 	roots  illusion.Query2Where[transform.Transform, character.MotionSamples, illusion.With[character.Player]]
 	bodies illusion.Query1Where[transform.Transform, illusion.With[character.Body]]
 	hier   illusion.Hierarchy
+	view   illusion.Res[render.View3D]
 }
 
 func (p *mapPlayers) InitParam(w *ecs.World) {
 	p.roots.InitParam(w)
 	p.bodies.InitParam(w)
 	p.hier.InitParam(w)
+	p.view.InitParam(w)
 }
 
 // drawMaps draws, in play, the minimap and the compass, and on the map
@@ -402,7 +561,7 @@ func drawMaps(
 	if !ok {
 		return
 	}
-	at, facing, ok := player(&ps.roots, &ps.bodies, &ps.hier)
+	at, y, facing, ok := player(&ps.roots, &ps.bodies, &ps.hier)
 	if !ok {
 		return
 	}
@@ -411,11 +570,56 @@ func drawMaps(
 	width, height := float32(ww.Width), float32(ww.Height)
 	switch m.Get().screen() {
 	case playing:
-		drawMinimap(p, wmap, at, facing)
-		drawCompass(p, heading(view.Get().Forward), width)
+		forward := looking(ps.view.Get(), view.Get().Forward)
+		if wmap.marked {
+			drawDestination(p, ps.view.Get(), wmap.dest, at, y, width, height)
+		}
+		drawMinimap(p, wmap, at, facing, rl.Vector2{X: forward.X, Y: forward.Z})
+		var dest *rl.Vector2
+		if wmap.marked {
+			d := rl.Vector2Subtract(wmap.dest, at)
+			dest = &d
+		}
+		drawCompass(p, heading(forward), width, dest)
 	case mapping:
 		drawFullMap(p, wmap, at, facing, width, height)
 	}
+}
+
+// drawDestination marks the destination over the world, with how far it
+// is: where it is on the screen, or at the screen's edge, the way to turn,
+// if it's out of view.
+func drawDestination(p painter, v *render.View3D, dest, at rl.Vector2, y, width, height float32) {
+	if !v.Active {
+		return
+	}
+	cam := v.Camera
+	point := rl.Vector3{X: dest.X, Y: max(groundHeight(dest.X, dest.Y), y-1) + 2, Z: dest.Y}
+	fwd := rl.Vector3Normalize(rl.Vector3Subtract(cam.Target, cam.Position))
+	right := rl.Vector3Normalize(rl.Vector3CrossProduct(fwd, cam.Up))
+	up := rl.Vector3CrossProduct(right, fwd)
+	d := rl.Vector3Subtract(point, cam.Position)
+	screen := rl.Rectangle{Width: width, Height: height}
+	pad := p.px(40)
+	pos := v.WorldToScreen(point)
+	if rl.Vector3DotProduct(d, fwd) <= .5 || !within(screen, pos, pad) {
+		dir := rl.Vector2{X: rl.Vector3DotProduct(d, right), Y: -rl.Vector3DotProduct(d, up)}
+		if rl.Vector3DotProduct(d, fwd) <= .5 {
+			// Behind: to the side it's on, along the bottom.
+			dir.Y = max(dir.Y, float32(math.Abs(float64(dir.X)))*.5+1)
+		}
+		if rl.Vector2Length(dir) < 1e-4 {
+			dir = rl.Vector2{Y: 1}
+		}
+		pos = edgePoint(screen, rl.Vector2Normalize(dir), pad)
+	}
+	destMark(pos, p.px(14))
+	text := distance(rl.Vector2Distance(at, dest))
+	m := p.measure(text, 14, semibold)
+	tp := rl.Vector2{X: pos.X - m.X/2, Y: pos.Y + p.px(14)}
+	shadow := max(1, p.px(1))
+	p.text(text, rl.Vector2{X: tp.X + shadow, Y: tp.Y + shadow}, 14, semibold, rl.NewColor(0, 0, 0, 200))
+	p.text(text, tp, 14, semibold, colText)
 }
 
 // minimapRect is where the minimap goes: the top left corner.
@@ -424,25 +628,37 @@ func minimapRect(p painter) rl.Rectangle {
 	return rl.Rectangle{X: p.px(16), Y: p.px(16), Width: s, Height: s}
 }
 
-func drawMinimap(p painter, m *worldMap, at rl.Vector2, facing float32) {
+// drawMinimap draws the minimap round the player, turned so the way the
+// camera looks (X, Z) is up.
+func drawMinimap(p painter, m *worldMap, at, facing, looking rl.Vector2) {
 	r := minimapRect(p)
 	border := max(1, p.px(3))
 	rl.DrawRectangleRec(inset(r, -border, -border), colPanel)
 	f := mapFrame{screen: r, at: at, scale: r.Width / minimapRange}
+	if rl.Vector2Length(looking) > 1e-4 {
+		f.up = rl.Vector2Normalize(looking)
+	}
+	rl.BeginScissorMode(int32(r.X), int32(r.Y), int32(math.Ceil(float64(r.Width))), int32(math.Ceil(float64(r.Height))))
 	f.draw(m)
 	f.drawRoads(max(2, p.px(2)))
 	f.drawLabels(p, mapLabels{12, 10, 10})
-	you(f.toScreen(at), facing, p.px(5))
-	// North, and the key for the full map, under it.
-	p.textIn("N", rl.Rectangle{X: r.X + r.Width - p.px(16), Y: r.Y + p.px(2), Width: p.px(14), Height: p.px(14)}, 12, semibold, colAccent, centre)
+	rl.EndScissorMode()
+	f.drawRoute(m, at, max(1.5, p.px(2)), p.px(10))
+	you(f.toScreen(at), f.screenDir(facing), p.px(5))
+	// North, at the edge the way it is, and the key for the full map
+	// under it.
+	n := edgePoint(r, rl.Vector2Normalize(f.screenDir(north)), p.px(9))
+	rl.DrawRectangleRec(rl.Rectangle{X: n.X - p.px(8), Y: n.Y - p.px(8), Width: p.px(16), Height: p.px(16)}, rl.NewColor(0, 0, 0, 170))
+	p.textIn("N", rl.Rectangle{X: n.X - p.px(8), Y: n.Y - p.px(8), Width: p.px(16), Height: p.px(16)}, 12, semibold, colAccent, centre)
 	x, y := r.X, r.Y+r.Height+border+p.px(6)
 	x += p.keycap("M", rl.Vector2{X: x, Y: y}, 11) + p.px(6)
 	p.text("Map", rl.Vector2{X: x, Y: y + p.px(2)}, 12, semibold, colText)
 }
 
 // drawCompass draws the strip along the top: the bearings round the way
-// the camera looks, with the cardinal points named.
-func drawCompass(p painter, bearing, width float32) {
+// the camera looks, with the cardinal points named, and the way to the
+// destination (X, Z from the player), if there is one.
+func drawCompass(p painter, bearing, width float32, dest *rl.Vector2) {
 	w, h := p.px(compassWidth), p.px(34)
 	r := rl.Rectangle{X: (width - w) / 2, Y: p.px(14), Width: w, Height: h}
 	rl.DrawRectangleRec(r, colPanel)
@@ -469,6 +685,14 @@ func drawCompass(p painter, bearing, width float32) {
 		}
 		rl.DrawRectangleRec(rl.Rectangle{X: x - max(.5, p.px(.75)), Y: r.Y + h*.35, Width: max(1, p.px(1.5)), Height: h * .3}, colMuted)
 	}
+	// The way to the destination, at the edge if it's off the strip.
+	if dest != nil {
+		off := heading(rl.Vector3{X: dest.X, Z: dest.Y}) - bearing
+		off -= 360 * float32(math.Round(float64(off/360)))
+		limit := float32(compassSpan/2 - 6)
+		off = max(-limit, min(limit, off))
+		destMark(rl.Vector2{X: r.X + w/2 + off*perDeg, Y: r.Y + h*.72}, p.px(9))
+	}
 	// Where it's pointing, and the bearing under it.
 	rl.DrawRectangleRec(rl.Rectangle{X: r.X + w/2 - max(1, p.px(1)), Y: r.Y + h - p.px(5), Width: max(2, p.px(2)), Height: p.px(9)}, colAccent)
 	p.textIn(fmt.Sprintf("%03.0f", bearing), rl.Rectangle{X: r.X + w/2 - p.px(30), Y: r.Y + h + p.px(4), Width: p.px(60), Height: p.px(18)}, 13, semibold, colMuted, centre)
@@ -479,24 +703,38 @@ func fullMapRect(p painter, width, height float32) rl.Rectangle {
 	return inset(rl.Rectangle{Width: width, Height: height}, p.px(48), p.px(48))
 }
 
-func drawFullMap(p painter, m *worldMap, at rl.Vector2, facing, width, height float32) {
+func drawFullMap(p painter, m *worldMap, at, facing rl.Vector2, width, height float32) {
 	rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 160))
 	r := fullMapRect(p, width, height)
 	rl.DrawRectangleRec(inset(r, -p.px(8), -p.px(8)), colPanel)
-	f := mapFrame{screen: r, at: m.at, scale: m.zoom * p.s}
+	f := fullMapFrame(p, m, width, height)
 	f.draw(m)
 	f.drawRoads(max(2, p.px(2)))
 	f.drawLabels(p, mapLabels{20, 14, 14})
+	f.drawRoute(m, at, max(2, p.px(3)), p.px(16))
 	if pos := f.toScreen(at); clip(rl.Rectangle{X: pos.X, Y: pos.Y, Width: 1, Height: 1}, r).Width > 0 {
-		you(pos, facing, p.px(7))
+		you(pos, f.screenDir(facing), p.px(7))
 	}
 	p.text("The Fringe", rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(12)}, 30, black, colText)
+	if m.marked {
+		text := "Destination: " + distance(rl.Vector2Distance(at, m.dest))
+		p.text(text, rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(52)}, 16, semibold, colDest)
+	}
+	mark := "Mark"
+	if m.marked {
+		mark = "Mark, or take off"
+	}
 	x, y := r.X+p.px(16), r.Y+r.Height-p.px(14*1.7)-p.px(14)
-	for _, k := range []struct{ key, does string }{{"M", "Close"}, {"Esc", "Close"}, {"Drag", "Move"}, {"Scroll", "Zoom"}} {
+	for _, k := range []struct{ key, does string }{{"M", "Close"}, {"Esc", "Close"}, {"Drag", "Move"}, {"Scroll", "Zoom"}, {"Click", mark}} {
 		x += p.keycap(k.key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
 		p.text(k.does, rl.Vector2{X: x, Y: y + p.px(4)}, 15, semibold, colText)
 		x += p.measure(k.does, 15, semibold).X + p.px(20)
 	}
+}
+
+// fullMapFrame is the full map's frame, north up.
+func fullMapFrame(p painter, m *worldMap, width, height float32) mapFrame {
+	return mapFrame{screen: fullMapRect(p, width, height), at: m.at, scale: m.zoom * p.s}
 }
 
 // Full map zoom, in pixels per metre at the UI's scale of 1.
@@ -506,8 +744,22 @@ const (
 	mapZoomOut = .1 // where it opens: 10 km or so across
 )
 
+// mapState is mapInput's memory: whether the full map is open, and how
+// far the pointer has moved since the left button went down (a click
+// hardly moves; a drag does).
+type mapState struct {
+	opened   bool
+	pressing bool
+	moved    float32
+}
+
+// clickSlop is how far, in points, the pointer can move between the
+// button going down and up for it to be a click, not a drag.
+const clickSlop = 6
+
 // mapInput moves the full map: drag to move it, scroll to zoom about the
-// pointer. It opens on the player.
+// pointer, click to mark the destination or take it off. It opens on the
+// player. In play, it takes the destination off when they get there.
 func mapInput(
 	m *illusion.Res[menu],
 	wm *illusion.Res[worldMap],
@@ -516,19 +768,24 @@ func mapInput(
 	win *illusion.Res[window.Window],
 	fonts *illusion.Res[uiFonts],
 	ps *mapPlayers,
-	opened *illusion.Local[bool],
+	state *illusion.Local[mapState],
 ) {
 	wmap, ok := wm.TryGet()
 	if !ok {
 		return
 	}
+	at, _, _, here := player(&ps.roots, &ps.bodies, &ps.hier)
+	if here && wmap.marked && rl.Vector2Distance(at, wmap.dest) < arrived {
+		wmap.marked = false
+	}
+	st := state.Get()
 	if m.Get().screen() != mapping {
-		*opened.Get() = false
+		st.opened, st.pressing = false, false
 		return
 	}
-	if !*opened.Get() {
-		*opened.Get() = true
-		if at, _, ok := player(&ps.roots, &ps.bodies, &ps.hier); ok {
+	if !st.opened {
+		st.opened = true
+		if here {
 			wmap.at = at
 		}
 		wmap.zoom = mapZoomOut
@@ -536,8 +793,22 @@ func mapInput(
 	p := newPainter(fonts.Get(), win.Get())
 	ms := mouse.Get()
 	scale := wmap.zoom * p.s
-	if buttons.Get().AnyPressed(rl.MouseButtonLeft, rl.MouseButtonRight) {
+	b := buttons.Get()
+	if b.AnyPressed(rl.MouseButtonLeft, rl.MouseButtonRight) {
 		wmap.at = rl.Vector2Subtract(wmap.at, rl.Vector2Scale(ms.Delta, 1/scale))
+	}
+	if b.JustPressed(rl.MouseButtonLeft) {
+		st.pressing, st.moved = true, 0
+	} else if st.pressing {
+		st.moved += rl.Vector2Length(ms.Delta)
+	}
+	if b.JustReleased(rl.MouseButtonLeft) && st.pressing {
+		st.pressing = false
+		ww := win.Get()
+		f := fullMapFrame(p, wmap, float32(ww.Width), float32(ww.Height))
+		if st.moved <= p.px(clickSlop) && contains(f.screen, ms.Position) {
+			click(wmap, f, ms.Position, p.px(markReach))
+		}
 	}
 	if ms.Wheel != 0 {
 		ww := win.Get()
@@ -549,6 +820,19 @@ func mapInput(
 		wmap.at = rl.Vector2Subtract(under, rl.Vector2Scale(rl.Vector2Subtract(ms.Position, middle), 1/(wmap.zoom*p.s)))
 	}
 	// Not off the world.
-	b := wmap.bounds
-	wmap.at = rl.Vector2{X: min(b.X+b.Width, max(b.X, wmap.at.X)), Y: min(b.Y+b.Height, max(b.Y, wmap.at.Y))}
+	bounds := wmap.bounds
+	wmap.at = rl.Vector2{X: min(bounds.X+bounds.Width, max(bounds.X, wmap.at.X)), Y: min(bounds.Y+bounds.Height, max(bounds.Y, wmap.at.Y))}
+}
+
+// click marks the destination where the full map, f, was clicked at s, or
+// takes it off if the click was on its mark (within reach pixels).
+func click(m *worldMap, f mapFrame, s rl.Vector2, reach float32) {
+	if m.marked && rl.Vector2Distance(f.toScreen(m.dest), s) <= reach {
+		m.marked = false
+		return
+	}
+	d := f.toWorld(s)
+	b := m.bounds
+	m.dest = rl.Vector2{X: min(b.X+b.Width, max(b.X, d.X)), Y: min(b.Y+b.Height, max(b.Y, d.Y))}
+	m.marked = true
 }

@@ -1,11 +1,13 @@
 package game
 
 import (
+	"math"
 	"testing"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/struckchure/earth-two/character"
 	"github.com/struckchure/earth-two/world"
+	"github.com/struckchure/illusion/render"
 )
 
 func TestMapKey(t *testing.T) {
@@ -91,5 +93,107 @@ func TestLandfallMap(t *testing.T) {
 	}
 	if !found {
 		t.Error("no mark where the dome's south wall is")
+	}
+}
+
+func near(a, b rl.Vector2) bool { return rl.Vector2Distance(a, b) < 1e-3 }
+
+// North up, the frame is the world as it was: X across, Z down.
+func TestMapFrameNorthUp(t *testing.T) {
+	f := mapFrame{screen: rl.Rectangle{Width: 100, Height: 100}, at: rl.Vector2{X: 10, Y: 20}, scale: 2}
+	if got := f.toScreen(rl.Vector2{X: 15, Y: 18}); !near(got, rl.Vector2{X: 60, Y: 46}) {
+		t.Errorf("toScreen = %v, want (60, 46)", got)
+	}
+	if f.turned() {
+		t.Error("a frame with no up turns")
+	}
+}
+
+// Turned to look east, what's east is up and what's north is to the left;
+// a click finds the point it was drawn at.
+func TestMapFrameTurns(t *testing.T) {
+	f := mapFrame{screen: rl.Rectangle{Width: 100, Height: 100}, at: rl.Vector2{X: 10, Y: 20}, scale: 2, up: rl.Vector2{X: 1}}
+	if got := f.toScreen(rl.Vector2{X: 20, Y: 20}); !near(got, rl.Vector2{X: 50, Y: 30}) {
+		t.Errorf("10 m east = %v, want straight up (50, 30)", got)
+	}
+	if got := f.toScreen(rl.Vector2{X: 10, Y: 10}); !near(got, rl.Vector2{X: 30, Y: 50}) {
+		t.Errorf("10 m north = %v, want to the left (30, 50)", got)
+	}
+	if got := f.screenDir(rl.Vector2{Y: 1}); !near(got, rl.Vector2{X: 1}) {
+		t.Errorf("facing south points %v on the frame, want right", got)
+	}
+	p := rl.Vector2{X: 13, Y: 27}
+	if got := f.toWorld(f.toScreen(p)); !near(got, p) {
+		t.Errorf("toWorld(toScreen(%v)) = %v", p, got)
+	}
+}
+
+func TestEdgePoint(t *testing.T) {
+	r := rl.Rectangle{X: 0, Y: 0, Width: 100, Height: 50}
+	for _, tt := range []struct{ dir, want rl.Vector2 }{
+		{rl.Vector2{X: 1}, rl.Vector2{X: 95, Y: 25}},
+		{rl.Vector2{Y: -1}, rl.Vector2{X: 50, Y: 5}},
+		{rl.Vector2Normalize(rl.Vector2{X: 1, Y: 1}), rl.Vector2{X: 70, Y: 45}},
+	} {
+		if got := edgePoint(r, tt.dir, 5); !near(got, tt.want) {
+			t.Errorf("edgePoint along %v = %v, want %v", tt.dir, got, tt.want)
+		}
+	}
+}
+
+func TestClickMarksAndUnmarks(t *testing.T) {
+	m := &worldMap{bounds: rl.Rectangle{X: -1000, Y: -1000, Width: 2000, Height: 2000}}
+	f := mapFrame{screen: rl.Rectangle{Width: 200, Height: 200}, scale: .5}
+	click(m, f, rl.Vector2{X: 150, Y: 60}, 10)
+	if !m.marked || !near(m.dest, rl.Vector2{X: 100, Y: -80}) {
+		t.Fatalf("after a click: %v at %v, want marked at (100, -80)", m.marked, m.dest)
+	}
+	click(m, f, rl.Vector2{X: 30, Y: 30}, 10)
+	if !m.marked || !near(m.dest, rl.Vector2{X: -140, Y: -140}) {
+		t.Fatalf("a click elsewhere: %v at %v, want it moved to (-140, -140)", m.marked, m.dest)
+	}
+	click(m, f, rl.Vector2{X: 34, Y: 27}, 10)
+	if m.marked {
+		t.Fatal("a click on the mark left it marked")
+	}
+	f.at = rl.Vector2{X: 990}
+	click(m, f, rl.Vector2{X: 190, Y: 100}, 10)
+	if m.dest.X != 1000 {
+		t.Errorf("marked off the world at %v", m.dest)
+	}
+}
+
+func TestDistance(t *testing.T) {
+	for m, want := range map[float32]string{7.4: "7 m", 99: "99 m", 344: "340 m", 996: "1.0 km", 2460: "2.5 km", 10250: "10.2 km"} {
+		if got := distance(m); got != want {
+			t.Errorf("distance(%v) = %q, want %q", m, got, want)
+		}
+	}
+}
+
+// On foot the body turns; in a seat, the root turns with the vehicle.
+func TestFacingOf(t *testing.T) {
+	east := rl.QuaternionFromAxisAngle(rl.Vector3{Y: 1}, math.Pi/2)
+	if got := facingOf(rl.QuaternionIdentity(), east); !near(got, rl.Vector2{X: 1}) {
+		t.Errorf("on foot, body turned east: %v", got)
+	}
+	if got := facingOf(east, rl.QuaternionIdentity()); !near(got, rl.Vector2{X: 1}) {
+		t.Errorf("seated, root turned east: %v", got)
+	}
+	// A vehicle nosing down a slope still faces the way it's going.
+	down := rl.QuaternionMultiply(east, rl.QuaternionFromAxisAngle(rl.Vector3{X: 1}, .3))
+	if got := facingOf(down, rl.QuaternionIdentity()); !near(got, rl.Vector2{X: 1}) {
+		t.Errorf("seated, nosing down a slope east: %v", got)
+	}
+}
+
+func TestLookingFollowsTheDrawnCamera(t *testing.T) {
+	v := &render.View3D{Active: true, Camera: rl.Camera3D{Position: rl.Vector3{X: 1, Y: 5, Z: 1}, Target: rl.Vector3{X: 4, Y: 1, Z: 1}}}
+	if got := looking(v, rl.Vector3{Z: -1}); got.X <= 0 || math.Abs(float64(got.Z)) > 1e-5 {
+		t.Errorf("looking = %v, want the drawn camera's east", got)
+	}
+	v.Active = false
+	if got := looking(v, rl.Vector3{Z: -1}); got != (rl.Vector3{Z: -1}) {
+		t.Errorf("no camera drawn: %v, want the steered way", got)
 	}
 }
