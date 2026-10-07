@@ -34,7 +34,7 @@ func TestCapsuleResizeInterpolationKeepsFeetPlanted(t *testing.T) {
 	s := MotionSamples{previous: rl.Vector3{Y: .9}, current: rl.Vector3{Y: .9}, height: 1.8}
 	for _, height := range []float32{.9, 1.8} {
 		center := rl.Vector3{Y: height / 2}
-		s.remember(center, height)
+		s.remember(center, height, true)
 		for _, alpha := range []float32{0, .5, 1} {
 			if y := s.Position(center, alpha).Y - height/2; abs(y) > .001 {
 				t.Fatalf("resize to %v at alpha %v lifted feet by %v", height, alpha, y)

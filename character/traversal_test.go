@@ -24,7 +24,8 @@ type traversalHarness struct {
 func newTraversalHarness(t *testing.T, feet rl.Vector3, setup func(*illusion.Commands)) *traversalHarness {
 	t.Helper()
 	h := &traversalHarness{controls: &Controls{Enabled: true}}
-	h.app = illusion.New().AddPlugins(transform.Plugin{}, physics.Plugin{}).InsertResource(illusion.R(h.controls))
+	h.app = illusion.New().AddPlugins(transform.Plugin{}, physics.Plugin{}).InsertResource(illusion.R(h.controls), illusion.R(&Family{}))
+	h.app.AddSystems(illusion.PreUpdate, illusion.Fn3(indexFamily))
 	h.app.AddSystems(illusion.Startup, illusion.Fn1(func(cmd *illusion.Commands) {
 		cmd.Spawn(illusion.C(physics.Static), illusion.C(physics.Cuboid(40, 1, 40)), illusion.C(transform.FromXYZ(0, -.5, 0)))
 		cmd.Spawn(illusion.C(Default()), illusion.C(Intent{}), illusion.C(Traversal{}), illusion.C(DefaultTraversal()), illusion.C(physics.CharacterController{Radius: .3, Height: 1.8, StepHeight: .3}), illusion.C(transform.FromTranslation(rl.Vector3Add(feet, rl.Vector3{Y: .9})))).WithChild(illusion.C(Body{}), illusion.C(State{}), illusion.C(transform.FromXYZ(0, -.9, 0)))

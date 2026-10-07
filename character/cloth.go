@@ -99,11 +99,18 @@ type bodyShape struct {
 	surface  map[[3]int32][][3]rl.Vector3
 }
 
-// clothe gives each new garment a Cloth fitted to the body it's on.
+// Rigid on a character's root keeps its clothes from moving with physics:
+// they move with its skeleton only, as Plugin.DisableCloth has everyone's.
+// For a crowd: the cloth solver costs each person a few milliseconds a frame.
+type Rigid struct{}
+
+// clothe gives each new garment a Cloth fitted to the body it's on, but on
+// a Rigid character.
 func clothe(
 	cmd *illusion.Commands,
 	garments *illusion.Query2Where[Garment, render.Model3d, illusion.Without[clothed]],
 	models3d *illusion.Query1[render.Model3d],
+	rigid *illusion.Query1[Rigid],
 	hier *illusion.Hierarchy,
 	models *illusion.Res[asset.Assets[render.Model]],
 	cache *illusion.Local[clothCache],
@@ -134,7 +141,7 @@ func clothe(
 		if garment == nil || body == nil {
 			return // not loaded yet
 		}
-		if !moves {
+		if _, still := rigid.Get(hier.Root(e)); !moves || still {
 			done = append(done, job{e, nil})
 			return
 		}

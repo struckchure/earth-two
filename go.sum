@@ -16,5 +16,9 @@ github.com/struckchure/illusion v0.0.0-20261006123230-2e7d790f5699 h1:ndDdZ73YKa
 github.com/struckchure/illusion v0.0.0-20261006123230-2e7d790f5699/go.mod h1:YXrdCdA43ncCi4WP6p1bL9SwxDVj9KkkLJmeHof5EWI=
 github.com/struckchure/illusion v0.0.0-20261006152503-caee480f8913 h1:fymdU/YQEqJLl33p27GuZL4huUq0a8fUettLUfpqTCs=
 github.com/struckchure/illusion v0.0.0-20261006152503-caee480f8913/go.mod h1:YXrdCdA43ncCi4WP6p1bL9SwxDVj9KkkLJmeHof5EWI=
+github.com/struckchure/illusion v0.0.0-20261007093348-e70ab1b57f7b h1:UbJ998G11d6nBA3eGDbxCMKev2Do6Pvzmz2r9mHlpiY=
+github.com/struckchure/illusion v0.0.0-20261007093348-e70ab1b57f7b/go.mod h1:YXrdCdA43ncCi4WP6p1bL9SwxDVj9KkkLJmeHof5EWI=
+github.com/struckchure/illusion v0.0.0-20261007105217-a581adf512ff h1:urZWq86YoJotpaGz7M10uCH5coVlYZZlL3xVBHHCsnY=
+github.com/struckchure/illusion v0.0.0-20261007105217-a581adf512ff/go.mod h1:YXrdCdA43ncCi4WP6p1bL9SwxDVj9KkkLJmeHof5EWI=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 h1:vr/HnozRka3pE4EsMEg1lgkXJkTFJCVUX+S/ZT6wYzM=
 golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842/go.mod h1:XtvwrStGgqGPLc4cjQfWqZHG1YFdYs6swckp8vpsjnc=

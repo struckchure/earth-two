@@ -236,12 +236,13 @@ func present(
 	shells *illusion.Query1Where[transform.Transform, illusion.With[Shell]],
 	wheels *illusion.Query2[WheelOf, transform.Transform],
 	seated *illusion.Query1[character.Seated],
-	hier *illusion.Hierarchy,
+	fam *illusion.Res[character.Family],
 	fixed *illusion.Res[illusion.FixedTime],
 	driving *illusion.Res[Driving],
 	settings *illusion.Res[physics.Settings],
 ) {
 	alpha := fixed.Get().Overstep()
+	kids := fam.Get()
 	// Paused, the simulation holds still but the fixed clock runs on, so
 	// the share between its last two steps keeps sweeping round: drawn by
 	// it, the vehicle would rock between them. It's drawn where it was
@@ -257,7 +258,7 @@ func present(
 			pose = interp.At(alpha)
 		}
 		inverse := rl.QuaternionInvert(root.Rotation)
-		hier.EachChild(e, func(child ecs.Entity) {
+		kids.EachChild(e, func(child ecs.Entity) {
 			shell, ok := shells.Get(child)
 			if !ok {
 				return
@@ -267,7 +268,7 @@ func present(
 			if *rb != physics.Dynamic || len(st.Wheels) == 0 {
 				return
 			}
-			hier.EachChild(child, func(wheel ecs.Entity) {
+			kids.EachChild(child, func(wheel ecs.Entity) {
 				if w, tr, ok := wheels.Get(wheel); ok && w.Index < len(st.Wheels) {
 					*tr = st.Wheels[w.Index].Transform
 				}

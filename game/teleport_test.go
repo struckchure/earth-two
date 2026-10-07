@@ -39,7 +39,7 @@ func newTeleportRig(t *testing.T, from, to rl.Vector2) *teleportRig {
 		illusion.R(&menu{}), illusion.R(r.wmap), illusion.R(newOrbit()))
 	app.AddPlugins(character.Plugin{Models: []character.Model{{Path: "characters/man.glb", Scale: 1,
 		Clips: map[character.Anim]character.Clip{character.Idle: {Name: "idle"}}}}},
-		world.Plugin{Manifest: "world/world.json"}, vehicle.Plugin{}, testPlugin{})
+		world.Plugin{Manifest: "world/world.json"}, vehicle.Plugin{}, residentsPlugin{}, testPlugin{})
 	app.AddSystems(illusion.Startup, illusion.Fn3(func(cmd *illusion.Commands, kit *illusion.Res[world.Kit], roster *illusion.Res[character.Roster]) {
 		terrainAround(cmd, from.X, from.Y, 1)
 		terrainAround(cmd, to.X, to.Y, 1)

@@ -107,7 +107,7 @@ func makeContactRig(model asset.Handle[render.Model], bones []rl.BoneInfo) *cont
 }
 
 func fitPoseToWorld(
-	bodies *illusion.Query4Where[State, render.Model3d, render.AnimationPlayer, transform.Transform, illusion.With[Body]],
+	bodies *illusion.Query4Where[State, render.Model3d, render.AnimationPlayer, transform.Transform, illusion.And[illusion.With[Body], illusion.Without[Distant]]],
 	roots *illusion.Query3[transform.Transform, physics.CharacterController, Traversal],
 	hier *illusion.Hierarchy, assets *poseAssets, world *physics.Physics,
 	cache *illusion.Local[contactCache], clock *illusion.Res[illusion.Time],

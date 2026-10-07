@@ -80,7 +80,7 @@ type someone struct {
 type crowd struct {
 	roots   illusion.Query3Where[transform.Transform, physics.CharacterController, character.Traversal, illusion.With[character.Character]]
 	bodies  illusion.Query1Where[character.State, illusion.With[character.Body]]
-	hier    illusion.Hierarchy
+	fam     illusion.Res[character.Family]
 	terrain illusion.Query1[terrainBody]
 	phys    physics.Physics
 }
@@ -88,7 +88,7 @@ type crowd struct {
 func (p *crowd) InitParam(w *ecs.World) {
 	p.roots.InitParam(w)
 	p.bodies.InitParam(w)
-	p.hier.InitParam(w)
+	p.fam.InitParam(w)
 	p.terrain.InitParam(w)
 	p.phys.InitParam(w)
 }
@@ -97,7 +97,7 @@ func (p *crowd) InitParam(w *ecs.World) {
 func (p *crowd) each(fn func(s someone, body ecs.Entity, st *character.State)) {
 	p.roots.Each(func(root ecs.Entity, tr *transform.Transform, cc *physics.CharacterController, tv *character.Traversal) {
 		feet := rl.Vector3Subtract(tr.Translation, rl.Vector3{Y: cc.Height / 2})
-		p.hier.EachChild(root, func(c ecs.Entity) {
+		p.fam.Get().EachChild(root, func(c ecs.Entity) {
 			if st, ok := p.bodies.Get(c); ok {
 				fn(someone{root, tr, cc, tv, feet}, c, st)
 			}
@@ -275,7 +275,7 @@ func footCues(
 		}
 		walking := s.cc.Grounded && !s.cc.Controlled && stepping(st.Current)
 		speed := float32(math.Hypot(float64(s.cc.Velocity.X), float64(s.cc.Velocity.Z)))
-		ps.hier.EachChild(body, func(c ecs.Entity) {
+		ps.fam.Get().EachChild(body, func(c ecs.Entity) {
 			f, g, ok := feet.Get(c)
 			if !ok {
 				return

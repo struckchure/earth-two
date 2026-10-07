@@ -138,7 +138,7 @@ const (
 func locomote(
 	q *illusion.Query4[Character, Intent, physics.CharacterController, Traversal],
 	bodies *illusion.Query2Where[State, transform.Transform, illusion.With[Body]],
-	hier *illusion.Hierarchy,
+	fam *illusion.Res[Family],
 	t *illusion.Res[illusion.Time],
 ) {
 	dt := t.Get().DeltaSecs()
@@ -160,7 +160,7 @@ func locomote(
 		}
 		acting := false
 		var body *State
-		hier.EachChild(root, func(e ecs.Entity) {
+		fam.Get().EachChild(root, func(e ecs.Entity) {
 			st, tr, ok := bodies.Get(e)
 			if !ok {
 				return

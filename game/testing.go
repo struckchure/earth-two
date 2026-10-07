@@ -42,8 +42,8 @@ type testSwitches struct {
 }
 
 // testKeys are the keys handed out to switches that don't name one: F3 and
-// F4 are illusion's stats and colliders.
-var testKeys = []input.Key{rl.KeyF5, rl.KeyF6, rl.KeyF7, rl.KeyF8, rl.KeyF9, rl.KeyF10, rl.KeyF11, rl.KeyF12}
+// F4 are illusion's stats and colliders; F9 edits the NPC population.
+var testKeys = []input.Key{rl.KeyF5, rl.KeyF6, rl.KeyF7, rl.KeyF8, rl.KeyF10, rl.KeyF11, rl.KeyF12}
 
 // addTestSwitch adds a switch to the test panel. Call it from a plugin's
 // Build, any time before the game runs.
@@ -73,11 +73,13 @@ func addTestSwitch(app *illusion.App, s testSwitch) {
 type testPlugin struct{}
 
 func (testPlugin) Build(app *illusion.App) {
+	app.InsertResource(illusion.R(&testNPCs{population: 25}))
 	addTestSwitch(app, weatherSwitch())
 	addTestSwitch(app, shadowSwitch())
+	addTestSwitch(app, npcSwitch())
 	app.AddSystems(illusion.Update,
 		illusion.Fn6(teleport).Before(character.Input),
-		illusion.Fn3(flipSwitches).Before(character.Input),
+		illusion.Chain(illusion.Fn3(flipSwitches), illusion.Fn7(syncTestNPCs)).Before(residentsSet),
 	)
 	app.AddSystems(illusion.Render, illusion.Fn5(drawTestPanel).InSet(render.Draw2D))
 }
@@ -140,6 +142,14 @@ func flipSwitches(keys *illusion.Res[input.Keys], sw *illusion.Res[testSwitches]
 		return
 	}
 	k := keys.Get()
+	if npcs := ecs.GetResource[testNPCs](w.World); npcs != nil {
+		mu := ecs.GetResource[menu](w.World)
+		if npcs.editing || mu == nil || mu.screen() == playing || mu.screen() == mapping {
+			if editNPCPopulation(k, npcs, s) {
+				return
+			}
+		}
+	}
 	if k.JustPressed(testPanelKey) {
 		s.shown = !s.shown
 	}
@@ -170,13 +180,33 @@ func drawTestPanel(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts
 		}
 		rows = append(rows, row{keyName(t.Key), t.Name, setting})
 	}
-	width, line := p.px(340), p.px(30)
+	if npcs := ecs.GetResource[testNPCs](world); npcs != nil {
+		setting := fmt.Sprintf("%d (%d live)", npcs.population, npcs.live)
+		if rs := ecs.GetResource[residents](world); rs != nil && npcs.live > 0 {
+			setting = fmt.Sprintf("%d (%d live, %d near)", npcs.population, npcs.live, rs.near)
+		}
+		if npcs.editing {
+			setting = npcs.digits + "_"
+		}
+		rows = append(rows, row{"F9", "NPC count", setting})
+		hint := "Type 0–4199; Enter saves; Esc cancels"
+		if !npcs.editing {
+			hint = "F9 edits the count; NPCs spawn nearby"
+		}
+		rows = append(rows, row{"", "", hint})
+	}
+	width, line := p.px(420), p.px(30)
 	r := rl.Rectangle{X: float32(ww.Width) - width - p.px(14), Y: p.px(170), Width: width, Height: p.px(40) + line*float32(len(rows))}
 	p.panel(r)
 	p.text("Testing", rl.Vector2{X: r.X + p.px(14), Y: r.Y + p.px(10)}, 15, semibold, colAccent)
 	y := r.Y + p.px(36)
 	for _, rw := range rows {
 		x := r.X + p.px(14)
+		if rw.key == "" {
+			p.textIn(rw.setting, rl.Rectangle{X: x, Y: y, Width: width - p.px(28), Height: p.px(24)}, 13, semibold, colMuted, left)
+			y += line
+			continue
+		}
 		x += max(p.keycap(rw.key, rl.Vector2{X: x, Y: y}, 13), p.px(34)) + p.px(10)
 		p.text(rw.name, rl.Vector2{X: x, Y: y + p.px(4)}, 14, semibold, colMuted)
 		p.textIn(rw.setting, rl.Rectangle{X: x + p.px(80), Y: y, Width: r.X + r.Width - x - p.px(94), Height: p.px(24)}, 14, semibold, colText, left)

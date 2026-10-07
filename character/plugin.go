@@ -37,7 +37,10 @@ type Plugin struct {
 
 func (pl Plugin) Build(app *illusion.App) {
 	// PreStartup, so Startup systems can spawn characters.
-	app.InsertResource(illusion.R(&Controls{Enabled: true}), illusion.R(&View{}))
+	app.InsertResource(illusion.R(&Controls{Enabled: true}), illusion.R(&View{}), illusion.R(&Family{}))
+	// Each entity's children, once a frame, for the systems that look up a
+	// character's body and clothes for every character (family.go).
+	app.AddSystems(illusion.PreUpdate, illusion.Fn3(indexFamily))
 	app.AddSystems(illusion.PreStartup, illusion.Fn5(func(
 		cmd *illusion.Commands,
 		models *asset.Loader[render.Model],
@@ -79,7 +82,7 @@ func (pl Plugin) Build(app *illusion.App) {
 		illusion.Chain(
 			illusion.Fn8(sit),
 			illusion.Fn8(dress),
-			illusion.Fn6(clothe).RunIf(illusion.Cond0(func() bool { return !pl.DisableCloth })),
+			illusion.Fn7(clothe).RunIf(illusion.Cond0(func() bool { return !pl.DisableCloth })),
 			illusion.Fn5(face),
 			illusion.Fn8(animate),
 		).InSet(Act),
@@ -88,6 +91,7 @@ func (pl Plugin) Build(app *illusion.App) {
 		illusion.Fn4(presentMotion).Before(render.Animate).Before(transform.Propagate),
 		illusion.Fn8(fitPoseToWorld).InSet(render.Animate).After(render.AdvanceAnimations).Before(render.AttachBones),
 		illusion.Fn6(ride).InSet(render.Animate).After(render.AdvanceAnimations).Before(render.AttachBones),
+		illusion.Fn2(lockstep).InSet(render.Animate).After(render.AdvanceAnimations).Before(render.AttachBones),
 		illusion.Fn3(mirrorPose).After(render.Animate),
 	)
 }

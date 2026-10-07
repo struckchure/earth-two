@@ -179,7 +179,7 @@ func refreshLaunch(st *State, cc *physics.CharacterController, dir rl.Vector3) {
 func traverse(
 	q *illusion.Query6[Character, Intent, physics.CharacterController, transform.Transform, Traversal, TraversalConfig],
 	bodies *illusion.Query2Where[State, transform.Transform, illusion.With[Body]],
-	ladders *illusion.Query1[Ladder], hier *illusion.Hierarchy, p *physics.Physics,
+	ladders *illusion.Query1[Ladder], fam *illusion.Res[Family], p *physics.Physics,
 	t *illusion.Res[illusion.Time], controls *illusion.Res[Controls], settings *illusion.Res[physics.Settings],
 ) {
 	dt := t.Get().DeltaSecs()
@@ -210,7 +210,7 @@ func traverse(
 		s.Hint = ""
 		var st *State
 		var body *transform.Transform
-		hier.EachChild(e, func(child ecs.Entity) {
+		fam.Get().EachChild(e, func(child ecs.Entity) {
 			if a, b, ok := bodies.Get(child); ok {
 				st, body = a, b
 			}

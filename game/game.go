@@ -113,6 +113,7 @@ func build(m *menu) *illusion.App {
 			// Outlines on people only: the world is painted, not inked.
 			world.Plugin{Manifest: "world/world.json"},
 			vehicle.Plugin{},
+			residentsPlugin{},
 			testPlugin{},
 			shading.Plugin{
 				// Violet, but light enough that shaded faces still read.
@@ -164,7 +165,7 @@ func build(m *menu) *illusion.App {
 		AddSystems(illusion.Update,
 			// After the characters act, so the camera follows a vehicle where
 			// it's drawn this frame.
-			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn2(contractChoice), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
+			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn2(contractChoice), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn4(cullPeople), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
 			illusion.Fn1(respawn),
 			// Benches, stools, bunks and machines (use.go): E acted on
 			// before characters act, and offered once the vehicles have
