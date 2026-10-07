@@ -84,6 +84,9 @@ type menu struct {
 	// title screen's camera has turned.
 	since, orbit   float32
 	acceptContract bool // consumed by contractChoice
+	// stamp is the stamp come down to confirm the last thing done, while
+	// it shows (paper.go).
+	stamp *stampMark
 }
 
 type page struct {
@@ -134,6 +137,7 @@ func (m *menu) choices() int {
 func (m *menu) do(a action) bool {
 	switch a {
 	case actPlay:
+		m.stampOn("ADMITTED", stampBlue, m.screen())
 		m.stack, m.since = nil, 0
 	case actResume, actBack:
 		m.back()
@@ -148,6 +152,7 @@ func (m *menu) do(a action) bool {
 	case actAcceptContract:
 		if m.screen() == contractOffer {
 			m.acceptContract = true
+			m.stampOn("FILED", stampRed, contractOffer)
 			m.back()
 		}
 	}
@@ -273,12 +278,12 @@ func (m *menu) point(hits []hit, pos rl.Vector2, moved, clicked bool, w *charact
 const (
 	margin   = 48
 	pad      = 28
-	headingH = 64
+	headingH = 76
 	buttonH  = 50
 	gap      = 10
 	rowH     = 46
 	arrow    = 34
-	bindingH = 40
+	bindingH = 33
 )
 
 // layout is where one screen's parts are, in pixels at scale sc.
@@ -295,6 +300,25 @@ type layout struct {
 	debts             rl.Rectangle
 }
 
+// down is l moved dy down the screen (a filed form taken away: paper.go).
+func (l layout) down(dy float32) layout {
+	move := func(rs []rl.Rectangle) []rl.Rectangle {
+		out := make([]rl.Rectangle, len(rs))
+		for i, r := range rs {
+			r.Y += dy
+			out[i] = r
+		}
+		return out
+	}
+	l.panel.Y += dy
+	l.heading.Y += dy
+	l.buttons, l.rows, l.left, l.right = move(l.buttons), move(l.rows), move(l.left), move(l.right)
+	for _, r := range []*rl.Rectangle{&l.hint, &l.account, &l.debts} {
+		r.Y += dy
+	}
+	return l
+}
+
 // layoutFor lays out s in a width by height window.
 func layoutFor(s screen, width, height, sc float32) layout {
 	l := layout{sc: sc}
@@ -309,12 +333,14 @@ func layoutFor(s screen, width, height, sc float32) layout {
 	}
 	switch s {
 	case title:
-		const x, w = 80, 320
-		h := 110 + stack(n)
+		// The arrival form: its header and a typed line, the choices, and
+		// room under them for the Registrar's seal.
+		const x, w, head, foot = 80, 340, 128, 78
+		h := head + stack(n) + foot
 		y := centreY(h)
 		l.panel = rl.Rectangle{X: pt(x), Y: pt(y), Width: pt(w), Height: pt(h)}
 		l.heading = rl.Vector2{X: pt(x), Y: pt(y)}
-		buttons(x, y+110, w)
+		buttons(x, y+head, w)
 	case paused:
 		const w = 340
 		h := pad + headingH + stack(n) + pad
@@ -323,7 +349,7 @@ func layoutFor(s screen, width, height, sc float32) layout {
 		l.heading = rl.Vector2{X: pt(margin + pad), Y: pt(y + pad)}
 		buttons(margin+pad, y+pad+headingH, w-2*pad)
 	case controlsHelp:
-		const w = 420
+		const w = 500
 		h := pad + headingH + float32(len(bindings))*bindingH + 2*gap + stack(n) + pad
 		y := centreY(h)
 		l.panel = rl.Rectangle{X: pt(margin), Y: pt(y), Width: pt(w), Height: pt(h)}
@@ -334,18 +360,24 @@ func layoutFor(s screen, width, height, sc float32) layout {
 		buttons(margin+pad, y+pad+headingH+float32(len(bindings))*bindingH+2*gap, w-2*pad)
 	case dressing:
 		const w = 400
-		rows := float32(rowCount) * rowH
+		// The rows as tall as the window has room for, down to compact.
+		row := float32(rowH)
+		if room := height/sc - 48 - (pad + headingH + gap + stack(n) + pad); room < row*float32(rowCount) {
+			row = max(34, room/float32(rowCount))
+		}
+		box := min(arrow, row-8)
+		rows := float32(rowCount) * row
 		h := pad + headingH + rows + gap + stack(n) + pad
 		y := centreY(h)
 		l.panel = rl.Rectangle{X: pt(margin), Y: pt(y), Width: pt(w), Height: pt(h)}
 		l.heading = rl.Vector2{X: pt(margin + pad), Y: pt(y + pad)}
 		var x, rw float32 = margin + pad - 10, w - 2*pad + 20
 		for i := range rowCount {
-			ry := y + pad + headingH + float32(i)*rowH
-			ay := ry + (rowH-arrow)/2
-			l.rows = append(l.rows, rl.Rectangle{X: pt(x), Y: pt(ry), Width: pt(rw), Height: pt(rowH - 4)})
-			l.left = append(l.left, rl.Rectangle{X: pt(x + 118), Y: pt(ay - 2), Width: pt(arrow), Height: pt(arrow)})
-			l.right = append(l.right, rl.Rectangle{X: pt(x + rw - 6 - arrow), Y: pt(ay - 2), Width: pt(arrow), Height: pt(arrow)})
+			ry := y + pad + headingH + float32(i)*row
+			ay := ry + (row-box)/2
+			l.rows = append(l.rows, rl.Rectangle{X: pt(x), Y: pt(ry), Width: pt(rw), Height: pt(row - 4)})
+			l.left = append(l.left, rl.Rectangle{X: pt(x + 118), Y: pt(ay - 2), Width: pt(box), Height: pt(box)})
+			l.right = append(l.right, rl.Rectangle{X: pt(x + rw - 6 - box), Y: pt(ay - 2), Width: pt(box), Height: pt(box)})
 		}
 		by := y + pad + headingH + rows + gap
 		buttons(margin+pad, by, w-2*pad)

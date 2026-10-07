@@ -59,34 +59,14 @@ func drawMenus(
 	switch s {
 	case title:
 		shade(min(width, l.panel.X+l.panel.Width+p.px(260)), height, 230)
-		p.text("Earth Two", l.heading, 66, black, colText)
-		menuButtons(p, l, s, focus)
+		drawForm(p, l, s, focus)
 		// Fade in from black when the game starts.
 		if mu.orbit < 1 {
 			rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, uint8(255*(1-mu.orbit))))
 		}
-	case paused:
-		rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 90))
-		p.panel(l.panel)
-		p.text("Paused", l.heading, 30, black, colText)
-		menuButtons(p, l, s, focus)
-	case controlsHelp:
-		rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 90))
-		p.panel(l.panel)
-		p.text("Controls", l.heading, 30, black, colText)
-		for i, b := range bindings {
-			r := l.rows[i]
-			x := r.X
-			for j, k := range b.keys {
-				if j > 0 {
-					p.textIn("or", rl.Rectangle{X: x, Y: r.Y, Width: p.px(24), Height: r.Height}, 14, regular, colMuted, centre)
-					x += p.px(24)
-				}
-				x += p.keycap(k, rl.Vector2{X: x, Y: r.Y + (r.Height-p.px(14*1.7))/2}, 14) + p.px(4)
-			}
-			p.textIn(b.does, rl.Rectangle{X: r.X + p.px(190), Y: r.Y, Width: r.Width - p.px(190), Height: r.Height}, 18, regular, colText, left)
-		}
-		menuButtons(p, l, s, focus)
+	case paused, controlsHelp:
+		rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 110))
+		drawForm(p, l, s, focus)
 	case dressing:
 		if _, o, ok := players.Single(); ok {
 			drawWardrobe(p, l, focus, wardrobe.Get(), *o)
@@ -94,7 +74,7 @@ func drawMenus(
 	case contractOffer:
 		if _, ok := jobs.TryGet(); ok {
 			rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 120))
-			drawContractOffer(p, l, focus)
+			drawForm(p, l, s, focus)
 		}
 	case contractJournal:
 		if c, ok := jobs.TryGet(); ok {
@@ -102,6 +82,56 @@ func drawMenus(
 			rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 140))
 			drawContractJournal(p, l, c, focus, mu.top().receipt)
 		}
+	}
+}
+
+// paperForm reports whether s is one of the menus drawn as a form, which
+// drawForm draws (and a stamp, filing it, can take away).
+func paperForm(s screen) bool {
+	return s == title || s == paused || s == controlsHelp || s == contractOffer
+}
+
+// drawForm draws screen s's form (paper.go), laid out by l, focus's box
+// ticked: each a sheet with its header, and its choices boxes to tick.
+func drawForm(p painter, l layout, s screen, focus int) {
+	sheet := func(r rl.Rectangle) rl.Rectangle { return inset(r, -p.px(10), -p.px(4)) }
+	header := func(number, title string, size float32) {
+		r := rl.Rectangle{X: l.heading.X, Y: l.heading.Y, Width: l.panel.X + l.panel.Width - p.px(pad) - l.heading.X, Height: p.px(headingH)}
+		p.formHeader(r, "THE EXCHANGE  \u2022  LANDFALL", number, title, size)
+	}
+	switch s {
+	case title:
+		p.paper(inset(l.panel, -p.px(26), -p.px(24)))
+		y := p.formHeader(rl.Rectangle{X: l.panel.X, Y: l.panel.Y, Width: l.panel.Width, Height: p.px(100)}, "THE EXCHANGE  \u2022  LANDFALL", "FORM A-1", "Earth Two", 40)
+		p.textIn("Arrival registration \u2022 the Red, 88 AL", rl.Rectangle{X: l.panel.X, Y: y, Width: l.panel.Width, Height: p.px(20)}, 13, typed, ledgerMuted, left)
+		paperChoices(p, l, s, focus)
+		last := l.buttons[len(l.buttons)-1]
+		drawSeal(p, rl.Vector2{X: l.panel.X + l.panel.Width - p.px(34), Y: last.Y + last.Height + p.px(42)}, 30, 0, "UNLISTED")
+		p.textIn("Licence held", rl.Rectangle{X: l.panel.X, Y: last.Y + last.Height + p.px(30), Width: l.panel.Width - p.px(80), Height: p.px(16)}, 10, semibold, ledgerMuted, left)
+		p.textIn("Unlisted \u2022 tier 0", rl.Rectangle{X: l.panel.X, Y: last.Y + last.Height + p.px(46), Width: l.panel.Width - p.px(80), Height: p.px(20)}, 15, typed, ledgerInk, left)
+	case paused:
+		p.paper(sheet(l.panel))
+		header("FORM P-2", "Paused", 24)
+		paperChoices(p, l, s, focus)
+	case controlsHelp:
+		p.paper(sheet(l.panel))
+		header("CARD C-1", "Controls", 24)
+		for i, b := range bindings {
+			r := l.rows[i]
+			x := r.X
+			for j, k := range b.keys {
+				if j > 0 {
+					p.textIn("or", rl.Rectangle{X: x, Y: r.Y, Width: p.px(24), Height: r.Height}, 13, typed, ledgerMuted, centre)
+					x += p.px(24)
+				}
+				x += p.keycap(k, rl.Vector2{X: x, Y: r.Y + (r.Height-p.px(14*1.7))/2}, 14) + p.px(4)
+			}
+			p.textIn(b.does, rl.Rectangle{X: r.X + p.px(178), Y: r.Y, Width: r.Width - p.px(178), Height: r.Height}, 14, typed, ledgerInk, left)
+			rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: r.Y + r.Height - max(1, p.px(1)), Width: r.Width, Height: max(1, p.px(1))}, ledgerRule)
+		}
+		paperChoices(p, l, s, focus)
+	case contractOffer:
+		drawContractOffer(p, l, focus)
 	}
 }
 

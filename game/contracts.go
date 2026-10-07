@@ -160,6 +160,7 @@ func contractThings(
 		m.Get().open(contractOffer)
 	} else if c.deliver(feet) {
 		m.Get().open(contractJournal)
+		m.Get().stampOn("SETTLED", ledgerCredit, contractJournal)
 	}
 	*in = character.Intent{}
 	controls.Get().Enabled = false

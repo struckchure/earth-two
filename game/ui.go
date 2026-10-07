@@ -9,7 +9,8 @@ import (
 )
 
 // The look shared by the menus and the HUD: Inter in three weights, dark
-// see-through panels with square corners and a warm amber accent. Sizes are in points, which
+// see-through panels with square corners and a warm amber accent; the menus
+// themselves are paperwork (paper.go), typed in Courier Prime. Sizes are in points, which
 // uiScale turns into pixels for the window.
 
 //go:embed fonts/*.ttf
@@ -21,23 +22,37 @@ const (
 	regular weight = iota
 	semibold
 	black
+	// typed and typedBold are the typewriter's, Courier Prime: what's
+	// typed onto the forms the menus are (paper.go).
+	typed
+	typedBold
 )
 
-var fontPaths = [...]string{"fonts/Inter-Regular.ttf", "fonts/Inter-SemiBold.ttf", "fonts/Inter-Black.ttf"}
+var fontPaths = [...]string{"fonts/Inter-Regular.ttf", "fonts/Inter-SemiBold.ttf", "fonts/Inter-Black.ttf",
+	"fonts/CourierPrime-Regular.ttf", "fonts/CourierPrime-Bold.ttf"}
 
-// glyphs are the characters loaded from the fonts: Latin-1, the bullet, the
-// ellipsis and the arrows. Not the soft hyphen, which Inter hasn't got, or
-// the bar, which is taller than the font's size (raylib warns about it).
-var glyphs = func() []rune {
-	var out []rune
-	for _, span := range [][2]rune{{0x20, 0x7e}, {0xa0, 0xff}, {0x2022, 0x2022}, {0x2026, 0x2026}, {0x2190, 0x2193}} {
-		for r := span[0]; r <= span[1]; r++ {
-			if r != '|' && r != 0xad {
-				out = append(out, r)
+// glyphs are the characters loaded from each font, only what it has (raylib
+// warns of any it hasn't, at every size it's loaded at): Latin-1, the
+// bullet and the ellipsis; for Inter the arrows, and for Courier Prime,
+// what's typed on the forms, the dashes and the curly quotes. Not the soft
+// hyphen, which Inter hasn't got, or the bar, which is taller than the
+// font's size (raylib warns about it).
+var glyphs = func() map[weight][]rune {
+	runes := func(spans ...[2]rune) []rune {
+		var out []rune
+		for _, span := range spans {
+			for r := span[0]; r <= span[1]; r++ {
+				if r != '|' && r != 0xad {
+					out = append(out, r)
+				}
 			}
 		}
+		return out
 	}
-	return out
+	latin := [][2]rune{{0x20, 0x7e}, {0xa0, 0xff}, {0x2022, 0x2022}, {0x2026, 0x2026}}
+	inter := runes(append(latin, [2]rune{0x2190, 0x2193})...)
+	courier := runes(append(latin, [2]rune{0x2013, 0x2014}, [2]rune{0x2018, 0x201a}, [2]rune{0x201c, 0x201d})...)
+	return map[weight][]rune{regular: inter, semibold: inter, black: inter, typed: courier, typedBold: courier}
 }()
 
 var (
@@ -86,7 +101,7 @@ func (f *uiFonts) get(w weight, px int32) rl.Font {
 	if err != nil {
 		panic(err)
 	}
-	font := rl.LoadFontFromMemory(".ttf", data, k.px, glyphs)
+	font := rl.LoadFontFromMemory(".ttf", data, k.px, glyphs[w])
 	rl.SetTextureFilter(font.Texture, rl.FilterBilinear)
 	f.loaded[k] = font
 	return font

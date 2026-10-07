@@ -128,30 +128,38 @@ func faceCamera(
 	})
 }
 
-// drawWardrobe draws the wardrobe's panel.
+// drawWardrobe draws the wardrobe as a form (paper.go), like the menus: a
+// row for each choice, its label in small capitals over the choice typed
+// between arrows in ink, the row in hand gone over with a highlighter; and
+// the menu's choices as boxes to tick.
 func drawWardrobe(p painter, l layout, focus int, w *character.Wardrobe, o character.Outfit) {
-	p.panel(l.panel)
-	p.text("Wardrobe", l.heading, 30, black, colText)
+	p.paper(inset(l.panel, -p.px(10), -p.px(4)))
+	header := rl.Rectangle{X: l.heading.X, Y: l.heading.Y, Width: l.panel.X + l.panel.Width - p.px(pad) - l.heading.X, Height: p.px(headingH)}
+	p.formHeader(header, "THE EXCHANGE  \u2022  LANDFALL", "FORM W-1", "Wardrobe", 24)
+	rule := max(1, p.px(1))
 	for i, r := range l.rows {
 		label, value := rowText(w, o, i)
-		ink := colMuted
+		between := rl.Rectangle{X: l.left[i].X + l.left[i].Width + p.px(6), Y: r.Y, Height: r.Height}
+		between.Width = l.right[i].X - p.px(6) - between.X
 		if i == focus {
-			rl.DrawRectangleRec(r, rl.NewColor(255, 184, 82, 38))
-			ink = colAccent
+			rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: r.Y + r.Height*.18, Width: r.Width, Height: r.Height * .64}, highlighter)
 		}
-		p.textIn(label, rl.Rectangle{X: r.X + p.px(12), Y: r.Y, Width: l.left[i].X - r.X - p.px(16), Height: r.Height}, 17, semibold, ink, left)
+		p.textIn(strings.ToUpper(label), rl.Rectangle{X: r.X + p.px(6), Y: r.Y, Width: l.left[i].X - r.X - p.px(10), Height: r.Height}, 11, semibold, ledgerMuted, left)
 		for _, a := range []struct {
 			r   rl.Rectangle
 			dir float32
 		}{{l.left[i], -1}, {l.right[i], 1}} {
-			rl.DrawRectangleRec(a.r, colControl)
-			p.chevron(a.r, a.dir, colText)
+			outline(a.r, max(1, p.px(1.5)), ledgerInk)
+			p.chevron(a.r, a.dir, ledgerInk)
 		}
-		between := rl.Rectangle{X: l.left[i].X + l.left[i].Width + p.px(6), Y: r.Y, Height: r.Height}
-		between.Width = l.right[i].X - p.px(6) - between.X
-		p.textIn(value, between, 18, regular, colText, centre)
+		face := typed
+		if i == focus {
+			face = typedBold
+		}
+		p.textIn(value, between, 16, face, ledgerInk, centre)
+		rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: r.Y + r.Height - rule, Width: r.Width, Height: rule}, ledgerRule)
 	}
 	for i, b := range l.buttons {
-		p.button(b, items(dressing)[i].label, focus == rowCount+i)
+		p.tickChoice(b, items(dressing)[i].label, focus == rowCount+i)
 	}
 }

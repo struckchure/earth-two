@@ -11,43 +11,48 @@ import (
 	"github.com/struckchure/illusion/window"
 )
 
+// drawContractOffer draws the offer as the contract it is: the Exchange's
+// form for filing one, its number boxed, the poster's terms in their own
+// words, the terms in fields, the poster's signature and the seal of the
+// licence it's open to; accepting it files it (a FILED stamp, menu.go).
 func drawContractOffer(p painter, l layout, focus int) {
-	p.panel(l.panel)
-	x, y := l.heading.X, l.heading.Y
-	w := l.panel.Width - p.px(2*pad)
-	line := func(text string, offset, size float32, weight weight, ink rl.Color) {
-		p.textIn(text, rl.Rectangle{X: x, Y: y + p.px(offset), Width: w, Height: p.px(size + 8)}, size, weight, ink, left)
+	p.paper(l.panel)
+	x, w := l.heading.X, l.panel.Width-p.px(2*pad)
+	y := p.formHeader(rl.Rectangle{X: x, Y: l.heading.Y, Width: w, Height: p.px(90)}, "THE EXCHANGE  •  CONTRACT FOR FILING", "PAD-001", "First filing", 30)
+	at := func(dy, h float32) rl.Rectangle {
+		return rl.Rectangle{X: x, Y: y + p.px(dy), Width: w, Height: p.px(h)}
 	}
-	line("PAD-001  •  DAY LABOUR", 0, 13, semibold, colAccent)
-	r := rl.Rectangle{X: x + w - p.px(124), Y: y, Width: p.px(124), Height: p.px(26)}
-	for _, edge := range [][2]rl.Vector2{
-		{{X: r.X, Y: r.Y}, {X: r.X + r.Width, Y: r.Y}},
-		{{X: r.X + r.Width, Y: r.Y}, {X: r.X + r.Width, Y: r.Y + r.Height}},
-		{{X: r.X + r.Width, Y: r.Y + r.Height}, {X: r.X, Y: r.Y + r.Height}},
-		{{X: r.X, Y: r.Y + r.Height}, {X: r.X, Y: r.Y}},
+	p.textIn("Day labour • posted at Patience arrivals, the Pads", at(0, 18), 12, semibold, ledgerMuted, left)
+	// The poster's terms, in their words, set off by a rule.
+	rl.DrawRectangleRec(rl.Rectangle{X: x, Y: y + p.px(28), Width: max(2, p.px(2)), Height: p.px(48)}, ledgerRule)
+	quote := func(dy float32, text string) {
+		p.textIn(text, rl.Rectangle{X: x + p.px(14), Y: y + p.px(dy), Width: w - p.px(14), Height: p.px(22)}, 15, typed, ledgerInk, left)
+	}
+	quote(28, "“Welcome. Your passage is on my books: 2,000 marks.")
+	quote(52, "Deliver this filing, and I will credit the first 150.”")
+	p.textIn("The work", at(90, 14), 10, semibold, ledgerMuted, left)
+	p.textIn("Carry a sealed arrival filing from the Pads to Landfall, and", at(104, 20), 14, typed, ledgerInk, left)
+	p.textIn("hand it over at the marked Registrar counter.", at(124, 20), 14, typed, ledgerInk, left)
+	// The terms, two to a row.
+	half := (w - p.px(16)) / 2
+	for i, f := range []struct{ label, value string }{
+		{"Pay", "150 marks off the debt"},
+		{"Bond", "None"},
+		{"Deadline", "None"},
+		{"Penalty on default", "None"},
 	} {
-		stroke(edge[0], edge[1], p.px(1), colAccent)
+		col, row := float32(i%2), float32(i/2)
+		p.field(rl.Rectangle{X: x + col*(half+p.px(16)), Y: y + p.px(156+row*44), Width: half, Height: p.px(38)}, f.label, f.value)
 	}
-	p.textIn("OFFER", r, 13, semibold, colAccent, centre)
-	line("First filing", 28, 32, black, colText)
-	line("Posted by Ada Vellér • Patience arrivals", 76, 15, semibold, colMuted)
-	line("Welcome. Your passage is on my books: 2,000 marks.", 119, 19, regular, colText)
-	line("Deliver this filing, and I will credit the first 150.", 146, 19, regular, colText)
-	line("Carry a sealed arrival filing from the Pads to Landfall.", 194, 17, regular, colText)
-	line("Hand it over at the marked Registrar counter.", 220, 17, regular, colText)
-
-	for i, row := range []struct{ label, value string }{
-		{"Pay", "150 marks credited to your passage debt"},
-		{"Bond / licence", "None • open to Unlisted arrivals"},
-		{"Deadline / penalty", "No time limit • no default penalty"},
-	} {
-		r := rl.Rectangle{X: x, Y: y + p.px(265+float32(i)*32), Width: w, Height: p.px(30)}
-		p.textIn(row.label, rl.Rectangle{X: r.X, Y: r.Y, Width: p.px(150), Height: r.Height}, 14, semibold, colMuted, left)
-		p.textIn(row.value, rl.Rectangle{X: r.X + p.px(156), Y: r.Y, Width: r.Width - p.px(156), Height: r.Height}, 15, semibold, colText, left)
-	}
-
-	line("Accepting collects the filing and marks your delivery.", 377, 15, semibold, colAccent)
-	menuButtons(p, l, contractOffer, focus)
+	// Signed by the poster; the taker signs by ticking Accept. The seal is
+	// the licence it's open to.
+	sy := y + p.px(252)
+	p.textIn("Poster", rl.Rectangle{X: x, Y: sy, Width: half, Height: p.px(14)}, 10, semibold, ledgerMuted, left)
+	p.textIn("A. Vellér", rl.Rectangle{X: x + p.px(6), Y: sy + p.px(12), Width: half, Height: p.px(26)}, 22, typedBold, tickInk, left)
+	rl.DrawRectangleRec(rl.Rectangle{X: x, Y: sy + p.px(40), Width: half * .8, Height: max(1, p.px(1))}, ledgerInk)
+	p.textIn("Licence: Unlisted and up", rl.Rectangle{X: x + half + p.px(16), Y: sy + p.px(6), Width: half - p.px(70), Height: p.px(30)}, 12, typed, ledgerMuted, left)
+	drawSeal(p, rl.Vector2{X: x + w - p.px(30), Y: sy + p.px(22)}, 28, 0, "UNLISTED")
+	paperChoices(p, l, contractOffer, focus)
 }
 
 func marks(n int) string {

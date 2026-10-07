@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -26,7 +27,10 @@ import (
 // the terrain at Player's X and Z, whatever its Y. With Look, the player
 // wears that faction's look (docs/look-and-feel.md), by name. With Use,
 // the player presses E once they've landed (to sit on a bench in reach, say),
-// and with Hold they hold a pose ("Talk", "Dance", "Fix"). Keep an Eye
+// and with Hold they hold a pose ("Talk", "Dance", "Fix"). With Screen, the
+// frame's taken with that screen up (see tourScreens), and with Stamp, a
+// moment after a stamp with those words has come down on it (or with
+// "WORDS@screen", on that screen's form, filed and on its way off). Keep an Eye
 // near its Player: the scene is still culled from where the orbit camera
 // round the Player would be, so pieces vanish from an Eye far from it.
 type View struct {
@@ -40,6 +44,15 @@ type View struct {
 	Look   string      `json:"look,omitempty"`
 	Use    bool        `json:"use,omitempty"`
 	Hold   string      `json:"hold,omitempty"`
+	Screen string      `json:"screen,omitempty"`
+	Stamp  string      `json:"stamp,omitempty"`
+}
+
+// tourScreens are the screens a View can show over the game (Screen), by
+// name: what's in front of the world when the frame's taken.
+var tourScreens = map[string]screen{
+	"title": title, "paused": paused, "wardrobe": dressing, "controls": controlsHelp,
+	"map": mapping, "offer": contractOffer, "journal": contractJournal,
 }
 
 // tourHolds are the poses a View can Hold, by name.
@@ -78,7 +91,8 @@ func Tour(viewsFile, out string) error {
 	app := build(&menu{})
 	// After the camera's followed the player, and before transforms are
 	// propagated for drawing.
-	app.AddSystems(illusion.PostUpdate, illusion.Fn6(func(
+	app.AddSystems(illusion.PostUpdate, illusion.Fn7(func(
+		mu *illusion.Res[menu],
 		intents *illusion.Query1Where[character.Intent, illusion.With[character.Player]],
 		players *illusion.Query2Where[transform.Transform, physics.CharacterController, illusion.With[character.Player]],
 		cameras *illusion.Query2[transform.Transform, render.Camera3d],
@@ -93,6 +107,26 @@ func Tour(viewsFile, out string) error {
 		p := rl.Vector3{X: v.Player[0], Y: v.Player[1], Z: v.Player[2]}
 		if v.Ground {
 			p.Y = groundHeight(p.X, p.Z) + groundLevel + 1
+		}
+		// The view's screen (or none), held up the whole time it's waited
+		// on, whatever would close it.
+		m := mu.Get()
+		m.orbit = 1
+		if sc, ok := tourScreens[v.Screen]; ok {
+			if m.screen() != sc {
+				m.stack = []page{{screen: sc}}
+			}
+		} else {
+			m.stack = nil
+		}
+		if v.Stamp != "" && frames == tourSettle-50 {
+			// "FILED@offer": stamped on that screen's form, though it's not
+			// up (filed and taken away).
+			text, from, _ := strings.Cut(v.Stamp, "@")
+			if from == "" {
+				from = v.Screen
+			}
+			m.stampOn(text, stampRed, tourScreens[from])
 		}
 		if v.Look != "" && frames == 0 {
 			w := wardrobe.Get()
@@ -157,12 +191,20 @@ func Tour(viewsFile, out string) error {
 			n := len(frameTimes)
 			fmt.Printf("tour %s: %.1f FPS, mean %.2f ms, p95 %.2f ms (%d frames)\n", views[at].Name, 1000*float64(n)/total, total/float64(n), frameTimes[min(n-1, n*95/100)], n)
 		}
+		// raylib holds 2D drawing back in a batch until the frame ends: draw
+		// it first, or the last of it (the screens) isn't in the frame.
+		rl.DrawRenderBatchActive()
 		img := rl.LoadImageFromScreen()
 		rl.ExportImage(*img, filepath.Join(out, views[at].Name+".png"))
 		rl.UnloadImage(img)
 		at, frames = at+1, 0
 		frameTimes, lastFrame = frameTimes[:0], time.Time{}
-	}).InSet(render.Draw2D))
+	}).InSet(tourSet))
+	app.ConfigureSets(illusion.Render, tourSet.After(render.Draw2D).Before(render.End))
 	app.Run()
 	return nil
 }
+
+// tourSet takes the frame: once everything's drawn on it, the HUD and the
+// screens too.
+const tourSet illusion.SystemSet = "game.tour"
