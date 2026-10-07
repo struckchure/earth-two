@@ -37,5 +37,9 @@ func main() {
 	}
 
 	log.Printf("serving %s on http://localhost%s", *dir, *addr)
-	log.Fatal(http.ListenAndServe(*addr, handler))
+	serveErr := http.ListenAndServe(*addr, handler)
+	if err := handler.Close(); err != nil {
+		log.Printf("closing file handler: %v", err)
+	}
+	log.Fatal(serveErr)
 }

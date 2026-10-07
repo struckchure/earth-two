@@ -55,6 +55,11 @@ func TestCompressedFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() {
+		if err := handler.Close(); err != nil {
+			t.Errorf("close file handler: %v", err)
+		}
+	})
 	request := func(method, name, encoding, modified string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, name, nil)
 		r.Header.Set("Accept-Encoding", encoding)
@@ -113,5 +118,39 @@ func TestCompressedFiles(t *testing.T) {
 	}
 	if orphan := request(http.MethodGet, "/raylib.data", "gzip", ""); orphan.Code != 404 {
 		t.Fatalf("orphaned sidecar: %d", orphan.Code)
+	}
+}
+
+func TestFileHandlerReleasesRoot(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "site")
+	if err := os.Mkdir(dir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "asset.txt"), []byte("build asset"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	handler, err := newFileHandler(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = handler.Close() })
+	request := func() *httptest.ResponseRecorder {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/asset.txt", nil))
+		return response
+	}
+	if response := request(); response.Code != http.StatusOK {
+		t.Fatalf("open handler: status %d", response.Code)
+	}
+	if err := handler.Close(); err != nil {
+		t.Fatal(err)
+	}
+	// On Unix an open directory can still be removed. A closed handler must
+	// also lose filesystem access, so the lifecycle regression is portable.
+	if response := request(); response.Code == http.StatusOK {
+		t.Fatal("closed handler still serves files from its root")
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatalf("remove closed root: %v", err)
 	}
 }
