@@ -161,11 +161,11 @@ func build(m *menu) *illusion.App {
 			illusion.R(&uiFonts{}),
 			illusion.R(&scatter{}),
 		).
-		AddSystems(illusion.Startup, illusion.Fn7(setup)).
+		AddSystems(illusion.Startup, illusion.Fn8(setup)).
 		AddSystems(illusion.Update,
 			// After the characters act, so the camera follows a vehicle where
 			// it's drawn this frame.
-			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn2(contractChoice), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn4(cullPeople), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
+			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn2(contractChoice), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn5(cullMerged), illusion.Fn4(cullPeople), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
 			illusion.Fn1(respawn),
 			// Benches, stools, bunks and machines (use.go): E acted on
 			// before characters act, and offered once the vehicles have
@@ -184,6 +184,7 @@ func setup(
 	wardrobe *illusion.Res[character.Wardrobe],
 	kit *illusion.Res[world.Kit],
 	textures *illusion.Res[asset.Assets[render.Texture]],
+	models *illusion.Res[asset.Assets[render.Model]],
 ) {
 	m, mat := meshes.Get(), materials.Get()
 	setClipPlanes()
@@ -206,7 +207,7 @@ func setup(
 	if err != nil {
 		panic(err)
 	}
-	if err := spawnOnTerrain(cmd, kit.Get(), placed); err != nil {
+	if err := spawnOnTerrain(cmd, kit.Get(), placed, world.Stores{Models: models.Get(), Meshes: m, Materials: mat, Textures: textures.Get()}); err != nil {
 		panic(err)
 	}
 	cmd.InsertResource(illusion.R(newWorldMap(kit.Get(), placed)))

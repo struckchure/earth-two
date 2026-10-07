@@ -47,7 +47,7 @@ func newTeleportRig(t *testing.T, from, to rl.Vector2) *teleportRig {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := spawnOnTerrain(cmd, kit.Get(), placed); err != nil {
+		if err := spawnOnTerrain(cmd, kit.Get(), placed, world.Stores{}); err != nil {
 			t.Error(err)
 		}
 		roster.Get().Spawn(cmd, 0, rl.Vector3{X: from.X, Y: walkHeight(from.X, from.Y), Z: from.Y}, illusion.C(character.Player{}))

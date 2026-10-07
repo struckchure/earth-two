@@ -5,6 +5,7 @@ import (
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/mlange-42/ark/ecs"
+	"github.com/struckchure/earth-two/world"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/asset"
 	"github.com/struckchure/illusion/render"
@@ -204,4 +205,59 @@ func (v view) sees(center rl.Vector3, radius, far float32) bool {
 	}
 	return abs(rl.Vector3DotProduct(d, v.right))-z*v.tanH <= radius*v.edgeH &&
 		abs(rl.Vector3DotProduct(d, v.up))-z*v.tanV <= radius*v.edgeV
+}
+
+// cullMerged hides the merged meshes of the world's small pieces (see
+// world.Merged) the camera can't see, as cull does the pieces: each as far
+// off as its biggest piece would be seen. The shadows merged from them are
+// drawn only into the shadow map, and only near enough to throw one into
+// it.
+func cullMerged(
+	cmd *illusion.Commands,
+	cameras *illusion.Query2[transform.Transform, render.Camera3d],
+	win *illusion.Res[window.Window],
+	merged *illusion.Query2[world.Merged, transform.GlobalTransform],
+	state *illusion.Local[culling],
+) {
+	_, eye, cam, ok := cameras.Single()
+	if !ok {
+		return
+	}
+	ww := win.Get()
+	fovy := cam.Fovy
+	if fovy == 0 {
+		fovy = 45
+	}
+	v := view{
+		at:     eye.Translation,
+		ahead:  eye.Forward(),
+		up:     rl.Vector3RotateByQuaternion(transform.Up, eye.Rotation),
+		tanV:   float32(math.Tan(float64(fovy) * math.Pi / 360)),
+		aspect: float32(ww.Width) / max(float32(ww.Height), 1),
+	}
+	v.right = rl.Vector3CrossProduct(v.ahead, v.up)
+	v.prepare()
+	s := state.Get()
+	if s.drawn == nil {
+		s.drawn = map[ecs.Entity]drawn{}
+	}
+	merged.Each(func(e ecs.Entity, m *world.Merged, g *transform.GlobalTransform) {
+		center := rl.Vector3Add(g.Translation(), m.Center)
+		near := rl.Vector3DistanceSqr(center, v.at) < (shadowReach+m.Radius)*(shadowReach+m.Radius)
+		switch {
+		case m.Shadow:
+			// Always render.ShadowOnly: shown is in the shadow map.
+			if near {
+				s.show(cmd, e, seen)
+			} else {
+				s.show(cmd, e, unseen)
+			}
+		case v.sees(center, m.Radius, sight(m.Piece)):
+			s.show(cmd, e, seen)
+		case m.Casts && near:
+			s.show(cmd, e, shadowOnly)
+		default:
+			s.show(cmd, e, unseen)
+		}
+	})
 }

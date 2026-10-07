@@ -50,7 +50,7 @@ func newLandfall(t *testing.T, feet rl.Vector3) *landfall {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := spawnOnTerrain(cmd, kit.Get(), placed); err != nil {
+		if err := spawnOnTerrain(cmd, kit.Get(), placed, world.Stores{}); err != nil {
 			t.Error(err)
 		}
 		cmd.Spawn(

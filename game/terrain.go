@@ -700,15 +700,15 @@ func (t *terrain) resink(old rl.Rectangle) {
 // spawnOnTerrain places the layout's pieces, each stood on the ground: at
 // the lowest the ground is under it, so on a slope it sinks into the high
 // side rather than floating off the low one. (On the level, in town, that's
-// where the layout put it.)
-func spawnOnTerrain(cmd *illusion.Commands, k *world.Kit, placed []world.Placement) error {
-	for _, p := range placed {
+// where the layout put it.) The small pieces' models are merged by where
+// they stand (world.PlaceMerged), if stores has the models to merge.
+func spawnOnTerrain(cmd *illusion.Commands, k *world.Kit, placed []world.Placement, stores world.Stores) error {
+	stood := make([]world.Placement, len(placed))
+	for i, p := range placed {
 		p.At[1] += standOn(k, p)
-		if err := k.Place(cmd, p); err != nil {
-			return err
-		}
+		stood[i] = p
 	}
-	return nil
+	return k.PlaceMerged(cmd, stood, stores)
 }
 
 // standOn is how high the ground is under a placed piece: its lowest,

@@ -46,7 +46,7 @@ func TestDriveTheHireBuggy(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := spawnOnTerrain(cmd, kit.Get(), placed); err != nil {
+		if err := spawnOnTerrain(cmd, kit.Get(), placed, world.Stores{}); err != nil {
 			t.Error(err)
 		}
 		r.Get().Spawn(cmd, 0, feet, illusion.C(character.Player{}))
