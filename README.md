@@ -108,6 +108,7 @@ Esc goes back. In play:
 | WASD / arrows | Walk, relative to the camera |
 | Mouse | Look around (in the browser, while a button is held); moving, the camera swings round behind you |
 | M | Open or close the map (drag to move it, scroll to zoom) |
+| J | Open or close the debt and contract journal |
 | P | Testing: teleport to the point under the pointer on the full map, or in play to the marked destination (driving, the vehicle comes too) |
 | F1 | Testing: show the test panel; its switches (F5 weather, then the others in turn) step a condition through its settings on demand |
 | Shift | Run |
@@ -116,7 +117,7 @@ Esc goes back. In play:
 | C | Hold to crouch, and walk crouched; let go to stand, once there's room |
 | R | Roll in the movement direction, or forward when stationary |
 | W/S or Up/Down on a ladder | Climb/descend; release to hold; Space jumps off |
-| E | Interact; beside a vehicle, get in; in one, get out (once it's slow); at a bench, stool, chair or bunk, sit down (E or move to get up); at a machine, kneel and work on it (move to stop) |
+| E | Interact; review the first work order at the arrivals terminal, or deliver its filing at the marked Exchange counter; beside a vehicle, get in; in one, get out (once it's slow); at a bench, stool, chair or bunk, sit down (E or move to get up); at a machine, kneel and work on it (move to stop) |
 | H | While driving, toggle the vehicle's headlamps |
 | F | Punch |
 | Q | Pick up |
@@ -130,6 +131,37 @@ consoles, conduits, turbines), by piece name. The HUD offers the nearest
 within reach, after any vehicle. Sitting goes through the vehicles' seat
 (`character.Sit`); working at a machine, talking and dancing are held poses
 (`Intent.Hold`), played standing still until the character moves.
+
+### First contract
+
+**First filing** is Ada Vellér's sponsored day-labour work order for an
+Unlisted arrival. You start owing her 2,000 marks. Follow the initial marker
+to the arrivals terminal at the Pads, press E to read the terms, then choose
+**Accept contract** (Enter or click). **Leave it for now** or Esc keeps it
+available. Acceptance collects a sealed arrival filing and moves the marker
+to a public Registrar counter in the Exchange, in Landfall. Press E there
+to hand it over: Ada credits 150 marks, leaving 1,850 owed. There is no bond
+or time limit, and this work does not grant a licence or Standing.
+
+J opens a personal account book: a ruled table of debts owed, with creditor,
+original amount, repaid and due; one ongoing contract; and a table of completed
+receipts showing references, payers, debt credits and totals. Receipts appear
+newest first (scroll over the completed section to browse).
+In play, a compact top-right summary shows balance and total debt; it matches
+the time/weather card's size. Press J for the breakdown. Delivery moves the
+job into completed history and reduces debt; this first reward does not add
+spendable marks. The task HUD clears after delivery.
+
+A manually marked map destination takes priority over the job marker;
+clear that mark to show the job again. For a quick playtest, P in play uses
+the current marker: P to the terminal, E and accept, P to the counter, E to
+deliver. These are the existing testing teleports, not transport rewards.
+
+The record lasts for the running game, including trips to the main menu;
+restarting the game or reloading its browser tab resets it. Persistent
+shared-world records and the full filed contract system are still to come.
+See [Contract types](docs/contracts.md)
+and [The Exchange](docs/exchange.md) for the design and the first order's terms.
 
 In play, a minimap in the top left shows the way round you, north up,
 and a compass along the top shows the way the camera looks. M opens the
@@ -145,9 +177,12 @@ of the world. It's one heightfield for the drawn ground and its collider, and
 the layout's pieces are stood on it where they're placed.
 
 The menus (`game/menu.go`, drawn by `game/screens.go`) stack, so Esc or
-Back returns to whichever screen opened the one in front. The HUD is just
-the frame rate and the menu keys. Text is Inter (`game/fonts`, SIL Open Font
-License), embedded in the binary and rasterised in the screen's own pixels
+Back returns to whichever screen opened the one in front. The HUD shows
+the frame rate in the bottom left, contextual interaction prompts, current
+work under the minimap, and a balance/debt card in the top right. Navigation
+bindings are listed in Controls. Text is Inter
+(`game/fonts`, SIL Open Font License), embedded in the binary and rasterised
+in the screen's own pixels
 at about each size it's drawn at (rounded up a little, so resizing the
 window loads a few sizes, not hundreds), so it stays sharp at any window
 size and pixel ratio, Retina included.

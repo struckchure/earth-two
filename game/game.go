@@ -164,15 +164,15 @@ func build(m *menu) *illusion.App {
 		AddSystems(illusion.Update,
 			// After the characters act, so the camera follows a vehicle where
 			// it's drawn this frame.
-			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
+			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn2(contractChoice), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
 			illusion.Fn1(respawn),
 			// Benches, stools, bunks and machines (use.go): E acted on
 			// before characters act, and offered once the vehicles have
 			// made their offer.
-			illusion.Fn8(useThings).After(character.Input).Before(character.Act),
+			illusion.Chain(illusion.Fn8(contractThings), illusion.Fn8(useThings)).After(character.Input).Before(character.Act),
 		).
-		AddSystems(illusion.PostUpdate, illusion.Fn8(offerUse)).
-		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn6(drawMaps), illusion.Fn5(drawMenus)).InSet(render.Draw2D))
+		AddSystems(illusion.PostUpdate, illusion.Chain(illusion.Fn7(offerContract), illusion.Fn8(offerUse))).
+		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn7(drawMaps), illusion.Fn6(drawContractHUD), illusion.Fn6(drawMenus), illusion.Fn2(frameRate)).InSet(render.Draw2D))
 }
 
 func setup(
@@ -210,6 +210,11 @@ func setup(
 	}
 	cmd.InsertResource(illusion.R(newWorldMap(kit.Get(), placed)))
 	cmd.InsertResource(illusion.R(newUses(kit.Get(), placed)))
+	jobs, err := newContracts(kit.Get(), placed)
+	if err != nil {
+		panic(err)
+	}
+	cmd.InsertResource(illusion.R(jobs))
 	roster.Get().Spawn(cmd, 0, arrival, illusion.C(character.Player{}), illusion.C(startingOutfit(wardrobe.Get())))
 }
 

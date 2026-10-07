@@ -16,6 +16,13 @@ called Registrars.
 "Legal" means filed. "Illegal" means off the books. For the jobs themselves, see
 [Contract types](contracts.md).
 
+Unlisted arrivals can also take sponsored **day-labour work orders** before
+they qualify for filed work. The introductory [First filing](contracts.md#first-work-order-first-filing)
+order credits Ada's passage debt directly, requires no bond and has no deadline
+or default penalty. It does not file an enforceable contract for the taker or
+change Standing, Quiet or licence tier. This is an introductory work order;
+filed contracts still follow the bond, filing and default rules above.
+
 ## Licence tiers are the game's ranks
 
 Each tier unlocks bigger contracts, smaller bonds and new rights.

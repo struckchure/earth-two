@@ -8,7 +8,7 @@ defaults work, see [The Exchange](exchange.md).
 
 | Contract | Filed or off-book | Example | Plays with | From tier |
 | --- | --- | --- | --- | --- |
-| Courier | Filed | Carry a sealed filing from the Exchange to Charter Row before the session closes | Traversal, time limit | 0 |
+| Courier | Filed | Carry a sealed filing from the Exchange to Charter Row before the session closes | Traversal, time limit | 1 |
 | Haul | Filed | Move 20 crates from the Pads to a Hull warehouse | Pick up, routing | 1 |
 | Repair run | Filed | Replace a valve deep in the Hull's lower decks | Climbing, ladders, interact | 1 |
 | Buy order | Filed | Find 5 power cells under 40 marks each | Trading, arbitrage | 1 |
@@ -20,6 +20,56 @@ defaults work, see [The Exchange](exchange.md).
 | Forgery drop | Off-book | Slip a forged seal into the Exchange records | Interact, timing | 2 |
 | Sabotage | Off-book | Make a rival's warehouse lose power for a night | Traversal, interact | 2 |
 | Run a rumour | Either | Spread (or bury) news that moves scrip prices | Talking to NPCs | 1 |
+
+## First work order: First filing
+
+The first playable job is **sponsored day labour**, available to an Unlisted
+Late Arrival. It teaches accepting terms and making a delivery before the
+player qualifies for filed courier contracts. The Hand requirement for filed
+couriers follows [the Exchange's licence table](exchange.md#licence-tiers-are-the-games-ranks).
+
+- **Poster:** Ada Vellér, who owns the player's 2,000-mark passage debt.
+- **Offer:** the arrivals terminal at the Pads, near the *Patience* caravan stop.
+- **Work:** collect a sealed arrival filing on acceptance, carry it to Landfall,
+  and hand it over at a public Registrar counter on the Exchange floor.
+- **Pay:** 150 marks credited directly against Ada's passage debt, leaving
+  1,850 marks. It is paid once, on handover.
+- **Bond and licence:** no bond; Unlisted day labour needs no Hand licence.
+- **Deadline and penalty:** this introductory order is untimed, with no default
+  penalty. Later filed contracts use the normal bond and default rules.
+
+The player reviews the terms with E at the terminal and explicitly chooses
+**Accept contract** or **Leave it for now**. Esc also leaves the order available.
+Acceptance issues the filing and marks the Exchange delivery point; reaching
+it alone does not finish the work. E at the counter hands it over and shows
+the receipt. J opens the contract journal in each state: one **Ongoing** slot
+and a separate **Completed** history. Delivery clears the ongoing slot and
+adds the accepted terms and debt credit to completed receipts. Empty sections
+say so; an unaccepted offer is not shown as ongoing work.
+
+J presents a personal accounting book. Its summary shows spendable **Balance**
+and outstanding **Debt** in marks. The ruled **Debts owed** table identifies
+Ada and her passage debt, with columns for original amount, repaid and due,
+followed by totals. **Completed contracts** lists filing references, contract
+names and payers, actual debt credits and delivery status, with a total for all
+receipts. Four receipts fit on the page; scroll to browse older entries.
+The ongoing work order remains on the facing page.
+A compact balance/debt summary in play matches the time/weather card's
+footprint; J opens the full breakdown and ongoing/completed work. Arrivals
+have zero spendable marks and owe
+2,000; completing First filing leaves the balance at zero and debt at 1,850.
+The payment is a debt credit, not an additional cash reward. Completed records
+are shown newest first, with scrolling to browse the history.
+
+This work order does not grant Standing, Quiet or a licence, and does not file
+an enforceable contract in the player's name. The Exchange receives the arrival
+filing; the player is still Unlisted and in debt. It does not grant a vehicle.
+The opening remains on foot, as specified in [Shared world](shared-world.md).
+
+The current playable prototype keeps the order and debt in memory for the
+running game. Persistent per-player records, offline deadlines, bonds and
+collection contracts remain part of the shared-world design, not implemented
+by this first work order.
 
 ## Contracts aren't one-offs
 

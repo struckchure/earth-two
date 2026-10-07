@@ -69,3 +69,13 @@ from and drifting on the wind.
 Square corners on every panel, button and keycap, never rounded. Contract
 paperwork is the UI's motif: menus look like filed forms, stamps confirm
 actions, and Registrar seals mark licence tiers.
+
+The personal account book opened with J uses warm paper, dark ink, a book
+fold and ruled tables. Debt and receipt columns align their amounts to the
+right and end with totals, so the money reads like a ledger.
+
+Reserve HUD key prompts for contextual actions: using a nearby vehicle,
+reviewing a work order, handing over a filing, sitting or traversal.
+Navigation bindings belong in the Controls screen. The map, account summary
+and ordinary menu screens carry their content and buttons without permanent
+shortcut labels. Testing bindings remain in the explicitly opened test panel.

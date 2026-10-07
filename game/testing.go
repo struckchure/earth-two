@@ -76,7 +76,7 @@ func (testPlugin) Build(app *illusion.App) {
 	addTestSwitch(app, weatherSwitch())
 	addTestSwitch(app, shadowSwitch())
 	app.AddSystems(illusion.Update,
-		illusion.Fn5(teleport).Before(character.Input),
+		illusion.Fn6(teleport).Before(character.Input),
 		illusion.Fn3(flipSwitches).Before(character.Input),
 	)
 	app.AddSystems(illusion.Render, illusion.Fn5(drawTestPanel).InSet(render.Draw2D))
@@ -171,7 +171,7 @@ func drawTestPanel(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts
 		rows = append(rows, row{keyName(t.Key), t.Name, setting})
 	}
 	width, line := p.px(340), p.px(30)
-	r := rl.Rectangle{X: float32(ww.Width) - width - p.px(14), Y: p.px(46), Width: width, Height: p.px(40) + line*float32(len(rows))}
+	r := rl.Rectangle{X: float32(ww.Width) - width - p.px(14), Y: p.px(170), Width: width, Height: p.px(40) + line*float32(len(rows))}
 	p.panel(r)
 	p.text("Testing", rl.Vector2{X: r.X + p.px(14), Y: r.Y + p.px(10)}, 15, semibold, colAccent)
 	y := r.Y + p.px(36)

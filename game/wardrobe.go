@@ -154,5 +154,4 @@ func drawWardrobe(p painter, l layout, focus int, w *character.Wardrobe, o chara
 	for i, b := range l.buttons {
 		p.button(b, items(dressing)[i].label, focus == rowCount+i)
 	}
-	p.textIn("Up/Down: choose    Left/Right: change    Esc: done", l.hint, 14, regular, colMuted, centre)
 }

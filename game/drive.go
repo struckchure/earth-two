@@ -154,7 +154,7 @@ func viewFrom(eye transform.Transform, cam render.Camera3d, ww *window.Window) v
 }
 
 // drawDriving draws what the player can do with a vehicle (a key and what
-// it does, above the menu keys), a passing note, and while driving, the
+// it does), a passing note, and while driving, the
 // speed: square, in the bottom right.
 func drawDriving(p painter, pr *vehicle.Prompt, d *vehicle.Driving, width, height float32) {
 	y := height - p.px(84)

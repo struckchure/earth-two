@@ -22,7 +22,7 @@ var bindings = []struct {
 }{
 	{[]string{"WASD", "Arrows"}, "Walk"},
 	{[]string{"Mouse"}, "Look around"},
-	{[]string{"M"}, "Map"},
+	{[]string{"M / J"}, "Map / debt and contract journal"},
 	{[]string{"Shift"}, "Run"},
 	{[]string{"Space"}, "Jump / vault / mantle / wall kick"},
 	{[]string{"Ctrl"}, "Slide while running"},
@@ -44,6 +44,7 @@ func drawMenus(
 	win *illusion.Res[window.Window],
 	players *illusion.Query1Where[character.Outfit, illusion.With[character.Player]],
 	wardrobe *illusion.Res[character.Wardrobe],
+	jobs *illusion.Res[contracts],
 ) {
 	mu, ww := m.Get(), win.Get()
 	s := mu.screen()
@@ -60,14 +61,6 @@ func drawMenus(
 		shade(min(width, l.panel.X+l.panel.Width+p.px(260)), height, 230)
 		p.text("Earth Two", l.heading, 66, black, colText)
 		menuButtons(p, l, s, focus)
-		x := l.heading.X
-		y := height - p.px(56)
-		x += p.keycap("↑", rl.Vector2{X: x, Y: y}, 14) + p.px(6)
-		x += p.keycap("↓", rl.Vector2{X: x, Y: y}, 14) + p.px(10)
-		p.text("Choose", rl.Vector2{X: x, Y: y + p.px(4)}, 15, regular, colMuted)
-		x += p.measure("Choose", 15, regular).X + p.px(24)
-		x += p.keycap("Enter", rl.Vector2{X: x, Y: y}, 14) + p.px(10)
-		p.text("Select", rl.Vector2{X: x, Y: y + p.px(4)}, 15, regular, colMuted)
 		// Fade in from black when the game starts.
 		if mu.orbit < 1 {
 			rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, uint8(255*(1-mu.orbit))))
@@ -98,6 +91,17 @@ func drawMenus(
 		if _, o, ok := players.Single(); ok {
 			drawWardrobe(p, l, focus, wardrobe.Get(), *o)
 		}
+	case contractOffer:
+		if _, ok := jobs.TryGet(); ok {
+			rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 120))
+			drawContractOffer(p, l, focus)
+		}
+	case contractJournal:
+		if c, ok := jobs.TryGet(); ok {
+			p.s = l.sc
+			rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 140))
+			drawContractJournal(p, l, c, focus, mu.top().receipt)
+		}
 	}
 }
 
@@ -107,19 +111,13 @@ func menuButtons(p painter, l layout, s screen, focus int) {
 	}
 }
 
-// hud draws the frame rate, and in play the keys for the menus, what the
-// player can do (get into a vehicle), and driving, the speed.
+// hud draws contextual actions and traversal hints, and driving, the speed.
+// Navigation bindings are listed in the Controls screen.
 func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illusion.Res[menu], players *illusion.Query1Where[character.Traversal, illusion.With[character.Player]],
 	prompt *illusion.Res[vehicle.Prompt], driving *illusion.Res[vehicle.Driving]) {
 	ww := win.Get()
 	p := newPainter(fonts.Get(), ww)
 	width, height := float32(ww.Width), float32(ww.Height)
-
-	fps := fmt.Sprintf("%d fps", rl.GetFPS())
-	fm := p.measure(fps, 13, semibold)
-	pill := rl.Rectangle{X: width - fm.X - p.px(32), Y: p.px(14), Width: fm.X + p.px(18), Height: p.px(24)}
-	rl.DrawRectangleRec(pill, rl.NewColor(16, 13, 11, 150))
-	p.textIn(fps, pill, 13, semibold, colMuted, centre)
 
 	if m.Get().screen() != playing {
 		return
@@ -130,22 +128,34 @@ func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illu
 		}
 	})
 	drawDriving(p, prompt.Get(), driving.Get(), width, height)
-	keys := []struct{ key, does string }{{"Esc", "Menu"}}
 	if driving.Get().Active() {
-		keys = append(keys, struct{ key, does string }{"E", "Get out"}, struct{ key, does string }{"Space", "Hand brake"})
 		lamps := "Headlamps off"
 		if driving.Get().Headlamps {
 			lamps = "Headlamps on"
 		}
-		keys = append(keys, struct{ key, does string }{"H", lamps})
+		x, y := p.px(130), height-p.px(38)
+		x += p.keycap("H", rl.Vector2{X: x, Y: y}, 13) + p.px(8)
+		p.text(lamps, rl.Vector2{X: x, Y: y + p.px(4)}, 13, semibold, colText)
 	}
-	x, y := p.px(20), height-p.px(48)
-	for _, h := range keys {
-		x += p.keycap(h.key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
-		p.text(h.does, rl.Vector2{X: x + 1, Y: y + p.px(4) + 1}, 15, semibold, rl.NewColor(0, 0, 0, 110))
-		p.text(h.does, rl.Vector2{X: x, Y: y + p.px(4)}, 15, semibold, colText)
-		x += p.measure(h.does, 15, semibold).X + p.px(22)
-	}
+}
+
+func drawFrameRate(p painter, height float32) rl.Rectangle {
+	fps := fmt.Sprintf("%d FPS", rl.GetFPS())
+	r := frameRateRect(p, height)
+	rl.DrawRectangleRec(r, rl.NewColor(16, 13, 11, 150))
+	p.textIn(fps, r, 13, semibold, colMuted, centre)
+	return r
+}
+
+func frameRateRect(p painter, height float32) rl.Rectangle {
+	width := p.measure(fmt.Sprintf("%d FPS", rl.GetFPS()), 13, semibold).X
+	return rl.Rectangle{X: p.px(20), Y: height - p.px(38), Width: width + p.px(18), Height: p.px(24)}
+}
+
+// Draw last so a menu reaching the lower edge cannot cover the counter.
+func frameRate(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts]) {
+	w := win.Get()
+	drawFrameRate(newPainter(fonts.Get(), w), float32(w.Height))
 }
 
 // Camera shots, relative to the player's capsule centre: where the camera
@@ -211,7 +221,7 @@ func follow(
 		sh, lag = orbiting(mu.orbit), cameraLag
 	}
 	x := float32(0)
-	if s != playing && ww.Width > 0 {
+	if s != playing && s != contractOffer && s != contractJournal && ww.Width > 0 {
 		l := layoutFor(s, float32(ww.Width), float32(ww.Height), uiScale(ww))
 		x = min((l.panel.X+l.panel.Width)/float32(ww.Width), 0.6)
 	}
@@ -232,7 +242,7 @@ func follow(
 		a.at = rl.Vector3Lerp(a.at, target, k)
 		look := a.at
 		tr.Translation = rl.Vector3Lerp(tr.Translation, eye, k)
-		if s == playing || s == mapping {
+		if s == playing || s == mapping || s == contractOffer || s == contractJournal {
 			// Pulled in short of a wall in the way; easing back out, once
 			// it's clear, as it eases anywhere.
 			look = clearAbove(p, position, a.at, o.Get().avoid(e))

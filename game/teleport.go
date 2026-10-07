@@ -56,7 +56,7 @@ func (s *screenInput) InitParam(w *ecs.World) {
 	s.fonts.InitParam(w)
 }
 
-func teleport(in *screenInput, m *illusion.Res[menu], wm *illusion.Res[worldMap], mv *movers, p *physics.Physics) {
+func teleport(in *screenInput, m *illusion.Res[menu], wm *illusion.Res[worldMap], mv *movers, p *physics.Physics, jobs *illusion.Res[contracts]) {
 	if !in.keys.Get().JustPressed(teleportKey) {
 		return
 	}
@@ -81,10 +81,11 @@ func teleport(in *screenInput, m *illusion.Res[menu], wm *illusion.Res[worldMap]
 		to = f.toWorld(at)
 		m.Get().back()
 	case playing:
-		if !wmap.marked {
+		navigation, _ := contractRoute(wmap, jobs)
+		if !navigation.marked {
 			return
 		}
-		to = wmap.dest
+		to = navigation.dest
 	default:
 		return
 	}

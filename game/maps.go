@@ -620,6 +620,7 @@ func drawMaps(
 	wm *illusion.Res[worldMap],
 	view *illusion.Res[character.View],
 	ps *mapPlayers,
+	jobs *illusion.Res[contracts],
 ) {
 	wmap, ok := wm.TryGet()
 	if !ok {
@@ -632,22 +633,47 @@ func drawMaps(
 	ww := win.Get()
 	p := newPainter(fonts.Get(), ww)
 	width, height := float32(ww.Width), float32(ww.Height)
+	// Manual destinations take priority; the contract remains available when
+	// that mark is cleared. Drawing a goal never changes the player's mark.
+	navigation, goal := contractRoute(wmap, jobs)
 	switch m.Get().screen() {
 	case playing:
 		forward := looking(ps.view.Get(), view.Get().Forward)
-		if wmap.marked {
-			drawDestination(p, ps.view.Get(), wmap.dest, at, y, width, height)
+		if navigation.marked {
+			drawDestination(p, ps.view.Get(), navigation.dest, at, y, width, height)
 		}
-		drawMinimap(p, wmap, at, facing, rl.Vector2{X: forward.X, Y: forward.Z})
+		drawMinimap(p, &navigation, at, facing, rl.Vector2{X: forward.X, Y: forward.Z})
 		var dest *rl.Vector2
-		if wmap.marked {
-			d := rl.Vector2Subtract(wmap.dest, at)
+		if navigation.marked {
+			d := rl.Vector2Subtract(navigation.dest, at)
 			dest = &d
 		}
 		drawCompass(p, heading(forward), width, dest)
 	case mapping:
-		drawFullMap(p, wmap, at, facing, width, height)
+		drawFullMap(p, &navigation, at, facing, width, height, goal)
 	}
+}
+
+func contractRoute(m *worldMap, jobs *illusion.Res[contracts]) (worldMap, string) {
+	if c, ok := jobs.TryGet(); ok {
+		return routeForContract(m, c)
+	}
+	return *m, ""
+}
+
+func routeForContract(m *worldMap, c *contracts) (worldMap, string) {
+	navigation := *m
+	if m.marked {
+		return navigation, ""
+	}
+	if target, ok := c.target(); ok {
+		navigation.dest, navigation.marked = target, true
+		if c.state == contractAvailable {
+			return navigation, "Arrivals terminal"
+		}
+		return navigation, "Exchange delivery"
+	}
+	return navigation, ""
 }
 
 // drawDestination marks the destination over the world, with how far it
@@ -709,15 +735,10 @@ func drawMinimap(p painter, m *worldMap, at, facing, looking rl.Vector2) {
 	rl.EndScissorMode()
 	f.drawRoute(m, at, max(1.5, p.px(2)), p.px(10))
 	you(f.toScreen(at), f.screenDir(facing), p.px(5))
-	// North, at the edge the way it is, and the key for the full map
-	// under it, below the clock.
+	// North, at the edge the way it is.
 	n := edgePoint(r, rl.Vector2Normalize(f.screenDir(north)), p.px(9))
 	rl.DrawRectangleRec(rl.Rectangle{X: n.X - p.px(8), Y: n.Y - p.px(8), Width: p.px(16), Height: p.px(16)}, rl.NewColor(0, 0, 0, 170))
 	p.textIn("N", rl.Rectangle{X: n.X - p.px(8), Y: n.Y - p.px(8), Width: p.px(16), Height: p.px(16)}, 12, semibold, colAccent, centre)
-	// (Under the world's clock: see clock.go.)
-	x, y := r.X, r.Y+r.Height+border+clockSpace(p)+p.px(6)
-	x += p.keycap("M", rl.Vector2{X: x, Y: y}, 11) + p.px(6)
-	p.text("Map", rl.Vector2{X: x, Y: y + p.px(2)}, 12, semibold, colText)
 }
 
 // drawCompass draws the strip along the top: the bearings round the way
@@ -768,7 +789,7 @@ func fullMapRect(p painter, width, height float32) rl.Rectangle {
 	return inset(rl.Rectangle{Width: width, Height: height}, p.px(48), p.px(48))
 }
 
-func drawFullMap(p painter, m *worldMap, at, facing rl.Vector2, width, height float32) {
+func drawFullMap(p painter, m *worldMap, at, facing rl.Vector2, width, height float32, goal string) {
 	rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 160))
 	r := fullMapRect(p, width, height)
 	rl.DrawRectangleRec(inset(r, -p.px(8), -p.px(8)), colPanel)
@@ -783,17 +804,10 @@ func drawFullMap(p painter, m *worldMap, at, facing rl.Vector2, width, height fl
 	p.text("The Fringe", rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(12)}, 30, black, colText)
 	if m.marked {
 		text := "Destination: " + distance(rl.Vector2Distance(at, m.dest))
+		if goal != "" {
+			text = goal + ": " + distance(rl.Vector2Distance(at, m.dest))
+		}
 		p.text(text, rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(52)}, 16, semibold, colDest)
-	}
-	mark := "Mark"
-	if m.marked {
-		mark = "Mark, or take off"
-	}
-	x, y := r.X+p.px(16), r.Y+r.Height-p.px(14*1.7)-p.px(14)
-	for _, k := range []struct{ key, does string }{{"M", "Close"}, {"Esc", "Close"}, {"Drag", "Move"}, {"Scroll", "Zoom"}, {"Click", mark}, {"P", "Teleport"}} {
-		x += p.keycap(k.key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
-		p.text(k.does, rl.Vector2{X: x, Y: y + p.px(4)}, 15, semibold, colText)
-		x += p.measure(k.does, 15, semibold).X + p.px(20)
 	}
 }
 

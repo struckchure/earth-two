@@ -26,6 +26,8 @@ const (
 	dressing
 	controlsHelp
 	mapping // the full map (see maps.go)
+	contractOffer
+	contractJournal
 )
 
 type action uint8
@@ -38,6 +40,7 @@ const (
 	actMainMenu
 	actQuit
 	actBack
+	actAcceptContract
 )
 
 type item struct {
@@ -60,6 +63,10 @@ func items(s screen) []item {
 		return []item{{"Back", actBack}}
 	case dressing:
 		return []item{{"Done", actBack}}
+	case contractOffer:
+		return []item{{"Accept contract", actAcceptContract}, {"Leave it for now", actBack}}
+	case contractJournal:
+		return []item{{"Back", actBack}}
 	default:
 		return nil
 	}
@@ -75,12 +82,14 @@ type menu struct {
 	stack []page
 	// since is how long the top screen has been up, and orbit how far the
 	// title screen's camera has turned.
-	since, orbit float32
+	since, orbit   float32
+	acceptContract bool // consumed by contractChoice
 }
 
 type page struct {
-	screen screen
-	focus  int
+	screen  screen
+	focus   int
+	receipt int // journal history offset, newest first
 }
 
 func newMenu() *menu { return &menu{stack: []page{{screen: title}}} }
@@ -136,6 +145,11 @@ func (m *menu) do(a action) bool {
 		m.stack, m.since = []page{{screen: title}}, 0
 	case actQuit:
 		return canQuit
+	case actAcceptContract:
+		if m.screen() == contractOffer {
+			m.acceptContract = true
+			m.back()
+		}
 	}
 	return false
 }
@@ -156,7 +170,7 @@ func (m *menu) press(w *character.Wardrobe, o *character.Outfit) bool {
 
 // nav is a frame's menu keys.
 type nav struct {
-	up, down, left, right, enter, back, mapKey bool
+	up, down, left, right, enter, back, mapKey, journalKey bool
 }
 
 func readNav(k *input.Keys) nav {
@@ -168,7 +182,8 @@ func readNav(k *input.Keys) nav {
 		enter: k.AnyJustPressed(rl.KeyEnter, rl.KeyKpEnter, rl.KeySpace),
 		back:  k.AnyJustPressed(rl.KeyEscape, rl.KeyBackspace),
 		// mapKey opens the full map in play and closes it.
-		mapKey: k.JustPressed(rl.KeyM),
+		mapKey:     k.JustPressed(rl.KeyM),
+		journalKey: k.JustPressed(rl.KeyJ),
 	}
 }
 
@@ -182,6 +197,9 @@ func (m *menu) navigate(n nav, w *character.Wardrobe, o *character.Outfit) bool 
 	case s == playing && n.mapKey:
 		m.open(mapping)
 		return false
+	case s == playing && n.journalKey:
+		m.open(contractJournal)
+		return false
 	case s == playing:
 		return false
 	case s == mapping:
@@ -189,6 +207,9 @@ func (m *menu) navigate(n nav, w *character.Wardrobe, o *character.Outfit) bool 
 		if n.mapKey || n.back {
 			m.back()
 		}
+		return false
+	case s == contractJournal && n.journalKey:
+		m.back()
 		return false
 	case n.back:
 		m.back()
@@ -267,9 +288,11 @@ type layout struct {
 	panel   rl.Rectangle
 	heading rl.Vector2
 	buttons []rl.Rectangle
-	// rows are the wardrobe's rows (with their arrows) or the controls.
+	// rows are wardrobe rows, control bindings or the journal's record cards.
 	rows, left, right []rl.Rectangle
 	hint              rl.Rectangle
+	account           rl.Rectangle
+	debts             rl.Rectangle
 }
 
 // layoutFor lays out s in a width by height window.
@@ -312,7 +335,7 @@ func layoutFor(s screen, width, height, sc float32) layout {
 	case dressing:
 		const w = 400
 		rows := float32(rowCount) * rowH
-		h := pad + headingH + rows + gap + stack(n) + 38 + pad
+		h := pad + headingH + rows + gap + stack(n) + pad
 		y := centreY(h)
 		l.panel = rl.Rectangle{X: pt(margin), Y: pt(y), Width: pt(w), Height: pt(h)}
 		l.heading = rl.Vector2{X: pt(margin + pad), Y: pt(y + pad)}
@@ -326,7 +349,30 @@ func layoutFor(s screen, width, height, sc float32) layout {
 		}
 		by := y + pad + headingH + rows + gap
 		buttons(margin+pad, by, w-2*pad)
-		l.hint = rl.Rectangle{X: pt(margin + pad), Y: pt(by + stack(n) + 10), Width: pt(w - 2*pad), Height: pt(28)}
+	case contractOffer:
+		const w, h = 540, 580
+		x, y := max(16, (width/sc-w)/2), centreY(h)
+		l.panel = rl.Rectangle{X: pt(x), Y: pt(y), Width: pt(w), Height: pt(h)}
+		l.heading = rl.Vector2{X: pt(x + pad), Y: pt(y + pad)}
+		buttons(x+pad, y+h-pad-stack(n), w-2*pad)
+	case contractJournal:
+		const w, h = 1040, 640
+		// The journal fits even when a window is smaller than the normal
+		// minimum UI scale. Drawing uses this same scale as the mouse hits.
+		sc = min(sc, width/(w+32), height/(h+32))
+		l.sc = sc
+		x, y := (width/sc-w)/2, (height/sc-h)/2
+		l.panel = rl.Rectangle{X: pt(x), Y: pt(y), Width: pt(w), Height: pt(h)}
+		l.heading = rl.Vector2{X: pt(x + pad), Y: pt(y + pad)}
+		const pageW = w/2 - 2*pad
+		l.account = rl.Rectangle{X: pt(x + w/2 + pad), Y: pt(y + pad), Width: pt(pageW), Height: pt(108)}
+		l.debts = rl.Rectangle{X: pt(x + pad), Y: pt(y + 194), Width: pt(pageW), Height: pt(110)}
+		l.rows = []rl.Rectangle{
+			{X: pt(x + pad), Y: pt(y + 410), Width: pt(pageW), Height: pt(114)},
+			{X: pt(x + w/2 + pad), Y: pt(y + 194), Width: pt(pageW), Height: pt(28 + ledgerHistoryRows*52 + 30)},
+		}
+		l.hint = rl.Rectangle{X: pt(x + pad), Y: pt(y + h - pad - buttonH), Width: pt(w - 2*pad - 200), Height: pt(buttonH)}
+		buttons(x+w-pad-180, y+h-pad-buttonH, 180)
 	}
 	return l
 }
@@ -368,6 +414,14 @@ func menuInput(
 		ms := mouse.Get()
 		moved := ms.Delta.X != 0 || ms.Delta.Y != 0
 		l := layoutFor(s, float32(ww.Width), float32(ww.Height), uiScale(ww))
+		if s == contractJournal && contains(l.rows[1], ms.Position) {
+			if ms.Wheel < 0 {
+				mu.top().receipt++
+			}
+			if ms.Wheel > 0 {
+				mu.top().receipt = max(0, mu.top().receipt-1)
+			}
+		}
 		quit = mu.point(l.hits(s), ms.Position, moved, buttons.Get().JustPressed(rl.MouseButtonLeft), w, o)
 	}
 	if quit {

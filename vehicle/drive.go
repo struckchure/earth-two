@@ -147,6 +147,9 @@ func steer(
 			*vel = physics.Velocity{}
 		}
 
+		if pr.Key == "" && math.Abs(float64(speed)) <= exitSpeed {
+			pr.Key, pr.Text = "E", "Get out"
+		}
 		if !k.JustPressed(rl.KeyE) {
 			return
 		}

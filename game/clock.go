@@ -18,9 +18,11 @@ const (
 	clockGap    = 6  // between it and the minimap, and it and the map's key
 )
 
-// clockSpace is how much room the clock takes under the minimap, in pixels:
-// what drawMinimap leaves it.
-func clockSpace(p painter) float32 { return p.px(clockHeight + clockGap) }
+func clockRect(p painter) rl.Rectangle {
+	mini := minimapRect(p)
+	border := max(1, p.px(3))
+	return rl.Rectangle{X: mini.X - border, Y: mini.Y + mini.Height + border + p.px(clockGap), Width: mini.Width + 2*border, Height: p.px(clockHeight)}
+}
 
 // dayStrip is the day as the strip shows it: each hour's colour, from
 // midnight.
@@ -60,9 +62,7 @@ func drawClock(
 		return
 	}
 	p := newPainter(fonts.Get(), win.Get())
-	mini := minimapRect(p)
-	border := max(1, p.px(3))
-	r := rl.Rectangle{X: mini.X - border, Y: mini.Y + mini.Height + border + p.px(clockGap), Width: mini.Width + 2*border, Height: p.px(clockHeight)}
+	r := clockRect(p)
 	rl.DrawRectangleRec(r, colPanel)
 	now := day.Get().now()
 	hour := hourOf(now)
