@@ -13,14 +13,22 @@ import (
 
 // Serve precompressed build artifacts when the browser accepts gzip. The
 // rooted filesystem keeps requests inside dir; FileServer handles everything
-// else, including redirects and missing files.
-func newFileHandler(dir string) (http.Handler, error) {
+// else, including redirects and missing files. The caller must Close the
+// handler after it stops serving to release the root directory handle.
+type fileHandler struct {
+	http.Handler
+	root *os.Root
+}
+
+func (h *fileHandler) Close() error { return h.root.Close() }
+
+func newFileHandler(dir string) (*fileHandler, error) {
 	root, err := os.OpenRoot(dir)
 	if err != nil {
 		return nil, err
 	}
 	files := http.FileServer(http.FS(root.FS()))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Revalidate so rebuilding at the same URL cannot leave stale code or
 		// assets in the browser. ServeContent provides Last-Modified and 304s.
 		w.Header().Set("Cache-Control", "no-cache")
@@ -49,7 +57,8 @@ func newFileHandler(dir string) (http.Handler, error) {
 			}
 		}
 		files.ServeHTTP(w, r)
-	}), nil
+	})
+	return &fileHandler{Handler: handler, root: root}, nil
 }
 
 func acceptsGzip(header string) bool {
