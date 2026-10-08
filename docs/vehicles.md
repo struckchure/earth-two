@@ -68,3 +68,10 @@ How each kind handles is in `vehicle/handling.go`:
 The engines are geared for about half a g at the wheels in first gear,
 and each kind is limited to a top speed. Each vehicle's weight sits as low
 as its axles unless `drive(com=...)` says otherwise.
+
+Hitting a person must not tip or overturn a vehicle, regardless of the
+person's size. Standing characters and fallen bodies yield to the chassis:
+they receive the push, while the vehicle receives no contact impulse or torque.
+Wheels do not use people as ground. Solid terrain, walls and other vehicles
+still have their normal collision response. Injury thresholds are described
+in the README and [Shared world](shared-world.md).

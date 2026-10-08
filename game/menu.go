@@ -28,6 +28,7 @@ const (
 	mapping // the full map (see maps.go)
 	contractOffer
 	contractJournal
+	identityScreen
 )
 
 type action uint8
@@ -41,6 +42,15 @@ const (
 	actQuit
 	actBack
 	actAcceptContract
+	actIdentity
+	actIdentityCreate
+	actIdentityUnlock
+	actIdentityConnect
+	actIdentityImport
+	actIdentityExport
+	actIdentityEmail
+	actIdentityLock
+	actIdentityName
 )
 
 type item struct {
@@ -56,9 +66,9 @@ func items(s screen) []item {
 	var out []item
 	switch s {
 	case title:
-		out = []item{{"Play", actPlay}, {"Wardrobe", actWardrobe}, {"Controls", actControls}}
+		out = []item{{"Play", actPlay}, {"Wardrobe", actWardrobe}, {"Controls", actControls}, {"Identity", actIdentity}}
 	case paused:
-		out = []item{{"Resume", actResume}, {"Wardrobe", actWardrobe}, {"Controls", actControls}, {"Main menu", actMainMenu}}
+		out = []item{{"Resume", actResume}, {"Wardrobe", actWardrobe}, {"Controls", actControls}, {"Main menu", actMainMenu}, {"Identity", actIdentity}}
 	case controlsHelp:
 		return []item{{"Back", actBack}}
 	case dressing:
@@ -67,6 +77,8 @@ func items(s screen) []item {
 		return []item{{"Accept contract", actAcceptContract}, {"Leave it for now", actBack}}
 	case contractJournal:
 		return []item{{"Back", actBack}}
+	case identityScreen:
+		return []item{{"Create identity", actIdentityCreate}, {"Unlock key", actIdentityUnlock}, {"Connect account", actIdentityConnect}, {"Lock key", actIdentityLock}, {"Import key", actIdentityImport}, {"Export key", actIdentityExport}, {"Save email", actIdentityEmail}, {"Save display name", actIdentityName}, {"Back", actBack}}
 	default:
 		return nil
 	}
@@ -86,7 +98,9 @@ type menu struct {
 	acceptContract bool // consumed by contractChoice
 	// stamp is the stamp come down to confirm the last thing done, while
 	// it shows (paper.go).
-	stamp *stampMark
+	stamp    *stampMark
+	identity *identityPanel
+	cursor   rl.Texture2D
 }
 
 type page struct {
@@ -130,6 +144,9 @@ func (m *menu) choices() int {
 	if m.screen() == dressing {
 		n += rowCount
 	}
+	if m.screen() == identityScreen {
+		n += identityFields
+	}
 	return n
 }
 
@@ -155,6 +172,15 @@ func (m *menu) do(a action) bool {
 			m.stampOn("FILED", stampRed, contractOffer)
 			m.back()
 		}
+	case actIdentity:
+		if m.identity == nil {
+			m.identity = newIdentityPanel()
+		}
+		m.open(identityScreen)
+	case actIdentityCreate, actIdentityUnlock, actIdentityConnect, actIdentityImport, actIdentityExport, actIdentityEmail, actIdentityLock, actIdentityName:
+		if m.identity != nil {
+			m.identity.act(a)
+		}
 	}
 	return false
 }
@@ -169,6 +195,13 @@ func (m *menu) press(w *character.Wardrobe, o *character.Outfit) bool {
 	}
 	if p.screen == dressing {
 		return m.do(items(dressing)[p.focus-rowCount].act)
+	}
+	if p.screen == identityScreen {
+		if p.focus < identityFields {
+			p.focus = (p.focus + 1) % identityFields
+			return false
+		}
+		return m.do(items(identityScreen)[p.focus-identityFields].act)
 	}
 	return m.do(items(p.screen)[p.focus].act)
 }
@@ -266,6 +299,7 @@ func (m *menu) point(hits []hit, pos rl.Vector2, moved, clicked bool, w *charact
 			*o = cycleRow(w, *o, h.focus, h.step)
 		case p.screen == dressing && h.focus < rowCount:
 			// Clicking a row's name just picks the row.
+		case p.screen == identityScreen && h.focus < identityFields:
 		default:
 			return m.press(w, o)
 		}
@@ -298,6 +332,7 @@ type layout struct {
 	hint              rl.Rectangle
 	account           rl.Rectangle
 	debts             rl.Rectangle
+	available         rl.Rectangle
 }
 
 // down is l moved dy down the screen (a filed form taken away: paper.go).
@@ -313,7 +348,7 @@ func (l layout) down(dy float32) layout {
 	l.panel.Y += dy
 	l.heading.Y += dy
 	l.buttons, l.rows, l.left, l.right = move(l.buttons), move(l.rows), move(l.left), move(l.right)
-	for _, r := range []*rl.Rectangle{&l.hint, &l.account, &l.debts} {
+	for _, r := range []*rl.Rectangle{&l.hint, &l.account, &l.debts, &l.available} {
 		r.Y += dy
 	}
 	return l
@@ -388,7 +423,7 @@ func layoutFor(s screen, width, height, sc float32) layout {
 		l.heading = rl.Vector2{X: pt(x + pad), Y: pt(y + pad)}
 		buttons(x+pad, y+h-pad-stack(n), w-2*pad)
 	case contractJournal:
-		const w, h = 1040, 640
+		const w, h = 1040, 680
 		// The journal fits even when a window is smaller than the normal
 		// minimum UI scale. Drawing uses this same scale as the mouse hits.
 		sc = min(sc, width/(w+32), height/(h+32))
@@ -398,13 +433,32 @@ func layoutFor(s screen, width, height, sc float32) layout {
 		l.heading = rl.Vector2{X: pt(x + pad), Y: pt(y + pad)}
 		const pageW = w/2 - 2*pad
 		l.account = rl.Rectangle{X: pt(x + w/2 + pad), Y: pt(y + pad), Width: pt(pageW), Height: pt(108)}
-		l.debts = rl.Rectangle{X: pt(x + pad), Y: pt(y + 194), Width: pt(pageW), Height: pt(110)}
+		l.debts = rl.Rectangle{X: pt(x + pad), Y: pt(y + 174), Width: pt(pageW), Height: pt(110)}
+		l.available = rl.Rectangle{X: pt(x + pad), Y: pt(y + 358), Width: pt(pageW), Height: pt(80)}
 		l.rows = []rl.Rectangle{
-			{X: pt(x + pad), Y: pt(y + 410), Width: pt(pageW), Height: pt(114)},
+			{X: pt(x + pad), Y: pt(y + 514), Width: pt(pageW), Height: pt(96)},
 			{X: pt(x + w/2 + pad), Y: pt(y + 194), Width: pt(pageW), Height: pt(28 + ledgerHistoryRows*52 + 30)},
 		}
 		l.hint = rl.Rectangle{X: pt(x + pad), Y: pt(y + h - pad - buttonH), Width: pt(w - 2*pad - 200), Height: pt(buttonH)}
 		buttons(x+w-pad-180, y+h-pad-buttonH, 180)
+	case identityScreen:
+		const w, h = 760, 760
+		sc = min(sc, width/(w+32), height/(h+32))
+		l.sc = sc
+		x, y := (width/sc-w)/2, (height/sc-h)/2
+		l.panel = rl.Rectangle{X: pt(x), Y: pt(y), Width: pt(w), Height: pt(h)}
+		l.account = rl.Rectangle{X: pt(x + pad), Y: pt(y + 126), Width: pt(w - 2*pad), Height: pt(30)}
+		for i := range identityFields {
+			l.rows = append(l.rows, rl.Rectangle{X: pt(x + pad), Y: pt(y + 170 + float32(i)*54), Width: pt(w - 2*pad), Height: pt(48)})
+		}
+		for i := range n {
+			r := rl.Rectangle{X: pt(x + pad + float32(i%2)*(w/2-pad)), Y: pt(y + 408 + float32(i/2)*48), Width: pt(w/2 - pad - 10), Height: pt(42)}
+			if i == n-1 && n%2 == 1 {
+				r.Width = pt(w - 2*pad)
+			}
+			l.buttons = append(l.buttons, r)
+		}
+		l.hint = rl.Rectangle{X: pt(x + pad), Y: pt(y + 668), Width: pt(w - 2*pad), Height: pt(28)}
 	}
 	return l
 }
@@ -418,6 +472,12 @@ func (l layout) hits(s screen) []hit {
 			out = append(out, hit{l.left[i], i, -1}, hit{l.right[i], i, 1}, hit{l.rows[i], i, 0})
 		}
 		first = rowCount
+	}
+	if s == identityScreen {
+		for i, r := range l.rows {
+			out = append(out, hit{r, i, 0})
+		}
+		first = identityFields
 	}
 	for i, b := range l.buttons {
 		out = append(out, hit{b, first + i, 0})
@@ -441,7 +501,26 @@ func menuInput(
 		return
 	}
 	mu, w, ww := m.Get(), wardrobe.Get(), win.Get()
-	quit := mu.navigate(readNav(keys.Get()), w, o)
+	if mu.identity != nil {
+		mu.identity.poll()
+	}
+	navigation := readNav(keys.Get())
+	if mu.screen() == identityScreen {
+		navigation = nav{up: keys.Get().JustPressed(rl.KeyUp), down: keys.Get().JustPressed(rl.KeyDown), enter: keys.Get().JustPressed(rl.KeyEnter), back: keys.Get().JustPressed(rl.KeyEscape)}
+		mu.identity.edit(mu.top().focus)
+		if keys.Get().JustPressed(rl.KeyTab) {
+			mu.top().focus = wrap(mu.top().focus+1, mu.choices())
+		}
+	}
+	identityClipboardFocus(mu.screen() == identityScreen && mu.top().focus < identityFields && !mu.identity.busy)
+	quit := mu.navigate(navigation, w, o)
+	if mu.screen() == playing && buttons.Get().JustPressed(rl.MouseButtonLeft) {
+		p := painter{s: uiScale(ww)}
+		card := accountSummaryRect(p, float32(ww.Width))
+		if contains(card, mouse.Get().Position) || contains(accountBadgeRect(p, card), mouse.Get().Position) {
+			mu.open(contractJournal)
+		}
+	}
 	if s := mu.screen(); s != playing && !quit {
 		ms := mouse.Get()
 		moved := ms.Delta.X != 0 || ms.Delta.Y != 0

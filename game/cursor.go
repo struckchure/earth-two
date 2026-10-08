@@ -4,6 +4,8 @@ package game
 
 import rl "github.com/gen2brain/raylib-go/raylib"
 
+import "github.com/struckchure/illusion/window"
+
 // cursorHeld is whether holdCursor has the cursor.
 var cursorHeld bool
 
@@ -23,4 +25,15 @@ func holdCursor(hold bool) bool {
 		rl.EnableCursor()
 	}
 	return false
+}
+
+func setPaperCursorHidden(active bool) {
+	if active {
+		rl.HideCursor()
+	} else if !cursorHeld {
+		rl.ShowCursor()
+	}
+}
+func paperCursorInside(at rl.Vector2, w *window.Window) bool {
+	return rl.IsCursorOnScreen() && at.X >= 0 && at.Y >= 0 && at.X < float32(w.Width) && at.Y < float32(w.Height)
 }

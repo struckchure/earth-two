@@ -16,6 +16,12 @@ called Registrars.
 "Legal" means filed. "Illegal" means off the books. For the jobs themselves, see
 [Contract types](contracts.md).
 
+System issuers draw from tier-specific template pools and publish a distinct
+offer for its assigned player. Only that player can take it. A filed record
+may be public without being a public job anybody can claim. Personal system
+orders are not transferable; player-posted contracts remain a separate market.
+See [Personal system contracts](contracts/system-contracts.md).
+
 Unlisted arrivals can also take sponsored **day-labour work orders** before
 they qualify for filed work. The introductory [First filing](contracts.md#first-work-order-first-filing)
 order credits Ada's passage debt directly, requires no bond and has no deadline

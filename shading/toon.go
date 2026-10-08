@@ -8,7 +8,7 @@ package shading
 // glowing what glows, a rim of light on the lit side of rounded things, the
 // brightest colours rolled off rather than clipped, and haze with distance.
 
-const toonFragment = lightingGLSL + `
+const toonSurface = `
 in vec3 fragPosition;
 in vec2 fragTexCoord;
 in vec4 fragColor;
@@ -161,14 +161,7 @@ void main() {
 
     // The lamps: each a pool of light, brighter nearer in, its edge soft;
     // fainter in the sun, which outshines them.
-    vec3 lamps = vec3(0.0);
-    for (int i = 0; i < 8; i++) {
-        if (float(i) >= pointCount) {
-            break;
-        }
-        float a = pointLight(i, fragPosition, n);
-        lamps += pointColor[i] * (0.45 * smoothstep(0.0, 0.12, a) + 0.55 * smoothstep(0.15, 0.5, a));
-    }
+    vec3 lamps = worldLamps(fragPosition, n);
     light += lamps * (1.0 - 0.75 * lit);
     // Headlamps: forward cones with soft edges and distance falloff.
     // They illuminate even a cast shadow, independently of the sun.

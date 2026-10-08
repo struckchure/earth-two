@@ -14,7 +14,7 @@ NATIVE_GO = env GOWORK="$(CURDIR)/build/deps/native.work" go
 # a module that isn't in the cache yet has no directory to list.
 ILLUSION = $(shell go mod download github.com/struckchure/illusion 2>/dev/null; go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
-.PHONY: assets deps run build web serve test characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
+.PHONY: assets deps run build web serve test server-module server-bindings account-bridge characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
 
 deps:
 	go run ./tools/deps
@@ -32,9 +32,24 @@ assets:
 	go run ./tools/assetpack
 
 # cmd/web compiled for the browser is the game (cmd/web/game_js.go).
-web: assets
+account-bridge:
+	sh tools/webaccount/build.sh
+
+web: assets account-bridge
 	sh "$(ILLUSION)/web/build.sh" -m . -o build/web -a build/assets -t "$(TITLE)" ./cmd/web
+	cp build/spacetime/account.js build/web/account.js
+	go run ./tools/webaccount build/web/index.html
 	go run ./tools/webcompress build/web
+
+server-module:
+	CARGO_TARGET_DIR="$(CURDIR)/build/server/target" cargo build --manifest-path internals/server/module/Cargo.toml --target wasm32-unknown-unknown --release --locked
+
+# Publish the module to a local development database before generating Go bindings.
+STDB_SERVER ?= http://localhost:3000
+STDB_DATABASE ?= earth-two
+server-bindings:
+	go run go.digitalxero.dev/stdb-go@v0.7.0 generate client --server "$(STDB_SERVER)" --database "$(STDB_DATABASE)" --out-dir internals/spacetime/bindings --package bindings
+	spacetime generate --lang typescript --bin-path build/server/target/wasm32-unknown-unknown/release/earth_two_server.wasm --out-dir web/spacetime/bindings --no-config --yes
 
 serve: web
 	$(NATIVE_GO) run ./cmd/web -addr :$(PORT) -dir build/web

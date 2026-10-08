@@ -64,9 +64,17 @@ func marks(n int) string {
 
 // The play summary has exactly the clock/weather card's footprint.
 // Creditor and repayment details live in the journal.
-func drawAccountSummary(p painter, width float32, c *contracts) {
+func accountSummaryRect(p painter, width float32) rl.Rectangle {
 	size := clockRect(p)
-	r := rl.Rectangle{X: width - p.px(16) - size.Width, Y: p.px(16), Width: size.Width, Height: size.Height}
+	return rl.Rectangle{X: width - p.px(16) - size.Width, Y: p.px(16), Width: size.Width, Height: size.Height}
+}
+
+func accountBadgeRect(p painter, card rl.Rectangle) rl.Rectangle {
+	return rl.Rectangle{X: card.X - p.px(9), Y: card.Y - p.px(9), Width: p.px(18), Height: p.px(18)}
+}
+
+func drawAccountSummary(p painter, width float32, c *contracts) {
+	r := accountSummaryRect(p, width)
 	p.panel(r)
 	for i, row := range []struct {
 		label  string
@@ -79,6 +87,12 @@ func drawAccountSummary(p painter, width float32, c *contracts) {
 			ink = colAccent
 		}
 		p.textIn(marks(row.amount)+" marks", rl.Rectangle{X: r.X + p.px(58), Y: y, Width: r.Width - p.px(68), Height: p.px(19)}, 14, semibold, ink, right)
+	}
+	if count := len(c.availableContracts()); count > 0 {
+		badge := accountBadgeRect(p, r)
+		rl.DrawRectangleRec(inset(badge, -p.px(1), -p.px(1)), colPanel)
+		rl.DrawRectangleRec(badge, colAccent)
+		p.textIn(fmt.Sprint(count), badge, 12, semibold, colOnLight, centre)
 	}
 }
 
@@ -98,7 +112,7 @@ func drawContractHUD(
 	}
 	p := newPainter(fonts.Get(), win.Get())
 	drawAccountSummary(p, float32(win.Get().Width), c)
-	if c.state == contractDelivered {
+	if c.ongoing == nil {
 		return
 	}
 	_, tr, ok := players.Single()
@@ -112,19 +126,13 @@ func drawContractHUD(
 	text := func(value string, offset, size float32, ink rl.Color) {
 		p.textIn(value, rl.Rectangle{X: x, Y: y + p.px(offset), Width: r.Width - p.px(28), Height: p.px(24)}, size, semibold, ink, left)
 	}
-	text("First filing", 0, 19, colAccent)
-	switch c.state {
-	case contractAvailable:
-		text("Ada has work at the arrivals terminal.", 30, 14, colText)
-		text("150 marks off your debt • no bond", 56, 14, colMuted)
-	case contractAccepted:
-		text("Accepted • deliver to the Exchange", 30, 14, colText)
-		hint := "Carrying: sealed arrival filing"
-		if driving.Get().Active() {
-			hint = "Park outside the Hull; deliver on foot."
-		} else if rl.Vector2Distance(rl.Vector2{X: tr.Translation.X, Y: tr.Translation.Z}, rl.Vector2{X: c.delivery.X, Y: c.delivery.Z}) > 100 {
-			hint = "Follow the caravan road west to Landfall."
-		}
-		text(hint, 56, 14, colMuted)
+	text(c.ongoing.title, 0, 19, colAccent)
+	text("Accepted • deliver to the Exchange", 30, 14, colText)
+	hint := "Carrying: sealed arrival filing"
+	if driving.Get().Active() {
+		hint = "Park outside the Hull; deliver on foot."
+	} else if rl.Vector2Distance(rl.Vector2{X: tr.Translation.X, Y: tr.Translation.Z}, rl.Vector2{X: c.delivery.X, Y: c.delivery.Z}) > 100 {
+		hint = "Follow the caravan road west to Landfall."
 	}
+	text(hint, 56, 14, colMuted)
 }

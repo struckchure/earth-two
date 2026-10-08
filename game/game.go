@@ -98,10 +98,22 @@ var people = []character.Model{
 }
 
 // Run starts the game and blocks until its window closes.
-func Run() { build(newMenu()).Run() }
+func Run() {
+	m := newMenu()
+	defer func() {
+		if m.identity != nil {
+			m.identity.close()
+		}
+	}()
+	build(m).Run()
+}
 
 // build is the game, opening on m.
 func build(m *menu) *illusion.App {
+	lamps, err := fixedLamps(assetRoot())
+	if err != nil {
+		panic(err)
+	}
 	return illusion.New().
 		AddPlugins(
 			defaults.Plugins(defaults.Config{
@@ -113,9 +125,11 @@ func build(m *menu) *illusion.App {
 			// Outlines on people only: the world is painted, not inked.
 			world.Plugin{Manifest: "world/world.json"},
 			vehicle.Plugin{},
+			injuryPlugin{},
 			residentsPlugin{},
 			testPlugin{},
 			shading.Plugin{
+				Lamps: lamps,
 				// Violet, but light enough that shaded faces still read.
 				// Cast shadows darken this fill towards black.
 				ShadowColor: rl.NewColor(205, 190, 235, 255),
@@ -176,7 +190,7 @@ func build(m *menu) *illusion.App {
 		// The stamps over everything (paper.go).
 		ConfigureSets(illusion.Render, stampSet.After(render.Draw2D).Before(render.End)).
 		AddSystems(illusion.Render, illusion.Fn4(drawStamps).InSet(stampSet)).
-		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn7(drawMaps), illusion.Fn6(drawContractHUD), illusion.Fn6(drawMenus), illusion.Fn2(frameRate)).InSet(render.Draw2D))
+		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn7(drawMaps), illusion.Fn6(drawContractHUD), illusion.Fn6(drawMenus), illusion.Fn3(frameRate), illusion.Fn3(drawPaperCursor)).InSet(render.Draw2D))
 }
 
 func setup(

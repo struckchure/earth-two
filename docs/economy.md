@@ -1,6 +1,8 @@
 # Economy
 
-Everything can be owned and sold, contracts and debts included. Prices are set
+Goods, property, debts and player-posted contracts can be owned and sold.
+Personal system-issued contracts stay with their assigned player and cannot
+be resold or reassigned. Prices are set
 per district by supply and demand, and world events push them around. Arbitrage
 between districts is the basic way to make money from trade. The world's
 economy is shared by every player and keeps running while they're offline.
@@ -40,7 +42,8 @@ earned, either bought or given as a gift.
 ## Trading paper
 
 Trading paper is what makes "trade anything" deep. A player can buy someone's
-debt and collect on it, sell a contract they can't finish, or buy a land claim
+debt and collect on it, sell a transferable player-posted contract they can't
+finish, or buy a land claim
 and wait for the charter to settle. Players can buy and sell each other's debts
 too, so a rival's debt is a lever as well as an asset.
 

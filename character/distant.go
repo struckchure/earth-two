@@ -23,11 +23,14 @@ type Distant struct{}
 // walking all in step; there are few, so each mesh is still skinned only a
 // few times.
 func lockstep(
-	bodies *illusion.Query1Where[render.AnimationPlayer, illusion.And[illusion.With[Body], illusion.With[Distant]]],
+	bodies *illusion.Query2Where[render.AnimationPlayer, State, illusion.And[illusion.With[Body], illusion.With[Distant]]],
 	clock *illusion.Res[illusion.Time],
 ) {
 	t := clock.Get().ElapsedSecs()
-	bodies.Each(func(e ecs.Entity, p *render.AnimationPlayer) {
+	bodies.Each(func(e ecs.Entity, p *render.AnimationPlayer, state *State) {
+		if state.downed {
+			return
+		}
 		p.Seek(t + lockstepPhases[int(e.ID())%len(lockstepPhases)])
 		p.Settle()
 		p.Pose = nil

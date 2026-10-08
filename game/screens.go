@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"math"
+	"time"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
 	"github.com/mlange-42/ark/ecs"
@@ -81,6 +82,11 @@ func drawMenus(
 			p.s = l.sc
 			rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 140))
 			drawContractJournal(p, l, c, focus, mu.top().receipt)
+		}
+	case identityScreen:
+		if mu.identity != nil {
+			rl.DrawRectangle(0, 0, int32(width), int32(height), rl.NewColor(0, 0, 0, 140))
+			drawIdentity(p, l, focus, mu.identity)
 		}
 	}
 }
@@ -183,9 +189,24 @@ func frameRateRect(p painter, height float32) rl.Rectangle {
 }
 
 // Draw last so a menu reaching the lower edge cannot cover the counter.
-func frameRate(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts]) {
+func frameRate(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], menus *illusion.Res[menu]) {
 	w := win.Get()
-	drawFrameRate(newPainter(fonts.Get(), w), float32(w.Height))
+	p := newPainter(fonts.Get(), w)
+	drawConnectionHUD(p, float32(w.Height), menus.Get().identity)
+}
+
+func drawConnectionHUD(p painter, height float32, panel *identityPanel) {
+	fps := drawFrameRate(p, height)
+	label, colour := "Disconnected", rl.NewColor(226, 151, 129, 255)
+	if panel != nil && panel.session != nil && panel.session.IsActive() {
+		label, colour = "Connected", rl.NewColor(161, 208, 164, 255)
+		if panel.latency > 0 {
+			label += fmt.Sprintf(" · %d ms", panel.latency.Round(time.Millisecond).Milliseconds())
+		}
+	}
+	r := rl.Rectangle{X: fps.X + fps.Width + p.px(8), Y: fps.Y, Width: p.measure(label, 13, semibold).X + p.px(18), Height: fps.Height}
+	rl.DrawRectangleRec(r, rl.NewColor(16, 13, 11, 150))
+	p.textIn(label, r, 13, semibold, colour, centre)
 }
 
 // Camera shots, relative to the player's capsule centre: where the camera
