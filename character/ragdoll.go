@@ -11,6 +11,8 @@ import (
 	"github.com/struckchure/illusion/transform"
 )
 
+const ragdollContactSkin float32 = .002
+
 // Ragdoll combines a dynamic Jolt torso (which receives momentum from cars)
 // with constrained particles for the limbs and head. The particles sweep the
 // physics world, retaining bone lengths while gravity folds the joints.
@@ -178,7 +180,7 @@ func (r *ragdollRig) step(root transform.Transform, gravity rl.Vector3, dt float
 					d := rl.Vector3Length(delta)
 					if d > .000001 {
 						p.position = rl.Vector3Add(p.previous, rl.Vector3Scale(delta, clamp(hit.Distance/d, 0, 1)))
-						p.position = rl.Vector3Add(p.position, rl.Vector3Scale(hit.Normal, .002))
+						p.position = rl.Vector3Add(p.position, rl.Vector3Scale(hit.Normal, ragdollContactSkin))
 					}
 				}
 			}
@@ -285,13 +287,15 @@ func stepRagdolls(q *illusion.Query4[Ragdoll, transform.Transform, physics.Veloc
 			return
 		}
 		ragdoll.rig.step(*at, settings.Get().Gravity, dt, func(from, delta rl.Vector3, radius float32) (physics.RayHit, bool) {
-			return world.SweepCapsuleExcluding(from, delta, radius, 2*radius+.002, e)
+			return world.SweepCapsuleExcluding(from, delta, radius, 2*radius+ragdollContactSkin, e)
 		})
 		if asleep {
 			for _, point := range ragdoll.rig.points {
-				// Ignore motion within the contact skin: repeated constraint
-				// projection can otherwise keep a grounded limb jittering.
-				if rl.Vector3DistanceSqr(point.position, point.drawn) > .002*.002 {
+				// Constraint passes can move a resting limb between opposite
+				// sides of the contact skin. Allow that full range, otherwise
+				// small solver differences (notably on x86) prevent sleep.
+				const quietMotion = 2 * ragdollContactSkin
+				if rl.Vector3DistanceSqr(point.position, point.drawn) > quietMotion*quietMotion {
 					ragdoll.quiet = 0
 					return
 				}
