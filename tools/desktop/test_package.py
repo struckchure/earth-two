@@ -45,7 +45,12 @@ class PackagingTests(unittest.TestCase):
         self.assertEqual(info["CFBundleExecutable"], "earth-two")
         self.assertEqual(info["CFBundleShortVersionString"], "1.2.3")
         self.assertEqual((app / "Contents/Resources/assets/characters/CREDITS.txt").read_text(), "credits")
-        self.assertTrue((app / "Contents/MacOS/earth-two").stat().st_mode & stat.S_IXUSR)
+        executable = app / "Contents/MacOS/earth-two"
+        self.assertEqual(executable.read_bytes(), self.binary.read_bytes())
+        # Windows does not expose POSIX execute bits for this extensionless
+        # macOS binary; check its mode only on hosts that support those bits.
+        if os.name != "nt":
+            self.assertTrue(executable.stat().st_mode & stat.S_IXUSR)
 
     @unittest.skipIf(os.name == "nt", "macOS symlink layout")
     def test_dmg_keeps_full_version_and_arch_in_name(self):
