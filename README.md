@@ -56,8 +56,14 @@ Settings → Secrets and variables → Actions. Both settings are required for
 those builds. CI deletes `.env` after the build, before packaging/uploading
 artifacts. Pull requests use the checked-in local defaults.
 
+CI starts with a lightweight game-input check. Desktop/browser builds and
+release jobs run for changes to game code, runtime assets, shared Go dependencies,
+build configuration or release tooling. Landing-page code, its Railpack config,
+documentation and trailer-editing tools alone skip those jobs. Manual Actions
+runs still force the app jobs. The input policy is in `tools/ci/game_changes.py`.
+
 OTA publishing runs after the desktop/web builds and release-tool tests pass,
-on pushes to `main` or manual CI runs on `main`. Set the repository Actions
+on qualifying pushes to `main` or manual CI runs on `main`. Set the repository Actions
 variable `OTA_PUBLISH_ENABLED=true` to enable it. The `ota-release` environment
 can add release approval rules. `OTA_RELEASE_CHANNEL` defaults to `beta`;
 `OTA_GAME_VERSION` defaults to the source commit. CI uploads immutable files
@@ -65,6 +71,8 @@ to S3, verifies their download URLs, then registers the release and promotes
 the channel in SpacetimeDB. See [publisher setup](tools/ota/README.md) for the
 credentials and database authorization required. Client download/install
 handling remains separate from this publisher pipeline.
+Landing-page-only commits made while a game build is running do not supersede
+that build; publication is skipped only if newer game or release inputs differ.
 
 ### Player identity and the server
 

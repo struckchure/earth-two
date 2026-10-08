@@ -19,8 +19,50 @@ env:
   APP_VERSION: ${{ vars.APP_VERSION || '0.1.0' }}
 
 jobs:
+  changes:
+    name: Detect game changes
+    runs-on: ubuntu-latest
+    outputs:
+      game: ${{ steps.detect.outputs.game }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # PR merge bases and every commit in a push must be available.
+          fetch-depth: 0
+          # The detector needs history and its script, not game asset blobs.
+          sparse-checkout: tools/ci
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test release change detection
+        run: python -m unittest discover -s tools/ci -p 'test_*.py' -v
+      - name: Detect game and release input changes
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          case "$EVENT_NAME" in
+            workflow_dispatch)
+              echo 'game=true' >> "$GITHUB_OUTPUT"
+              ;;
+            pull_request)
+              python tools/ci/game_changes.py --base "$PR_BASE" --head "$PR_HEAD" \
+                --merge-base --github-output "$GITHUB_OUTPUT"
+              ;;
+            push)
+              python tools/ci/game_changes.py --base "$PUSH_BEFORE" --head "$SOURCE_COMMIT" \
+                --github-output "$GITHUB_OUTPUT"
+              ;;
+          esac
+
   desktop:
     name: Desktop (${{ matrix.platform }}-${{ matrix.arch }})
+    needs: changes
+    if: needs.changes.outputs.game == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -120,6 +162,8 @@ jobs:
 
   web:
     name: Web
+    needs: changes
+    if: needs.changes.outputs.game == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -174,6 +218,8 @@ jobs:
 
   release-tools:
     name: Validate OTA tooling
+    needs: changes
+    if: needs.changes.outputs.game == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -189,8 +235,9 @@ jobs:
 
   publish-updates:
     name: Publish OTA releases
-    needs: [desktop, web, release-tools]
+    needs: [changes, desktop, web, release-tools]
     if: >-
+      needs.changes.outputs.game == 'true' &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       vars.OTA_PUBLISH_ENABLED == 'true'
@@ -204,19 +251,18 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      - name: Skip superseded main builds
+      - name: Skip superseded game builds
         id: fresh
         shell: bash
         run: |
-          current_head="$(git ls-remote origin refs/heads/main | cut -f1)"
-          if [ -z "$current_head" ]; then
-            echo 'Could not resolve main' >&2
-            exit 1
-          fi
-          if [ "$current_head" = "$SOURCE_COMMIT" ]; then
+          git fetch --no-tags --depth=1 origin main
+          current_head="$(git rev-parse FETCH_HEAD)"
+          changed="$(python tools/ci/game_changes.py --base "$SOURCE_COMMIT" --head "$current_head")"
+          if [ "$changed" = 'false' ]; then
             echo 'publish=true' >> "$GITHUB_OUTPUT"
           else
-            echo 'A newer main commit exists; skipping release promotion.'
+            echo 'Newer game changes exist on main; skipping release promotion.'
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/download-artifact@v8
         if: steps.fresh.outputs.publish == 'true'
