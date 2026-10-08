@@ -14,7 +14,7 @@ NATIVE_GO = env GOWORK="$(CURDIR)/build/deps/native.work" go
 # a module that isn't in the cache yet has no directory to list.
 ILLUSION = $(shell go mod download github.com/struckchure/illusion 2>/dev/null; go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
-.PHONY: assets deps run build web serve test server-module server-bindings account-bridge characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
+.PHONY: assets deps run build web serve landing test server-module server-bindings account-bridge characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
 
 deps:
 	go run ./tools/deps
@@ -53,6 +53,10 @@ server-bindings:
 
 serve: web
 	$(NATIVE_GO) run ./cmd/web -addr :$(PORT) -dir build/web
+
+# Standalone HTML/CSS website; no game build, Node.js or C toolchain needed.
+landing:
+	go run ./cmd/landing -addr :$(PORT)
 
 test:
 	$(NATIVE_GO) test ./...

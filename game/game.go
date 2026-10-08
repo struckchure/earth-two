@@ -110,18 +110,28 @@ func Run() {
 
 // build is the game, opening on m.
 func build(m *menu) *illusion.App {
+	return buildConfigured(m, false)
+}
+
+// Capture has a fixed viewport and uses skeletal clothing animation. Normal
+// play retains its existing window settings and cloth simulation.
+func buildConfigured(m *menu, capture bool) *illusion.App {
 	lamps, err := fixedLamps(assetRoot())
 	if err != nil {
 		panic(err)
 	}
+	cfg := window.Config{Title: "Earth Two", Resizable: true, HighDPI: useHighDPI, MSAA: useMSAA, VSync: true, TargetFPS: targetFPS, KeepEscape: true}
+	if capture {
+		cfg = window.Config{Title: "Earth Two — trailer capture", Width: 1920, Height: 1080, MSAA: true, KeepEscape: true, TargetFPS: -1}
+	}
 	return illusion.New().
 		AddPlugins(
 			defaults.Plugins(defaults.Config{
-				Window:    window.Config{Title: "Earth Two", Resizable: true, HighDPI: useHighDPI, MSAA: useMSAA, VSync: true, TargetFPS: targetFPS, KeepEscape: true},
+				Window:    cfg,
 				AssetRoot: assetRoot(),
 			}),
 			physics.Plugin{},
-			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass, DisableCloth: !simulateCloth},
+			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass, DisableCloth: !simulateCloth || capture},
 			// Outlines on people only: the world is painted, not inked.
 			world.Plugin{Manifest: "world/world.json"},
 			vehicle.Plugin{},
@@ -179,7 +189,7 @@ func build(m *menu) *illusion.App {
 		AddSystems(illusion.Update,
 			// After the characters act, so the camera follows a vehicle where
 			// it's drawn this frame.
-			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn2(contractChoice), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow), illusion.Fn5(streamTerrain), illusion.Fn6(streamScatter), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn5(cullMerged), illusion.Fn4(cullPeople), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
+			illusion.Chain(illusion.Fn8(menuInput), illusion.Fn2(contractChoice), illusion.Fn8(mapInput), illusion.Fn4(lockControls), illusion.Fn8(steerCamera), illusion.Fn4(steerDriving), illusion.Fn5(faceCamera), illusion.Fn8(follow).InSet(cameraFollowSet), illusion.Fn5(streamTerrain).InSet(worldStreamSet), illusion.Fn6(streamScatter).RunIf(illusion.Cond0(func() bool { return !capture })), illusion.Fn2(coverGround), illusion.Fn8(cull), illusion.Fn5(cullMerged), illusion.Fn4(cullPeople), illusion.Fn7(cullVehicles), illusion.Fn3(moveSky)).After(character.Act),
 			illusion.Fn1(respawn),
 			// Benches, stools, bunks and machines (use.go): E acted on
 			// before characters act, and offered once the vehicles have
@@ -192,6 +202,11 @@ func build(m *menu) *illusion.App {
 		AddSystems(illusion.Render, illusion.Fn4(drawStamps).InSet(stampSet)).
 		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn7(drawMaps), illusion.Fn6(drawContractHUD), illusion.Fn6(drawMenus), illusion.Fn3(frameRate), illusion.Fn3(drawPaperCursor)).InSet(render.Draw2D))
 }
+
+const (
+	cameraFollowSet illusion.SystemSet = "game.CameraFollow"
+	worldStreamSet  illusion.SystemSet = "game.WorldStream"
+)
 
 func setup(
 	cmd *illusion.Commands,

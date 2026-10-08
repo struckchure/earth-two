@@ -1,0 +1,272 @@
+[
+  {
+    "name": "01_abandoned_colony",
+    "seconds": 6,
+    "player": [
+      9807,
+      0,
+      -1770.5
+    ],
+    "ground": true,
+    "look": "Crew",
+    "hour": 8,
+    "eye": [
+      9834,
+      18,
+      -1749
+    ],
+    "eyeEnd": [
+      9830,
+      16,
+      -1754
+    ],
+    "target": [
+      9807,
+      5,
+      -1793
+    ]
+  },
+  {
+    "name": "02_arrival",
+    "seconds": 5,
+    "player": [
+      9807,
+      0,
+      -1770.5
+    ],
+    "ground": true,
+    "look": "Crew",
+    "hour": 11,
+    "eye": [
+      9809,
+      2.3,
+      -1765
+    ],
+    "eyeEnd": [
+      9808.5,
+      2.2,
+      -1765.4
+    ],
+    "target": [
+      9807,
+      1.3,
+      -1770.5
+    ]
+  },
+  {
+    "name": "03_landfall",
+    "seconds": 5,
+    "player": [
+      0,
+      0,
+      62
+    ],
+    "ground": true,
+    "hour": 11,
+    "eye": [
+      70,
+      80,
+      140
+    ],
+    "eyeEnd": [
+      57,
+      68,
+      124
+    ],
+    "target": [
+      -10,
+      5,
+      -5
+    ],
+    "look": "Crew"
+  },
+  {
+    "name": "04_the_exchange",
+    "seconds": 5,
+    "player": [
+      2,
+      1.2,
+      6
+    ],
+    "hour": 11,
+    "look": "Crew",
+    "yaw": 0,
+    "pitch": 0.26,
+    "yawEnd": 0.14
+  },
+  {
+    "name": "05_the_debt",
+    "seconds": 4,
+    "player": [
+      2,
+      1.2,
+      6
+    ],
+    "hour": 11,
+    "screen": "journal",
+    "paper": true,
+    "look": "Crew"
+  },
+  {
+    "name": "06_the_roads",
+    "seconds": 5,
+    "player": [
+      9767.5,
+      0,
+      -1783
+    ],
+    "ground": true,
+    "hour": 11,
+    "look": "Crew",
+    "eye": [
+      9777,
+      3.8,
+      -1783
+    ],
+    "eyeEnd": [
+      9776,
+      2.8,
+      -1784
+    ],
+    "target": [
+      9767.5,
+      1,
+      -1788
+    ]
+  },
+  {
+    "name": "07_the_fringe",
+    "seconds": 5,
+    "player": [
+      -1625,
+      0,
+      12000
+    ],
+    "ground": true,
+    "hour": 11,
+    "look": "Crew",
+    "eye": [
+      -1589,
+      11,
+      11995
+    ],
+    "eyeEnd": [
+      -1594,
+      10,
+      11996
+    ],
+    "target": [
+      -1625,
+      2,
+      12023
+    ]
+  },
+  {
+    "name": "08_the_frontier",
+    "seconds": 5,
+    "player": [
+      -1457,
+      0,
+      12007
+    ],
+    "ground": true,
+    "hour": 11,
+    "look": "Crew",
+    "eye": [
+      -1444,
+      4,
+      12004
+    ],
+    "eyeEnd": [
+      -1447,
+      3.4,
+      12006
+    ],
+    "target": [
+      -1460,
+      1.5,
+      12014
+    ]
+  },
+  {
+    "name": "09_a_new_world",
+    "seconds": 6,
+    "player": [
+      0,
+      0,
+      62
+    ],
+    "ground": true,
+    "hour": 18.5,
+    "eye": [
+      32,
+      10,
+      95
+    ],
+    "eyeEnd": [
+      24,
+      8,
+      86
+    ],
+    "target": [
+      -5,
+      22,
+      -5
+    ],
+    "look": "Crew"
+  },
+  {
+    "name": "10_your_place",
+    "seconds": 4,
+    "player": [
+      9807,
+      0,
+      -1770.5
+    ],
+    "ground": true,
+    "hour": 17.5,
+    "look": "Crew",
+    "eye": [
+      9821,
+      4,
+      -1769
+    ],
+    "eyeEnd": [
+      9818,
+      4,
+      -1770
+    ],
+    "target": [
+      9807,
+      7,
+      -1794
+    ]
+  },
+  {
+    "name": "11_earth_two",
+    "seconds": 5,
+    "player": [
+      0,
+      0,
+      62
+    ],
+    "ground": true,
+    "hour": 18.5,
+    "eye": [
+      70,
+      80,
+      140
+    ],
+    "eyeEnd": [
+      60,
+      73,
+      130
+    ],
+    "target": [
+      -10,
+      5,
+      -5
+    ],
+    "look": "Crew"
+  }
+]

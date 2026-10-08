@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ece3cf">
+  <meta name="description" content="Earth Two is a free-roam science-fiction role game. Arrive on an abandoned colony, take your first contract, and make a life on the Red.">
+  <title>Earth Two — Your passage is only the beginning</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg?v=2">
+  <link rel="preload" href="/assets/Inter-Black.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body id="top">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="wordmark" href="#top" aria-label="Earth Two home"><span class="brand-mark" aria-hidden="true">E2</span>Earth Two<span class="brand-period">.</span></a>
+      <nav aria-label="Main navigation">
+        <a href="#world">The Red</a>
+        <a href="#first-contract">Your first contract</a>
+        <a href="#trailer">The trailer <span aria-hidden="true">↗</span></a>
+      </nav>
+      <span class="header-note"><span class="status-dot" aria-hidden="true"></span>In development</span>
+    </header>
+
+    <main id="main">
+      <section class="arrival" aria-labelledby="arrival-title">
+        <div class="form-heading"><span>The Exchange <span class="muted">/</span> Arrival registration</span><span class="form-number">Form A–1</span></div>
+        <div class="arrival-grid">
+          <div class="arrival-copy">
+            <p class="eyebrow"><span class="small-cross" aria-hidden="true">+</span> A free-roam sci-fi role game</p>
+            <h1 id="arrival-title">Your passage<br>is only the<br><span class="underlined">beginning.</span></h1>
+            <p class="hero-description">An abandoned colony. A passage debt.<br>A whole new world to make your own.</p>
+            <div class="hero-actions">
+              {{if .TrailerAvailable}}<a class="button button-dark" href="#trailer"><span class="play-symbol" aria-hidden="true">▶</span> Watch the trailer <span aria-hidden="true">↗</span></a>{{else}}<a class="button button-dark" href="#world">Explore the colony <span aria-hidden="true">↘</span></a>{{end}}
+              <a class="text-link" href="#first-contract">Read your work order <span aria-hidden="true">↓</span></a>
+            </div>
+            <p class="arrival-footnote">Nobody here calls it Earth Two anymore.<br>Welcome to the Red.</p>
+          </div>
+          <figure class="arrival-image">
+            <div class="plate-heading"><span>Landfall, the Red</span><span>88 AL <span aria-hidden="true">✳</span></span></div>
+            <img src="/assets/landfall.jpg" alt="Landfall's patched spaceship hull and dome frame beneath the Red's violet evening sky" width="1600" height="900" fetchpriority="high">
+            <span class="photo-corner corner-top" aria-hidden="true"></span><span class="photo-corner corner-bottom" aria-hidden="true"></span>
+            <div class="admitted-stamp" aria-hidden="true">Admitted<span>Landfall · The Exchange</span></div>
+            <figcaption><span>Plate 01 <span class="muted">/</span> Your new address</span><span>In-game footage</span></figcaption>
+          </figure>
+        </div>
+        <dl class="arrival-record">
+          <div><dt>Arrival status</dt><dd><span class="record-tick" aria-hidden="true">✓</span> Unlisted <span class="muted">/ Tier 0</span></dd></div>
+          <div><dt>Passage owed</dt><dd>2,000 <span class="muted">marks</span></dd></div>
+          <div><dt>Port of arrival</dt><dd>The Pads <span class="muted">/ Landfall</span></dd></div>
+          <div class="record-note"><span class="seal" aria-hidden="true"><span>0</span></span><p>A new name.<br>A blank record.</p></div>
+        </dl>
+      </section>
+
+      <div class="notice-strip"><span>Notice to new arrivals</span><p>Nobody governs here. <strong>Every deal is a contract.</strong></p><span aria-hidden="true">↘</span></div>
+
+      <section class="world-section" id="world" aria-labelledby="world-title">
+        <div class="section-heading"><p class="eyebrow">01 <span class="muted">/</span> A world left behind</p><span class="section-reference">Colony record · 88 AL</span></div>
+        <div class="world-intro"><h2 id="world-title">The company left.<br>The colony stayed.</h2><div><p>When the supply ships stopped coming, the people of Landfall kept going. They built a frontier town from the bones of a spaceship.</p><p>Air, water, a place to sleep. Everything has a price. What happens next starts with the work you take.</p></div></div>
+        <div class="field-plates">
+          <figure class="field-plate"><div class="image-wrap"><img src="/assets/pads.jpg" alt="The cargo ship Patience at the Pads, surrounded by market awnings and shipping containers" width="1600" height="900" loading="lazy"><span class="plate-tag">01 / The Pads</span></div><figcaption><h3>Arrive with a debt.</h3><p>Your passage bought you a place on the Red. Now it is time to pay it back.</p></figcaption></figure>
+          <figure class="field-plate"><div class="image-wrap"><img src="/assets/exchange.jpg" alt="Warm work lamps illuminate the Exchange's filing cabinets, Registrar counters and floor bell" width="1600" height="900" loading="lazy"><span class="plate-tag">02 / The Exchange</span></div><figcaption><h3>Put your name on paper.</h3><p>Work orders, debts, receipts. On the Red, even a fresh start leaves a record.</p></figcaption></figure>
+          <figure class="field-plate"><div class="image-wrap"><img src="/assets/fringe.jpg" alt="Rows of greenhouse shelters and a water tank in the red dunes beyond Landfall" width="1600" height="900" loading="lazy"><span class="plate-tag">03 / The Fringe</span></div><figcaption><h3>Find your own way.</h3><p>Beyond the dome, roads lead to farms, outposts, and a life on the frontier.</p></figcaption></figure>
+        </div>
+      </section>
+
+      <section class="contract-section" id="first-contract" aria-labelledby="contract-title">
+        <div class="contract-copy"><p class="eyebrow">02 <span>/</span> Your first contract</p><h2 id="contract-title">Everyone starts<br>with something.<br>Yours is a debt.</h2><p>Ada Vellér paid your passage aboard <em>Patience</em>. You owe her 2,000 marks. Your first work order is waiting at the arrivals terminal.</p><p>A sealed filing. A trip to the Exchange.<br>One small step toward settling up.</p><a class="text-link light-link" href="#trailer">Take a look around <span aria-hidden="true">↗</span></a></div>
+        <article class="work-order" aria-label="Example of your first in-game work order">
+          <div class="filing-holes" aria-hidden="true"><i></i><i></i></div>
+          <div class="work-order-top"><span>The Exchange · Landfall</span><span class="form-number">PAD–001</span></div>
+          <p class="work-order-category">Sponsored day labour / Unlisted arrivals</p>
+          <h3>First filing</h3>
+          <div class="double-rule"></div>
+          <dl class="order-fields"><div><dt>Issued by</dt><dd>Ada Vellér</dd></div><div><dt>Collect at</dt><dd>Arrivals terminal, the Pads</dd></div><div><dt>Deliver to</dt><dd>Registrar counter, the Exchange</dd></div></dl>
+          <p class="order-objective">Hand over the sealed arrival filing.<br>No bond. No time limit.</p>
+          <div class="payment-row"><span>Passage debt credit</span><strong>150 <span>marks</span></strong></div>
+          <div class="order-total"><span>Debt after delivery</span><span>1,850 marks</span></div>
+          <div class="order-bottom"><span class="checked-box" aria-hidden="true">✓</span><span>Every journey begins with a first filing.</span></div>
+        </article>
+      </section>
+
+      <section class="trailer-section" id="trailer" aria-labelledby="trailer-title">
+        <div class="section-heading"><p class="eyebrow">03 <span class="muted">/</span> Dispatch from Landfall</p><span class="section-reference">Moving picture · 00:55</span></div>
+        <div class="trailer-heading"><h2 id="trailer-title">See you on the Red.</h2><p>Your passage is only the beginning.</p></div>
+        <div class="trailer-frame">
+          {{if .TrailerAvailable}}<video controls playsinline preload="none" poster="/assets/trailer-poster.jpg" aria-label="Earth Two, 55-second cinematic teaser"><source src="/trailer.mp4" type="video/mp4"><p>Your browser cannot play this video. <a href="/trailer.mp4">Open the trailer.</a></p></video>{{else}}<img src="/assets/trailer-poster.jpg" alt="The ship Patience and the Pads on the Red" width="1600" height="900"><p class="trailer-unavailable">The next dispatch is on its way. Explore the colony above.</p>{{end}}
+        </div>
+        <div class="trailer-caption"><span>Earth Two / Reveal teaser</span><span>Captured in-game · Development build</span></div>
+        <details class="transcript"><summary>Read the trailer story <span aria-hidden="true">+</span></summary><div><p>The company left. The colony stayed. Now you’re here. Two thousand marks in debt. On the Red, nothing comes free. Air. Water. A place to sleep. And every deal starts with a contract.</p><p>Take the work. Learn the roads. Beyond the dome, the frontier is wide open. One job. One journey. One step closer to freedom. They called this place Earth Two. What will you make of it?</p><p>Earth Two. Your passage is only the beginning.</p></div></details>
+      </section>
+    </main>
+
+    <footer class="site-footer"><div><a class="footer-wordmark" href="#top">Earth Two.</a><p>A free-roam role game on a world left behind.</p></div><div class="footer-filing"><span>Filed at Landfall · 88 AL</span><a href="/assets/CREDITS.txt">Asset credits ↗</a><a href="#top">Return to arrivals ↑</a></div></footer>
+  </div>
+</body>
+</html>
