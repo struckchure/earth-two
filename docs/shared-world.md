@@ -33,7 +33,10 @@ has to go somewhere when the world resets, and this is where it goes.
 
 ## Population
 
-- The world has a fixed total population with a set ratio of players to NPCs.
+- The world has a fixed total population cap of **4,200 residents**, counting
+  players and NPCs together. Offline players still occupy their slots.
+- The player-to-NPC ratio is still to be decided; it determines how many of
+  those 4,200 places are player slots.
 - Once it's full, no new players can join: the drifters stop selling passage.
 - After that, the only ways in are buying a player's slot or taking one a
   player has left for good.
@@ -62,6 +65,15 @@ debts, and picks a new name and look.
 
 ## Death
 
+Vehicle impacts affect both NPCs and players. At **10 km/h closing speed** a
+character becomes critical and cannot act; at **30 km/h** they die immediately.
+Both states leave a fallen body that a vehicle can run over. Injured NPCs do
+not become healthy again when the player leaves the area and returns.
+
+In the current prototype, an incapacitated player can press R for emergency
+recovery or respawn at the Pads. The points and debt flow below is still to
+be implemented.
+
 Players can hurt and kill each other. Fights can be lethal, and weapons are
 anything money can buy (see [Economy](economy.md)).
 
@@ -71,11 +83,26 @@ covered it: Ada, an NPC, a faction or another player. That creditor can sell
 the debt or file a collection on it, like any other debt. See
 [The Exchange](exchange.md).
 
+## Personal system work
+
+The world is shared, but a system-issued contract belongs to one player.
+Every licence tier has a pool of templates from which personal instances are
+issued. Two arrivals can receive the same kind of courier job with different
+filings, references and payments; neither can take or finish the other's job.
+One completion does not empty the other player's terminal.
+
+Shared cargo, fault tickets, claims and debt cases are allocated to specific
+assignments so the issuer never promises the same recoverable item or settled
+obligation twice. Routes, prices, danger and interference remain shared.
+See [the system contract rules](contracts/system-contracts.md).
+
 ## Players and each other
 
-- Other players can take any contract a player posts, so much of the contract
-  board is player-made.
-- A collection contract posted on a player who defaults can be taken by NPCs or
-  by other players.
+- Player-posted contracts can be offered to other players, so much of the
+  public contract board is player-made. Personal system offers stay with
+  their assigned player.
+- Collection work on a defaulted debt can be assigned to NPCs or to a player.
+  System-published cases are personal assignments with reserved debt claims,
+  rather than one system contract several users can take.
 - Players can buy and sell each other's debts.
 - The Late Arrivals could become a real, player-run faction.

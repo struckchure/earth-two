@@ -45,6 +45,7 @@ type resident struct {
 	feet   rl.Vector3
 	skin   int
 	outfit character.Outfit
+	health character.Health
 	// They mill about home: each while, they pick a spot near it (target)
 	// and walk there.
 	home, target rl.Vector3
@@ -113,7 +114,8 @@ func embodyResidents(
 	cmd *illusion.Commands,
 	res *illusion.Res[residents],
 	roster *illusion.Res[character.Roster],
-	characters *illusion.Query3[residentOf, transform.Transform, physics.CharacterController],
+	characters *illusion.Query3[residentOf, transform.Transform, character.Health],
+	controllers *illusion.Query1[physics.CharacterController],
 	players *illusion.Query1Where[transform.Transform, illusion.With[character.Player]],
 	mu *illusion.Res[menu],
 ) {
@@ -121,13 +123,18 @@ func embodyResidents(
 	// Who has a character, and where it's got to.
 	rs.bodies = slices.Grow(rs.bodies[:0], len(rs.list))[:len(rs.list)]
 	clear(rs.bodies)
-	characters.Each(func(e ecs.Entity, of *residentOf, tr *transform.Transform, cc *physics.CharacterController) {
+	characters.Each(func(e ecs.Entity, of *residentOf, tr *transform.Transform, health *character.Health) {
 		if of.generation != rs.generation || of.index >= len(rs.list) || !rs.bodies[of.index].IsZero() {
 			cmd.Despawn(e) // their resident's gone
 			return
 		}
 		rs.bodies[of.index] = e
-		rs.list[of.index].feet = rl.Vector3Subtract(tr.Translation, rl.Vector3{Y: cc.Height / 2})
+		height := float32(.3)
+		if cc, ok := controllers.Get(e); ok {
+			height = cc.Height / 2
+		}
+		rs.list[of.index].feet = rl.Vector3Subtract(tr.Translation, rl.Vector3{Y: height})
+		rs.list[of.index].health = *health
 	})
 	_, player, ok := players.Single()
 	r, ready := roster.TryGet()
@@ -166,7 +173,14 @@ func embodyResidents(
 			rs.bodies[o.index] = ecs.Entity{}
 		case want && made < embodyBatch:
 			who := &rs.list[o.index]
-			r.Spawn(cmd, who.skin, rl.Vector3Add(who.feet, rl.Vector3{Y: .05}), illusion.C(who.outfit), illusion.C(residentOf{o.index, rs.generation}))
+			actor := r.Spawn(cmd, who.skin, rl.Vector3Add(who.feet, rl.Vector3{Y: .05}), illusion.C(who.outfit), illusion.C(residentOf{o.index, rs.generation}))
+			if who.health.State != character.Healthy {
+				// A streamed corpse returns prone. Starting an upright pose at
+				// torso height would initialize its ragdoll legs below the floor.
+				at := transform.FromTranslation(rl.Vector3Add(who.feet, rl.Vector3{Y: .3})).
+					WithRotation(rl.QuaternionFromAxisAngle(rl.Vector3{X: 1}, -math.Pi/2))
+				character.KnockDown(actor, at, who.health, rl.Vector3{})
+			}
 			made++
 			rs.near++
 		}
@@ -187,6 +201,9 @@ func moveResidents(res *illusion.Res[residents], clock *illusion.Res[illusion.Ti
 			continue // their character's doing it
 		}
 		r := &rs.list[i]
+		if r.health.State != character.Healthy {
+			continue
+		}
 		r.think(i, dt, nil)
 		to := rl.Vector3Subtract(r.target, r.feet)
 		to.Y = 0
@@ -212,6 +229,9 @@ func steerResidents(
 			return
 		}
 		r := &rs.list[of.index]
+		if r.health.State != character.Healthy {
+			return
+		}
 		r.think(of.index, clock.Get().DeltaSecs(), func(at rl.Vector3) bool {
 			return !p.OverlapCapsuleExcluding(rl.Vector3Add(at, rl.Vector3{Y: .95}), .35, 1.8, e)
 		})
@@ -235,6 +255,6 @@ func (residentsPlugin) Build(app *illusion.App) {
 	app.InsertResource(illusion.R(&residents{}))
 	app.ConfigureSets(illusion.Update, residentsSet.Before(character.Input))
 	app.AddSystems(illusion.Update,
-		illusion.Chain(illusion.Fn6(embodyResidents), illusion.Fn3(moveResidents), illusion.Fn5(steerResidents)).InSet(residentsSet),
+		illusion.Chain(illusion.Fn7(embodyResidents), illusion.Fn3(moveResidents), illusion.Fn5(steerResidents)).InSet(residentsSet),
 	)
 }

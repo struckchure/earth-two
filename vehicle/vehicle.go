@@ -161,6 +161,9 @@ type Plugin struct{}
 
 func (Plugin) Build(app *illusion.App) {
 	app.InsertResource(illusion.R(&Prompt{}), illusion.R(&Driving{}), illusion.R(&LightCycle{}))
+	app.InsertResource(illusion.R(&pedestrianPhysics{every: map[ecs.Entity]int{}}))
+	app.InitResource(illusion.R(&ImpactRules{CriticalSpeed: 10 / 3.6, LethalSpeed: 30 / 3.6}))
+	app.InsertResource(illusion.R(&impactMemory{cars: map[ecs.Entity]impactCar{}, people: map[ecs.Entity]rl.Vector3{}, hits: map[ecs.Entity]vehicleImpact{}}))
 	app.AddSystems(illusion.Update, illusion.Chain(
 		illusion.Fn8(steer),
 		illusion.Fn8(offer),
@@ -168,6 +171,12 @@ func (Plugin) Build(app *illusion.App) {
 		illusion.Fn3(tyres),
 	).After(character.Input).Before(character.Act))
 	app.AddSystems(illusion.FixedUpdate, illusion.Fn4(settle))
+	app.AddSystems(illusion.FixedPostUpdate,
+		illusion.Fn8(runOver).Before(physics.Prepare),
+		illusion.Fn4(preparePedestrians).After(physics.Prepare).Before(physics.Step),
+		illusion.Fn2(restorePedestrianSteps).After(physics.Writeback),
+		illusion.Fn5(impactContacts).After(physics.Writeback),
+	)
 	app.AddSystems(illusion.PostUpdate, illusion.Fn7(updateHeadlamps).Before(transform.Propagate))
 	app.AddSystems(illusion.Render, illusion.Fn6(drawHeadlamps).InSet(render.Draw3D))
 }

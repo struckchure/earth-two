@@ -19,7 +19,9 @@ dust down it, wheeling round the pole as the Red turns, and a faint rusty
 glow low round the horizon from the dust in the air. Beside it the Red's neighbour planets show as discs along the sky,
 dark when they're between the Red and the sun, lit when they're beyond it. The light inside the domes is filtered and
 warm. Indoors in the Hull it's sodium-orange work lamps and cold blue status
-lights. Dust is the only weather. It's mostly clear; now and then a dusty spell
+lights. Fixed lamps, including those inside buildings, stay on regardless of
+the player's position or the time of day. Dust is the only weather. It's mostly
+clear; now and then a dusty spell
 thickens the air, and once in a while a dust storm turns the lighting brown
 and close.
 
@@ -68,7 +70,11 @@ from and drifting on the wind.
 
 Square corners on every panel, button and keycap, never rounded. Contract
 paperwork is the UI's motif: menus look like filed forms, stamps confirm
-actions, and Registrar seals mark licence tiers.
+actions, and Registrar seals mark licence tiers. A form is a punched sheet
+of aged paper with the Exchange's header and its number, its values typed
+(Courier Prime) and its choices boxes to tick, the chosen one ticked in blue
+ink and highlighted. Stamps are inked rubber, slightly askew and worn:
+ADMITTED, FILED, SETTLED. Seals are brass, the tier's numeral in the middle.
 
 The personal account book opened with J uses warm paper, dark ink, a book
 fold and ruled tables. Debt and receipt columns align their amounts to the
@@ -79,3 +85,8 @@ reviewing a work order, handing over a filing, sitting or traversal.
 Navigation bindings belong in the Controls screen. The map, account summary
 and ordinary menu screens carry their content and buttons without permanent
 shortcut labels. Testing bindings remain in the explicitly opened test panel.
+
+The money summary uses a small numeric badge for available contract offers.
+It opens the account book when clicked; the book carries compact terminal
+notifications separately from ongoing contracts and completed receipts.
+Full offer details and acceptance are presented at the terminals.

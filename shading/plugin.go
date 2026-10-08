@@ -47,6 +47,9 @@ type Plugin struct {
 	// Zones are places lit differently from the open air, at most
 	// maxZones of them; where they overlap, the later wins.
 	Zones []Zone
+	// Lamps are fixed world lights. Their illumination depends on the
+	// surface's position, never on which lights are nearest the camera.
+	Lamps []Lamp
 }
 
 // A Zone is a box of the world, Min to Max, lit its own way: inside it
@@ -134,7 +137,7 @@ func (pl Plugin) Build(app *illusion.App) {
 	}
 	uniforms["veil"] = []float32{0}
 	uniforms["spotCount"] = []float32{0}
-	toon := &render.Shader{Fragment: toonFragment, Uniforms: uniforms}
+	toon := &render.Shader{Fragment: lightingGLSL + lampGLSL(pl.Lamps) + toonSurface, Uniforms: uniforms}
 	app.InsertResource(illusion.R(toon))
 	app.InsertResource(illusion.R(&Haze{Color: pl.FogColor, Distance: pl.FogDistance, End: pl.FogEnd}))
 	app.AddSystems(illusion.PostUpdate, illusion.Fn3(gatherSpots).After(transform.Propagate))

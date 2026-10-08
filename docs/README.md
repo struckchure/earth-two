@@ -16,6 +16,7 @@ Each doc below covers one topic and can be read on its own.
 | [The settlement](settlement.md) | Landfall, the first city, and its districts |
 | [Economy](economy.md) | Currencies, goods, prices, and trading debts and slots |
 | [Contract types](contracts.md) | The catalogue of legal and off-book jobs |
+| [Contract review book](contracts/README.md) | Personal system-contract rules, tier 0–5 drafts and issuer voices |
 | [Story](story.md) | The three acts, the endings, and how endings work with many players |
 | [Look and feel](look-and-feel.md) | Light, materials, faction looks, sound, UI |
 | [Glossary](glossary.md) | Every in-world term in one place |

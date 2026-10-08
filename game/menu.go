@@ -298,6 +298,7 @@ type layout struct {
 	hint              rl.Rectangle
 	account           rl.Rectangle
 	debts             rl.Rectangle
+	available         rl.Rectangle
 }
 
 // down is l moved dy down the screen (a filed form taken away: paper.go).
@@ -313,7 +314,7 @@ func (l layout) down(dy float32) layout {
 	l.panel.Y += dy
 	l.heading.Y += dy
 	l.buttons, l.rows, l.left, l.right = move(l.buttons), move(l.rows), move(l.left), move(l.right)
-	for _, r := range []*rl.Rectangle{&l.hint, &l.account, &l.debts} {
+	for _, r := range []*rl.Rectangle{&l.hint, &l.account, &l.debts, &l.available} {
 		r.Y += dy
 	}
 	return l
@@ -388,7 +389,7 @@ func layoutFor(s screen, width, height, sc float32) layout {
 		l.heading = rl.Vector2{X: pt(x + pad), Y: pt(y + pad)}
 		buttons(x+pad, y+h-pad-stack(n), w-2*pad)
 	case contractJournal:
-		const w, h = 1040, 640
+		const w, h = 1040, 680
 		// The journal fits even when a window is smaller than the normal
 		// minimum UI scale. Drawing uses this same scale as the mouse hits.
 		sc = min(sc, width/(w+32), height/(h+32))
@@ -398,9 +399,10 @@ func layoutFor(s screen, width, height, sc float32) layout {
 		l.heading = rl.Vector2{X: pt(x + pad), Y: pt(y + pad)}
 		const pageW = w/2 - 2*pad
 		l.account = rl.Rectangle{X: pt(x + w/2 + pad), Y: pt(y + pad), Width: pt(pageW), Height: pt(108)}
-		l.debts = rl.Rectangle{X: pt(x + pad), Y: pt(y + 194), Width: pt(pageW), Height: pt(110)}
+		l.debts = rl.Rectangle{X: pt(x + pad), Y: pt(y + 174), Width: pt(pageW), Height: pt(110)}
+		l.available = rl.Rectangle{X: pt(x + pad), Y: pt(y + 358), Width: pt(pageW), Height: pt(80)}
 		l.rows = []rl.Rectangle{
-			{X: pt(x + pad), Y: pt(y + 410), Width: pt(pageW), Height: pt(114)},
+			{X: pt(x + pad), Y: pt(y + 514), Width: pt(pageW), Height: pt(96)},
 			{X: pt(x + w/2 + pad), Y: pt(y + 194), Width: pt(pageW), Height: pt(28 + ledgerHistoryRows*52 + 30)},
 		}
 		l.hint = rl.Rectangle{X: pt(x + pad), Y: pt(y + h - pad - buttonH), Width: pt(w - 2*pad - 200), Height: pt(buttonH)}
@@ -442,6 +444,13 @@ func menuInput(
 	}
 	mu, w, ww := m.Get(), wardrobe.Get(), win.Get()
 	quit := mu.navigate(readNav(keys.Get()), w, o)
+	if mu.screen() == playing && buttons.Get().JustPressed(rl.MouseButtonLeft) {
+		p := painter{s: uiScale(ww)}
+		card := accountSummaryRect(p, float32(ww.Width))
+		if contains(card, mouse.Get().Position) || contains(accountBadgeRect(p, card), mouse.Get().Position) {
+			mu.open(contractJournal)
+		}
+	}
 	if s := mu.screen(); s != playing && !quit {
 		ms := mouse.Get()
 		moved := ms.Delta.X != 0 || ms.Delta.Y != 0

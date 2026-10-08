@@ -181,14 +181,26 @@ func drawTestPanel(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts
 		rows = append(rows, row{keyName(t.Key), t.Name, setting})
 	}
 	if npcs := ecs.GetResource[testNPCs](world); npcs != nil {
-		setting := fmt.Sprintf("%d (%d live)", npcs.population, npcs.live)
+		setting := fmt.Sprintf("%d (%d placed)", npcs.population, npcs.live)
 		if rs := ecs.GetResource[residents](world); rs != nil && npcs.live > 0 {
-			setting = fmt.Sprintf("%d (%d live, %d near)", npcs.population, npcs.live, rs.near)
+			setting = fmt.Sprintf("%d (%d placed, %d near)", npcs.population, npcs.live, rs.near)
 		}
 		if npcs.editing {
 			setting = npcs.digits + "_"
 		}
 		rows = append(rows, row{"F9", "NPC count", setting})
+		if rs := ecs.GetResource[residents](world); rs != nil {
+			critical, dead := 0, 0
+			for _, person := range rs.list {
+				switch person.health.State {
+				case character.Critical:
+					critical++
+				case character.Dead:
+					dead++
+				}
+			}
+			rows = append(rows, row{"", "", fmt.Sprintf("Critical: %d · Dead: %d", critical, dead)})
+		}
 		hint := "Type 0–4199; Enter saves; Esc cancels"
 		if !npcs.editing {
 			hint = "F9 edits the count; NPCs spawn nearby"
