@@ -31,6 +31,35 @@ browser build to `build/web/` (static files you can host anywhere). The first
 web build compiles raylib and Jolt with emscripten, which takes a minute;
 later builds take seconds.
 
+`make package VERSION=0.1.0` creates a macOS `.dmg`, a Windows setup `.exe`
+and portable `.zip`, or a Linux `.deb` and `.tar.gz`, depending on the host.
+Installers and SHA-256 checksums go to `build/dist/`. CI builds them for
+Apple Silicon/Intel macOS, Windows x64, and Linux x64. See
+[desktop installers](tools/desktop/README.md) for packaging tools and signing.
+
+`.env` is build-only for the game clients. `make run`, `make build`, and
+`make web` compile only `SPACETIMEDB_SERVER` and `SPACETIMEDB_DATABASE` into
+their public connection defaults. Exported values take precedence. The file
+is never sourced, bundled, or needed by a shipped client; S3 keys and publisher
+tokens are never compiled into the game.
+
+CI uses [SpicyPizza/create-envfile](https://github.com/SpicyPizza/create-envfile)
+to create `.env` from the Actions repository secrets `SPACETIMEDB_SERVER` and
+`SPACETIMEDB_DATABASE` for push/manual builds. Set these under repository
+Settings → Secrets and variables → Actions. Both settings are required for
+those builds. CI deletes `.env` after the build, before packaging/uploading
+artifacts. Pull requests use the checked-in local defaults.
+
+OTA publishing runs after the desktop/web builds and release-tool tests pass,
+on pushes to `main` or manual CI runs on `main`. Set the repository Actions
+variable `OTA_PUBLISH_ENABLED=true` to enable it. The `ota-release` environment
+can add release approval rules. `OTA_RELEASE_CHANNEL` defaults to `beta`;
+`OTA_GAME_VERSION` defaults to the source commit. CI uploads immutable files
+to S3, verifies their download URLs, then registers the release and promotes
+the channel in SpacetimeDB. See [publisher setup](tools/ota/README.md) for the
+credentials and database authorization required. Client download/install
+handling remains separate from this publisher pipeline.
+
 ### Player identity and the server
 
 **Identity** is in the title and pause menus on desktop and web. Create a key
@@ -60,8 +89,9 @@ sampled every three seconds with a read-only probe.
 Menus use a folded parchment cursor with an ink edge and a small shadow on both
 clients. Desktop gameplay keeps its existing hidden/captured camera pointer.
 
-Set `SPACETIMEDB_SERVER` and `SPACETIMEDB_DATABASE` for desktop; defaults are
-`http://localhost:3000` and `earth-two`. Browser builds accept `?server=<URL>&database=<name>`.
+Desktop environment variables `SPACETIMEDB_SERVER` and `SPACETIMEDB_DATABASE`
+can override the compiled defaults, initially `http://127.0.0.1:3001` and
+`earth-two`. Browser builds accept `?server=<URL>&database=<name>`.
 Account management works offline; **Connect account** and email changes require
 the module. The existing first contract and movement are still local until the
 world simulation and gameplay reducers are integrated.
@@ -71,12 +101,24 @@ Rust SpacetimeDB SDK 2.11.0. Install Rust's `wasm32-unknown-unknown` target and
 SpacetimeDB 2.11.0, then run:
 
 ```sh
-spacetime start                         # separate terminal
-make server-module
-spacetime publish earth-two --server http://localhost:3000 \
-  --bin-path build/server/target/wasm32-unknown-unknown/release/earth_two_server.wasm
-go run ./cmd/server                    # native companion; health on :8081
+make server                            # keep running in a separate terminal
+make run                               # launch the desktop client
 ```
+
+`make server` starts SpacetimeDB on port 3001, publishes the module if the
+`earth-two` database is missing, and starts the native companion (health on
+port 8081). It preserves existing databases. Local database data and its private
+publisher credential live under `$HOME/earth-two/server`; player keys stay in
+`$HOME/earth-two/{pk,pub}`. The development server launcher reads `.env`
+connection settings; the game reads its compiled defaults. The account CLI
+accepts connection flags and exported variables.
+
+`.env.example` uses the `AWS_S3_*` names in your S3 configuration, including the
+custom API endpoint and public download URL. `tools/ota/release.py` reads those
+names directly and maps credentials only into its AWS CLI subprocess. It
+includes dummy S3/OTA values. Replace the `CHANGE_ME` values
+in the ignored `.env` before publishing releases; client code reads only the
+public database host/name, never AWS credentials.
 
 `cmd/server` contains only configuration/startup; native lifecycle and logs are
 in `internals/server`. Account authorization and OTA reducers run inside the
@@ -92,12 +134,13 @@ pass a key or passphrase as a command-line argument. New files have mode 0600,
 and these commands refuse to overwrite existing backups.
 
 Go and TypeScript bindings are checked in. After changing/publishing the module,
-run `make server-bindings STDB_SERVER=http://localhost:3000 STDB_DATABASE=earth-two`.
+run `make server-bindings STDB_SERVER=http://127.0.0.1:3001 STDB_DATABASE=earth-two`.
 See [OTA integration](docs/server-ota-handoff.md) and
 [asset schema constraints](docs/server-asset-handoff.md) for coordination.
 
 Native Make targets prepare private dependency copies in `build/deps` using
-`tools/deps`. These fix stb_vorbis's offset check before pointer arithmetic
+`tools/deps`. These fix stb_vorbis's offset check before pointer arithmetic,
+initialize raylib's cursor position and query its current window hover state,
 and remove illusion's redundant macOS `libc++` link. Warnings remain enabled;
 the shared module cache is unchanged. The copies refresh when dependency
 sources change. To use them with a direct Go command, run `make deps` first,

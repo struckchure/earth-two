@@ -44,8 +44,9 @@ func run(args []string) error {
 	source := fs.String("in", "", "encrypted backup to import")
 	target := fs.String("out", "", "encrypted backup to export")
 	passwordFile := fs.String("passphrase-file", "", "read passphrase from a file instead of prompting")
-	host := fs.String("host", "http://localhost:3000", "SpacetimeDB host")
-	database := fs.String("database", "earth-two", "SpacetimeDB database name or identity")
+	defaultHost, defaultDatabase := account.NetworkDefaults()
+	host := fs.String("host", defaultHost, "SpacetimeDB host")
+	database := fs.String("database", defaultDatabase, "SpacetimeDB database name or identity")
 	email := fs.String("email", "", "optional contact address; empty removes it")
 	displayName := fs.String("name", "", "display name; names do not have to be unique")
 	if err := fs.Parse(args[1:]); err != nil {

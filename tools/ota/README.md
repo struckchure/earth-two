@@ -13,8 +13,12 @@ workflow never replaces the database module or clears its data.
 
 An ignored `.env` containing dummy values has been created for this checkout.
 Fill those values; `.env.example` is the tracked template for other checkouts.
-The tool reads assignments without executing shell code, and existing environment
-variables take precedence. Tokens belong only in publisher/server configuration.
+In CI, [SpicyPizza/create-envfile](https://github.com/SpicyPizza/create-envfile)
+creates `.env` from individual GitHub secrets with the names below; cleanup
+removes the file after publishing, including failures. Local runs can read
+`.env` too. Only publisher settings are loaded,
+without executing shell code, and exported values take precedence. Tokens belong
+only in publisher/server configuration.
 
 | Variable | Value |
 | --- | --- |
@@ -150,18 +154,23 @@ Publishing runs after all build/test jobs pass, only on `main`, and only with
 repository variable `OTA_PUBLISH_ENABLED=true`. Superseded `main` builds skip
 promotion. The default publishing channel is `beta`.
 
-Create an `ota-release` GitHub environment. Configure its secrets:
+Create an `ota-release` GitHub environment for release approval rules, if wanted.
+Add **repository** secrets using the names in the configuration table:
+`AWS_S3_ACCESS_KEY_ID`, `AWS_S3_SECRET_ACCESS_KEY`, `AWS_S3_ENDPOINT`,
+`AWS_S3_REGION`, `AWS_S3_BUCKET`, `AWS_S3_PUBLIC_URL`, `OTA_S3_PREFIX`,
+`SPACETIMEDB_SERVER`, `SPACETIMEDB_DATABASE`, and `SPACETIMEDB_PUBLISH_TOKEN`.
+Add `AWS_S3_SESSION_TOKEN` only for temporary AWS credentials. Repository scope
+lets desktop/web builds and publishing use the same public database settings.
+The env-file action creates the publisher's `.env` immediately before
+publishing and the workflow deletes it afterwards. Client build env files
+contain only the two public database settings. Private credentials are used
+only by the publishing job. No combined `BUILD_DOTENV` secret is required.
+The database URL must be reachable from GitHub's runners; the local development
+`127.0.0.1:3001` default cannot be used for CI publication. The token must belong
+to a publisher authorized by the deployed module.
 
-- `AWS_S3_ACCESS_KEY_ID`
-- `AWS_S3_SECRET_ACCESS_KEY`
-- `AWS_S3_SESSION_TOKEN`, if applicable
-- `SPACETIMEDB_PUBLISH_TOKEN`
+Configure these optional repository variables:
 
-Configure environment or repository variables:
-
-- `AWS_S3_ENDPOINT`, `AWS_S3_REGION`, `AWS_S3_BUCKET`, `AWS_S3_PUBLIC_URL`
-- `OTA_S3_PREFIX=earth-two`
-- `SPACETIMEDB_SERVER`, `SPACETIMEDB_DATABASE`
 - `OTA_RELEASE_CHANNEL=beta`; use `stable` for automatic stable rollout
 - `OTA_GAME_VERSION`, optional; defaults to the source commit
 

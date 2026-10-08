@@ -1,6 +1,5 @@
-// Command desktop runs Earth Two in a desktop window. Run it from the
-// repository root, since the game loads assets/ relative to the working
-// directory.
+// Command desktop runs Earth Two in a desktop window. Installed builds load
+// bundled assets; go run uses assets/ in the source checkout.
 package main
 
 import "github.com/struckchure/earth-two/game"

@@ -29,6 +29,39 @@ var patches = []patch{
 		fixed:  "if (loc >= (unsigned int) (f->stream_end - f->stream_start)) {",
 	},
 	{
+		module: "github.com/gen2brain/raylib-go/raylib",
+		file:   "platforms/rcore_desktop_glfw.c",
+		old:    "    glfwSetCursorEnterCallback(platform.handle, CursorEnterCallback);\n",
+		fixed: `    glfwSetCursorEnterCallback(platform.handle, CursorEnterCallback);
+
+    // The window may open under a stationary pointer before callbacks are installed.
+    CORE.Input.Mouse.cursorOnScreen = glfwGetWindowAttrib(platform.handle, GLFW_HOVERED);
+    double cursorX = 0.0, cursorY = 0.0;
+    glfwGetCursorPos(platform.handle, &cursorX, &cursorY);
+    CORE.Input.Mouse.currentPosition = (Vector2){ (float)cursorX, (float)cursorY };
+    CORE.Input.Mouse.previousPosition = CORE.Input.Mouse.currentPosition;
+    CORE.Input.Touch.position[0] = CORE.Input.Mouse.currentPosition;
+`,
+	},
+	{
+		module: "github.com/gen2brain/raylib-go/raylib",
+		file:   "rcore.c",
+		old: `bool IsCursorOnScreen(void)
+{
+    return CORE.Input.Mouse.cursorOnScreen;
+}`,
+		fixed: `bool IsCursorOnScreen(void)
+{
+#if defined(PLATFORM_DESKTOP_GLFW)
+    // Query current hover state: showing/focusing a window under the pointer
+    // does not always produce a cursor-enter event (notably on macOS).
+    return glfwGetWindowAttrib(platform.handle, GLFW_HOVERED);
+#else
+    return CORE.Input.Mouse.cursorOnScreen;
+#endif
+}`,
+	},
+	{
 		module: "github.com/struckchure/illusion",
 		file:   "internal/jolt/jolt.go",
 		old:    "#cgo darwin LDFLAGS: -lc++\n",
@@ -53,16 +86,24 @@ func prepare() error {
 		return err
 	}
 	work := "go " + strings.TrimPrefix(runtime.Version(), "go") + "\n\nuse " + strconv.Quote(root) + "\n\n"
+	var modules []string
+	byModule := make(map[string][]patch)
 	for _, p := range patches {
-		src, err := moduleDir(p.module)
+		if _, exists := byModule[p.module]; !exists {
+			modules = append(modules, p.module)
+		}
+		byModule[p.module] = append(byModule[p.module], p)
+	}
+	for _, module := range modules {
+		src, err := moduleDir(module)
 		if err != nil {
 			return err
 		}
-		dst, err := patchedCopy(dir, src, p)
+		dst, err := patchedCopy(dir, src, byModule[module]...)
 		if err != nil {
 			return err
 		}
-		work += "replace " + p.module + " => " + strconv.Quote(dst) + "\n"
+		work += "replace " + module + " => " + strconv.Quote(dst) + "\n"
 	}
 	path := filepath.Join(dir, "native.work")
 	if old, err := os.ReadFile(path); err == nil && string(old) == work {
@@ -94,34 +135,44 @@ func moduleDir(module string) (string, error) {
 }
 
 func apply(data []byte, p patch) ([]byte, error) {
+	if bytes.Count(data, []byte(p.fixed)) == 1 && !bytes.Contains(bytes.Replace(data, []byte(p.fixed), nil, 1), []byte(p.old)) {
+		return data, nil // The local checkout already contains this fix.
+	}
 	if bytes.Count(data, []byte(p.old)) == 1 {
 		return bytes.Replace(data, []byte(p.old), []byte(p.fixed), 1), nil
-	}
-	if bytes.Count(data, []byte(p.fixed)) == 1 && !bytes.Contains(data, []byte(p.old)) {
-		return data, nil // The local checkout already contains this fix.
 	}
 	return nil, fmt.Errorf("%s: %s changed upstream; review the source patch", p.module, p.file)
 }
 
-func patchedCopy(dir, src string, p patch) (string, error) {
-	data, err := os.ReadFile(filepath.Join(src, p.file))
-	if err != nil {
-		return "", err
-	}
-	fixed, err := apply(data, p)
-	if err != nil {
-		return "", err
+func patchedCopy(dir, src string, patches ...patch) (string, error) {
+	fixed := make(map[string][]byte)
+	for _, p := range patches {
+		data, exists := fixed[p.file]
+		if !exists {
+			var err error
+			data, err = os.ReadFile(filepath.Join(src, p.file))
+			if err != nil {
+				return "", err
+			}
+		}
+		data, err := apply(data, p)
+		if err != nil {
+			return "", err
+		}
+		fixed[p.file] = data
 	}
 	// Hash all source files so a changed local checkout also refreshes the copy.
 	hash := sha256.New()
-	hash.Write(fixed)
-	err = walkSource(src, func(path, rel string, entry fs.DirEntry) error {
+	err := walkSource(src, func(path, rel string, entry fs.DirEntry) error {
 		fmt.Fprintln(hash, rel)
 		if entry.IsDir() {
 			return nil
 		}
 		data, err := os.ReadFile(path)
 		if err == nil {
+			if patched, exists := fixed[rel]; exists {
+				data = patched
+			}
 			hash.Write(data)
 		}
 		return err
@@ -129,7 +180,7 @@ func patchedCopy(dir, src string, p patch) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dst := filepath.Join(dir, fmt.Sprintf("%s-%x", filepath.Base(p.module), hash.Sum(nil)[:12]))
+	dst := filepath.Join(dir, fmt.Sprintf("%s-%x", filepath.Base(patches[0].module), hash.Sum(nil)[:12]))
 	if _, err := os.Stat(dst); err == nil {
 		return dst, nil
 	}
@@ -166,8 +217,10 @@ func patchedCopy(dir, src string, p patch) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := os.WriteFile(filepath.Join(stage, p.file), fixed, 0644); err != nil {
-		return "", err
+	for file, data := range fixed {
+		if err := os.WriteFile(filepath.Join(stage, file), data, 0644); err != nil {
+			return "", err
+		}
 	}
 	if err := os.Rename(stage, dst); err != nil {
 		return "", err

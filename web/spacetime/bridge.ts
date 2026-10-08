@@ -14,7 +14,8 @@ const api = {
     if (!/^e2_[0-9a-f]{64}$/.test(accountID)) throw new Error('Invalid account ID');
     const http = host.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:').replace(/\/$/, '');
     const response = await fetch(`${http}/v1/database/${encodeURIComponent(database)}/identity`, { signal: AbortSignal.timeout(10_000) });
-    if (!response.ok) throw new Error('Database is unavailable');
+    if (response.status === 404) throw new Error(`Game database ${database} is unavailable at ${http}. Start the game server or check its address.`);
+    if (!response.ok) throw new Error('Game database is unavailable');
     const scope = (await response.text()).replaceAll('"', '').trim();
     const tokenKey = `earth-two/transport/${scope}/${accountID}`;
     const conn = await new Promise<DbConnection>((resolve, reject) => {

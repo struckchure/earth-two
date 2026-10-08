@@ -15,7 +15,7 @@ import uuid
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="http://127.0.0.1:3000")
+    parser.add_argument("--host", default="http://127.0.0.1:3001")
     parser.add_argument("--wasm", required=True)
     args = parser.parse_args()
     origin = urllib.parse.urlsplit(args.host)

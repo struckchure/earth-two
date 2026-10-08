@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/struckchure/earth-two/internals/account"
 	"syscall/js"
 )
 
@@ -142,7 +143,7 @@ func identityClipboardFocus(active bool) {
 }
 func identityNetworkDefaults() (string, string) {
 	params := js.Global().Get("URLSearchParams").New(js.Global().Get("location").Get("search"))
-	host, db := "http://localhost:3000", "earth-two"
+	host, db := account.DefaultHost, account.DefaultDatabase
 	if v := params.Call("get", "server"); !v.IsNull() {
 		host = v.String()
 	}

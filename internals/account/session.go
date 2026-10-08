@@ -226,8 +226,22 @@ func DatabaseIdentity(ctx context.Context, host, database string) ([32]byte, err
 		return [32]byte{}, err
 	}
 	defer r.Body.Close()
+	if r.StatusCode == http.StatusNotFound {
+		pingURL := *u
+		pingURL.Path = "/v1/ping"
+		ping, err := http.NewRequestWithContext(ctx, "GET", pingURL.String(), nil)
+		if err == nil {
+			if response, err := http.DefaultClient.Do(ping); err == nil {
+				response.Body.Close()
+				if response.StatusCode != http.StatusOK {
+					return [32]byte{}, fmt.Errorf("%s is not the game database server", host)
+				}
+			}
+		}
+		return [32]byte{}, fmt.Errorf("game database %q is not published; start it with make server", database)
+	}
 	if r.StatusCode != http.StatusOK {
-		return [32]byte{}, fmt.Errorf("account: database identity request returned %d", r.StatusCode)
+		return [32]byte{}, fmt.Errorf("game database %q at %s returned %d", database, host, r.StatusCode)
 	}
 	b, err := io.ReadAll(io.LimitReader(r.Body, 257))
 	if err != nil {

@@ -7,18 +7,30 @@ import (
 	"path/filepath"
 )
 
-// assetRoot is where the game's files are: assets in the working directory,
-// as when it's run from the repository, or else next to the program, as in
-// a download.
+// Installed assets take precedence over the working directory. Finder and
+// desktop launchers need not start the game in its installation directory.
 func assetRoot() string {
-	if _, err := os.Stat("assets"); err == nil {
-		return "assets"
+	exe, _ := os.Executable()
+	// Linux's /usr/bin launcher is a symlink into /opt/earth-two.
+	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
+		exe = resolved
 	}
-	if exe, err := os.Executable(); err == nil {
-		if beside := filepath.Join(filepath.Dir(exe), "assets"); isDir(beside) {
+	return assetsForExecutable(exe)
+}
+
+func assetsForExecutable(exe string) string {
+	if exe != "" {
+		dir := filepath.Dir(exe)
+		if beside := filepath.Join(dir, "assets"); isDir(beside) {
 			return beside
 		}
+		if filepath.Base(dir) == "MacOS" && filepath.Base(filepath.Dir(dir)) == "Contents" {
+			if resources := filepath.Join(dir, "..", "Resources", "assets"); isDir(resources) {
+				return filepath.Clean(resources)
+			}
+		}
 	}
+	// go run's temporary executable has no assets; use the source checkout.
 	return "assets"
 }
 

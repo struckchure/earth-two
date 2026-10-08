@@ -4,6 +4,12 @@
 GAME := earth-two
 TITLE := Earth Two
 PORT ?= 8080
+VERSION ?= 0.1.0
+PYTHON ?= python3
+DESKTOP_GOFLAGS = $(GOFLAGS)
+ifeq ($(shell go env GOOS),windows)
+DESKTOP_GOFLAGS += -ldflags=-H=windowsgui
+endif
 .DEFAULT_GOAL := run
 
 # Source fixes for native dependencies, prepared without changing the Go cache.
@@ -14,7 +20,7 @@ NATIVE_GO = env GOWORK="$(CURDIR)/build/deps/native.work" go
 # a module that isn't in the cache yet has no directory to list.
 ILLUSION = $(shell go mod download github.com/struckchure/illusion 2>/dev/null; go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
-.PHONY: assets deps run build web serve test server-module server-bindings account-bridge characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
+.PHONY: package assets deps run build web serve test server server-module server-bindings account-bridge characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
 
 deps:
 	go run ./tools/deps
@@ -22,10 +28,14 @@ deps:
 run build test serve people wardrobe paint bindpose: deps
 
 run:
-	$(NATIVE_GO) run ./cmd/desktop
+	go run ./tools/buildenv $(NATIVE_GO) run ./cmd/desktop
 
 build: assets
-	$(NATIVE_GO) build -o build/$(GAME)$(shell go env GOEXE) ./cmd/desktop
+	env GOFLAGS="$(DESKTOP_GOFLAGS)" go run ./tools/buildenv $(NATIVE_GO) build -o build/$(GAME)$(shell go env GOEXE) ./cmd/desktop
+
+# Native installers for the host OS, with packed assets and SHA-256 checksums.
+package: build
+	$(PYTHON) tools/desktop/package.py --version "$(VERSION)"
 
 # Stage the release asset graph; source assets stay available to make run.
 assets:
@@ -36,16 +46,19 @@ account-bridge:
 	sh tools/webaccount/build.sh
 
 web: assets account-bridge
-	sh "$(ILLUSION)/web/build.sh" -m . -o build/web -a build/assets -t "$(TITLE)" ./cmd/web
+	go run ./tools/buildenv sh "$(ILLUSION)/web/build.sh" -m . -o build/web -a build/assets -t "$(TITLE)" ./cmd/web
 	cp build/spacetime/account.js build/web/account.js
 	go run ./tools/webaccount build/web/index.html
 	go run ./tools/webcompress build/web
+
+server: server-module
+	python3 tools/server/dev.py --wasm build/server/target/wasm32-unknown-unknown/release/earth_two_server.wasm
 
 server-module:
 	CARGO_TARGET_DIR="$(CURDIR)/build/server/target" cargo build --manifest-path internals/server/module/Cargo.toml --target wasm32-unknown-unknown --release --locked
 
 # Publish the module to a local development database before generating Go bindings.
-STDB_SERVER ?= http://localhost:3000
+STDB_SERVER ?= http://127.0.0.1:3001
 STDB_DATABASE ?= earth-two
 server-bindings:
 	go run go.digitalxero.dev/stdb-go@v0.7.0 generate client --server "$(STDB_SERVER)" --database "$(STDB_DATABASE)" --out-dir internals/spacetime/bindings --package bindings

@@ -169,7 +169,8 @@ class ReleaseTests(unittest.TestCase):
 
         self_test = self
         args = argparse.Namespace(root=root, env_file=self.root / "absent", channel="beta", dry_run=False)
-        with patch.dict(os.environ, self.environment(), clear=True), patch.object(release, "Database", DB), \
+        secret = "\n".join(f"{key}={value}" for key, value in self.environment().items())
+        with patch.dict(os.environ, {"BUILD_DOTENV": secret}, clear=True), patch.object(release, "Database", DB), \
                 patch.object(release, "upload", side_effect=lambda *a: events.append("upload")), \
                 patch.object(release, "check_download", side_effect=lambda *a: events.append("verify")):
             release.publish(args)
@@ -244,7 +245,8 @@ class ReleaseTests(unittest.TestCase):
 
     def test_custom_s3_names_are_mapped_only_into_cli_environment(self):
         result = argparse.Namespace(returncode=0, stdout="{}", stderr="")
-        with patch.dict(os.environ, self.environment(), clear=True), patch.object(release.subprocess, "run", return_value=result) as run:
+        settings = {**self.environment(), "BUILD_DOTENV": "AWS_S3_SECRET_ACCESS_KEY=synthetic-secret-key"}
+        with patch.dict(os.environ, settings, clear=True), patch.object(release.subprocess, "run", return_value=result) as run:
             release.aws("head-bucket", "--bucket", "test-bucket")
             command = run.call_args.args[0]
             self.assertEqual(command[command.index("--endpoint-url")+1], "https://s3.test")
@@ -252,6 +254,7 @@ class ReleaseTests(unittest.TestCase):
             child = run.call_args.kwargs["env"]
             self.assertEqual(child["AWS_ACCESS_KEY_ID"], "synthetic-access-key")
             self.assertEqual(child["AWS_SECRET_ACCESS_KEY"], "synthetic-secret-key")
+            self.assertNotIn("BUILD_DOTENV", child)
             self.assertNotIn("synthetic-secret-key", command)
             self.assertNotIn("AWS_ACCESS_KEY_ID", os.environ)
 
@@ -276,6 +279,26 @@ class ReleaseTests(unittest.TestCase):
             release.load_env(env)
             self.assertEqual(os.environ["AWS_S3_REGION"], "ci")
             self.assertEqual(os.environ["AWS_S3_BUCKET"], "$(never-run-this)")
+
+    def test_dotenv_secret_needs_no_file_and_loads_only_publisher_settings(self):
+        contents = ('export AWS_S3_REGION=from-secret\nAWS_S3_BUCKET="release-bucket"\n'
+                    'AWS_S3_SECRET_ACCESS_KEY=synthetic-secret\nGOFLAGS=-X private\n'
+                    'PATH=/untrusted\nSKETCHFAB_API_KEY=unrelated-key\n')
+        with patch.dict(os.environ, {"BUILD_DOTENV": contents, "AWS_S3_REGION": "override"}, clear=True), \
+                patch.object(Path, "read_text", side_effect=AssertionError("read local .env")):
+            release.load_env(self.root / "absent")
+            self.assertEqual(os.environ["AWS_S3_REGION"], "override")
+            self.assertEqual(os.environ["AWS_S3_BUCKET"], "release-bucket")
+            self.assertEqual(os.environ["AWS_S3_SECRET_ACCESS_KEY"], "synthetic-secret")
+            for name in ("GOFLAGS", "PATH", "SKETCHFAB_API_KEY"):
+                self.assertNotIn(name, os.environ)
+
+    def test_empty_dotenv_secret_ignores_local_file(self):
+        env = self.root / ".env"
+        env.write_text("AWS_S3_SECRET_ACCESS_KEY=local-secret\n")
+        with patch.dict(os.environ, {"BUILD_DOTENV": ""}, clear=True):
+            release.load_env(env)
+            self.assertNotIn("AWS_S3_SECRET_ACCESS_KEY", os.environ)
 
     def test_dry_run_never_uses_network_and_placeholders_block_real_publish(self):
         root, _ = self.desktop()

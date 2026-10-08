@@ -9,3 +9,7 @@ type Details struct {
 	Email       string
 	DisplayName string
 }
+
+// Build-time public defaults, set by tools/buildenv through Go's linker.
+var DefaultHost = "http://127.0.0.1:3001"
+var DefaultDatabase = "earth-two"

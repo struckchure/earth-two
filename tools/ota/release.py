@@ -27,6 +27,11 @@ HEX = re.compile(r"[0-9a-f]{64}\Z")
 COMMIT = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
 MAX_MANIFEST = 1024 * 1024
 MAX_OBJECT = 5 * 1024**3  # Single PutObject; fail before uploading oversized releases.
+CONFIG_KEYS = {
+    "AWS_S3_ENDPOINT", "AWS_S3_REGION", "AWS_S3_ACCESS_KEY_ID", "AWS_S3_SECRET_ACCESS_KEY",
+    "AWS_S3_SESSION_TOKEN", "AWS_S3_BUCKET", "AWS_S3_PUBLIC_URL", "OTA_S3_PREFIX",
+    "SPACETIMEDB_SERVER", "SPACETIMEDB_DATABASE", "SPACETIMEDB_PUBLISH_TOKEN",
+}
 
 
 def canonical(value):
@@ -239,15 +244,23 @@ def merge(args):
 
 
 def load_env(path):
-    if not path.exists():
+    if "BUILD_DOTENV" in os.environ:
+        contents = os.environ["BUILD_DOTENV"]
+    elif path.exists():
+        contents = path.read_text()
+    else:
         return
-    for line in path.read_text().splitlines():
+    for line in contents.splitlines():
         line = line.strip()
         if not line or line.startswith("#"):
             continue
+        line = line.removeprefix("export ").strip()
         key, sep, value = line.partition("=")
+        key = key.strip()
         if not sep or not re.fullmatch(r"[A-Z][A-Z0-9_]*", key):
             raise ValueError("invalid .env assignment")
+        if key not in CONFIG_KEYS:
+            continue
         value = value.strip()
         if value[:1] in {"'", '"'}:
             if value[-1:] != value[0] or len(value) < 2:
@@ -325,6 +338,7 @@ def aws(*args):
     region = configured("AWS_S3_REGION")
     command = ["aws", "--no-cli-pager", "--output", "json", "--endpoint-url", endpoint, "--region", region, "s3api", *args]
     environment = os.environ.copy()
+    environment.pop("BUILD_DOTENV", None)
     environment["AWS_ACCESS_KEY_ID"] = configured("AWS_S3_ACCESS_KEY_ID")
     environment["AWS_SECRET_ACCESS_KEY"] = configured("AWS_S3_SECRET_ACCESS_KEY")
     environment["AWS_DEFAULT_REGION"] = region

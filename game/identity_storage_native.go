@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/struckchure/earth-two/identity"
+	"github.com/struckchure/earth-two/internals/account"
 )
 
 func identityProfilePath() (string, error) {
@@ -93,16 +94,7 @@ func readIdentityTransfer(_ context.Context, path string) ([]byte, error) {
 	return identity.ReadBackup(path)
 }
 func exportIdentityTransfer(data []byte, path string) error { return identity.WriteBackup(path, data) }
-func identityNetworkDefaults() (string, string) {
-	host, db := os.Getenv("SPACETIMEDB_SERVER"), os.Getenv("SPACETIMEDB_DATABASE")
-	if host == "" {
-		host = "http://localhost:3000"
-	}
-	if db == "" {
-		db = "earth-two"
-	}
-	return host, db
-}
+func identityNetworkDefaults() (string, string)             { return account.NetworkDefaults() }
 
 func identityPasteText(pressed bool) string {
 	if pressed {

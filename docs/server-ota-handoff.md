@@ -87,7 +87,7 @@ with the current generation and advances the counter.
 ```sh
 CARGO_TARGET_DIR="$PWD/build/server/target" cargo test \
   --manifest-path internals/server/module/Cargo.toml --lib --locked
-python3 tools/server/ota_integration.py --host http://127.0.0.1:3000 \
+python3 tools/server/ota_integration.py --host http://127.0.0.1:3001 \
   --wasm build/server/target/wasm32-unknown-unknown/release/earth_two_server.wasm
 ```
 
@@ -101,3 +101,12 @@ credential-bearing download URLs. It never prints tokens or writes to S3.
 
 Rust validation tests and this HTTP integration suite passed on 2026-10-08.
 The OTA branch can now test its existing publisher against the built module.
+
+## S3 configuration on main
+
+The uploader in `tools/ota` now reads `AWS_S3_ENDPOINT`, `AWS_S3_REGION`,
+`AWS_S3_ACCESS_KEY_ID`, `AWS_S3_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET`, and
+`AWS_S3_PUBLIC_URL`. `OTA_S3_PREFIX` remains the object prefix. Standard AWS
+credential names are set only for the CLI child process; real credentials
+remain in the ignored `.env`. The old `OTA_DOWNLOAD_BASE_URL` placeholder is
+not used: downloads use `AWS_S3_PUBLIC_URL`.
