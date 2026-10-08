@@ -46,7 +46,8 @@ account ID. Email cannot recover a lost key.
 Desktop stores its encrypted private key at `$HOME/earth-two/pk` and its public
 key as lowercase hex at `$HOME/earth-two/pub`; `EARTH_TWO_IDENTITY_PATH` overrides
 the private-key path and puts the public key beside it.
-The key-file field selects the import/export path. Web stores encrypted keys
+The key-file field defaults to `$HOME/earth-two/backup.earth-two-key.json` for
+import/export, beside `pk` and `pub`. Web stores encrypted keys
 in browser storage; Import opens a file chooser and Export downloads a backup.
 Importing another identity preserves the previous encrypted key locally.
 Tab/arrows select fields and actions, Enter activates, and Esc returns to the

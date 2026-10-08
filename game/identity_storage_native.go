@@ -83,11 +83,11 @@ func saveIdentityBackup(data []byte) error {
 	return identity.WritePublicKey(filepath.Join(dir, "pub"), metadata.PublicKey)
 }
 func defaultIdentityTransfer() string {
-	home, err := os.UserHomeDir()
+	path, err := identityProfilePath()
 	if err != nil {
-		return "earth-two.earth-two-key.json"
+		return "backup.earth-two-key.json"
 	}
-	return filepath.Join(home, "Downloads", "earth-two.earth-two-key.json")
+	return filepath.Join(filepath.Dir(path), "backup.earth-two-key.json")
 }
 func readIdentityTransfer(_ context.Context, path string) ([]byte, error) {
 	return identity.ReadBackup(path)
