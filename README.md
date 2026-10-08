@@ -31,6 +31,12 @@ browser build to `build/web/` (static files you can host anywhere). The first
 web build compiles raylib and Jolt with emscripten, which takes a minute;
 later builds take seconds.
 
+`make landing` serves the standalone game website on `http://localhost:8080`.
+It uses plain HTML/CSS, the game's fonts and Exchange paperwork theme, and a
+Go server with embedded assets. It needs no browser-game build or C toolchain.
+`go run ./cmd/landing -addr :8090 -trailer /path/to/trailer.mp4` selects another
+port and an optional trailer. See [landing page setup](web/landing/README.md).
+
 `make package VERSION=0.1.0` creates a macOS `.dmg`, a Windows setup `.exe`
 and portable `.zip`, or a Linux `.deb` and `.tar.gz`, depending on the host.
 Installers and SHA-256 checksums go to `build/dist/`. CI builds them for

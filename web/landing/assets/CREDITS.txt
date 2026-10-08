@@ -1,0 +1,176 @@
+EARTH TWO / LANDING PAGE ASSET CREDITS
+
+World images captured directly from the game.
+Fonts: Inter and Courier Prime. See the accompanying SIL Open Font Licenses.
+
+
+WORLD
+Vehicles and ships built on Sketchfab models (https://sketchfab.com),
+retrofitted for Earth Two: repainted, worn, parts added and taken off.
+
+  "Cyberpunk Bike Concept Design" by Berk Gedik (CC Attribution): https://sketchfab.com/3d-models/cyberpunk-bike-concept-design-99290272e69d4cd8a56af2d2e1274e0d
+  "H500 - Explorer Truck" by Render Blue (CC Attribution): https://sketchfab.com/3d-models/h500-explorer-truck-89ea8e69b87942a881f9b89fd04ec00f
+  "Martian Rover "THOTH"" by Maxim Senchenko (CC Attribution): https://sketchfab.com/3d-models/martian-rover-thoth-e76d2a9172b54a62b89c9f18710d9cbc
+  "Sci - Fi Buggy" by TiyaMakes (CC Attribution): https://sketchfab.com/3d-models/sci-fi-buggy-085bd97876a64eacbc041299ac945e9c
+  "Sci-fi shuttle" by Hrvoje Wächter (CC Attribution): https://sketchfab.com/3d-models/sci-fi-shuttle-d3e5d9303d1d4e8b8a8e30bf22f59a21
+  "Transporter Spaceship" by pirate8888 (CC Attribution): https://sketchfab.com/3d-models/transporter-spaceship-fe581b60c8ea4ea591a24a483f25ddad
+
+World pieces built on Poly Haven models (https://polyhaven.com),
+CC0 1.0: public domain, no credit needed, but here it is.
+
+  Adjustable Wrench by Mateusz Sadek: https://polyhaven.com/a/adjustable_wrench
+  Ammo Box by DanKit: https://polyhaven.com/a/ammo_box
+  Antique Katana 01 by Tal Swicegood: https://polyhaven.com/a/antique_katana_01
+  Bananas by Alexander Shulha: https://polyhaven.com/a/bananas
+  Barrel 03 by Serhii Khromov: https://polyhaven.com/a/barrel_03
+  Bolt Action Rifle 7.62 by Mateusz Sadek: https://polyhaven.com/a/bolt_action_rifle_7_62
+  Brass Pot 01 by Rico Cilliers: https://polyhaven.com/a/brass_pot_01
+  Can Rusted by Rahul Chaudhary: https://polyhaven.com/a/can_rusted
+  Cardboard Box 01 by Rahul Chaudhary: https://polyhaven.com/a/cardboard_box_01
+  Circuit Board by Benny Weimer: https://polyhaven.com/a/circuit_board
+  Combination Wrench by BKS: https://polyhaven.com/a/combination_wrench
+  Concrete Road Barrier by Amal Kumar: https://polyhaven.com/a/concrete_road_barrier
+  Covered Car by MP: https://polyhaven.com/a/covered_car
+  Crowbar 01 by Alexander Otterbeck: https://polyhaven.com/a/crowbar_01
+  Dead Tree Trunk 02 by Jenelle van Heerden, Rico Cilliers: https://polyhaven.com/a/dead_tree_trunk_02
+  Dining Chair 02 by James Ray Cock: https://polyhaven.com/a/dining_chair_02
+  Dining Table by Aron Łyczek: https://polyhaven.com/a/dining_table
+  Food Apple 01 by Oliver Harries: https://polyhaven.com/a/food_apple_01
+  Hanging Industrial Lamp by Kuutti Siitonen: https://polyhaven.com/a/hanging_industrial_lamp
+  Large Iron Gate by Josh Dean: https://polyhaven.com/a/large_iron_gate
+  Lemon by Kuutti Siitonen: https://polyhaven.com/a/lemon
+  Machete by Ulan Cabanilla: https://polyhaven.com/a/machete
+  Medical Box by Ulan Cabanilla: https://polyhaven.com/a/medical_box
+  Metal Jerrycan by Sean Buckley: https://polyhaven.com/a/metal_jerrycan
+  Metal Jerrycan Green by Ulan Cabanilla: https://polyhaven.com/a/metal_jerrycan_green
+  Metal Office Desk by Ulan Cabanilla: https://polyhaven.com/a/metal_office_desk
+  Metal Stool 02 by Ulan Cabanilla: https://polyhaven.com/a/metal_stool_02
+  Metal Toolbox by Mateusz Sadek: https://polyhaven.com/a/metal_toolbox
+  Namaqualand Boulder 03 by Jenelle van Heerden, Dario Barresi: https://polyhaven.com/a/namaqualand_boulder_03
+  Namaqualand Boulder 04 by Jenelle van Heerden: https://polyhaven.com/a/namaqualand_boulder_04
+  Namaqualand Boulder 05 by Jenelle van Heerden, Dario Barresi: https://polyhaven.com/a/namaqualand_boulder_05
+  Namaqualand Boulder 06 by Greg Zaal, Jenelle van Heerden: https://polyhaven.com/a/namaqualand_boulder_06
+  Namaqualand Boulders 01 by Greg Zaal, Jenelle van Heerden: https://polyhaven.com/a/namaqualand_boulders_01
+  Old Military Compressor by Brian Speight: https://polyhaven.com/a/old_military_compressor
+  Old Tyre by MP: https://polyhaven.com/a/old_tyre
+  Overhead Crane by Timothy3D: https://polyhaven.com/a/overhead_crane
+  Painted Wooden Bench by Kirill Sannikov: https://polyhaven.com/a/painted_wooden_bench
+  Painted Wooden Table by Kirill Sannikov: https://polyhaven.com/a/painted_wooden_table
+  Planter Box 02 by James Ray Cock: https://polyhaven.com/a/planter_box_02
+  Plastic Container by PierreB3D: https://polyhaven.com/a/plastic_container
+  Plastic Crate 02 by Fabi_G: https://polyhaven.com/a/plastic_crate_02
+  Pliers by PierreB3D: https://polyhaven.com/a/pliers
+  Portable Generator by James Ray Cock: https://polyhaven.com/a/portable_generator
+  Pot Enamel 01 by Kuutti Siitonen: https://polyhaven.com/a/pot_enamel_01
+  Potted Plant 01 by Rico Cilliers: https://polyhaven.com/a/potted_plant_01
+  Quiver Tree 01 by James Ray Cock, Dario Barresi, Rico Cilliers: https://polyhaven.com/a/quiver_tree_01
+  Retro Multimeter by elli moeller: https://polyhaven.com/a/retro_multimeter
+  Russian Food Cans 01 by Kosan Aziz: https://polyhaven.com/a/russian_food_cans_01
+  Rusted Spade 01 by Blemonade: https://polyhaven.com/a/rusted_spade_01
+  Rusted Wheel Rim 01 by John Hutcheson: https://polyhaven.com/a/rusted_wheel_rim_01
+  Rusted Wheel Rim 02 by John Hutcheson: https://polyhaven.com/a/rusted_wheel_rim_02
+  Screwdrivers 02 by BKS: https://polyhaven.com/a/screwdrivers_02
+  Security Light by Maximilian Schuster: https://polyhaven.com/a/security_light
+  Seedling Tray 01 by Satyaki Mandal: https://polyhaven.com/a/seeding_tray_01
+  Service Pistol by Mateusz Sadek: https://polyhaven.com/a/service_pistol
+  Small Lpg Tank by Ulan Cabanilla: https://polyhaven.com/a/small_lpg_tank
+  Small Plastic Torch by Abiyyu Panggalih (Abiyyu_xyz): https://polyhaven.com/a/small_plastic_torch
+  Stationery Supplies by Mateusz Sadek: https://polyhaven.com/a/stationery_supplies
+  Stone Fire Pit by Sebastian Platen: https://polyhaven.com/a/stone_fire_pit
+  Street Lamp 01 by Josh Dean: https://polyhaven.com/a/street_lamp_01
+  Sweet Potato by Jan Martens: https://polyhaven.com/a/sweet_potato
+  Vintage Electric Kettle by SV Garip: https://polyhaven.com/a/vintage_electric_kettle
+  Vintage Radio Transceiver by Mateusz Sadek: https://polyhaven.com/a/vintage_radio_transceiver
+  Wine Bottles 01 by Rico Cilliers, Jurita Burger: https://polyhaven.com/a/wine_bottles_01
+  Wooden Bookshelf Worn by Ulan Cabanilla: https://polyhaven.com/a/wooden_bookshelf_worn
+  Wooden Lantern 01 by James Ray Cock: https://polyhaven.com/a/wooden_lantern_01
+  Wooden Military Crate by Prabhjinder Singh: https://polyhaven.com/a/wooden_military_crate
+  Yellow Onion by Kuutti Siitonen: https://polyhaven.com/a/yellow_onion
+
+Everything else in assets/world is made by tools/world.
+
+
+CHARACTERS
+man.glb, woman.glb
+
+Bodies, skins, eyes and eyebrows: MakeHuman (https://static.makehumancommunity.org),
+the makehuman_system_assets pack, built with MPFB for Blender. Both are
+public domain (CC0 1.0).
+
+Underwear, MakeHuman community assets:
+  man: "Boxer Shorts" by WojackOWL, CC-BY 4.0,
+       http://www.makehumancommunity.org/clothes/boxer_shorts.html
+       (its material trimmed to the base colour texture)
+  woman: panties and top by wolgade (underwear01 pack), public domain (CC0 1.0)
+
+Animations: Universal Animation Library (Standard) by Quaternius,
+https://quaternius.itch.io/universal-animation-library, public domain (CC0 1.0).
+
+Idle, walk, run, jumps, punch and pick up: Mixamo animations
+(https://www.mixamo.com), retargeted onto the bodies. Free to use in games
+under Adobe's terms, but not to redistribute as standalone files; the raw
+downloads stay out of the repo (build/mixamo is ignored).
+
+Wardrobe (man/, woman/, skins/, wardrobe.json): MakeHuman assets, all public
+domain (CC0 1.0): the system assets' hair, shoes, suits and skins, and the
+shirts01, pants01 and glasses01 packs
+(https://static.makehumancommunity.org/assets/assetpacks.html), fitted to
+the bodies with MPFB.
+
+Faction clothes and masks, MakeHuman community assets (CC-BY 4.0), fitted
+to the bodies with MPFB and some repainted in the factions' colours:
+  "Elvs Male Coveralls 1" by Elvaerwyn (Crew coveralls),
+       http://www.makehumancommunity.org/clothes/elvs_male_coveralls_1.html
+  "Elvs Male Trench Coat1" by Elvaerwyn (Registrar coat),
+       http://www.makehumancommunity.org/clothes/elvs_male_trench_coat1.html
+  "Big Desert Poncho" by brkurt (Desert poncho),
+       http://www.makehumancommunity.org/clothes/big_desert_poncho.html
+  "uniform jacket (train driver)" and "uniform pants (train driver)" by
+       punkduck (Charter jacket and trousers),
+       http://www.makehumancommunity.org/clothes/uniform_jacket_train_driver.html
+       http://www.makehumancommunity.org/clothes/uniform_pants_train_driver.html
+  "Goggles" by punkduck, http://www.makehumancommunity.org/clothes/goggles.html
+  "Gas Mask" by Mathias_Gredal (Rebreather),
+       http://www.makehumancommunity.org/clothes/gas_mask.html
+  "Surgical Mask" by WojackOWL (Dust mask),
+       http://www.makehumancommunity.org/clothes/surgical_mask.html
+  Each is listed by number in tools/makehuman/cast.py's COMMUNITY; their
+  materials are trimmed to the base colour texture.
+
+Built by tools/makehuman/people.py (make people) and
+tools/makehuman/wardrobe.py (make wardrobe); see the README.
+https://creativecommons.org/publicdomain/zero/1.0/
+https://creativecommons.org/licenses/by/4.0/
+
+
+SOUNDS
+Sounds from Kenney (https://kenney.nl), CC0 1.0: public domain, no
+credit needed, but here it is.
+
+  Impact Sounds: https://kenney.nl/assets/impact-sounds
+  Interface Sounds: https://kenney.nl/assets/interface-sounds
+  RPG Audio: https://kenney.nl/assets/rpg-audio
+
+Sounds from Freesound (https://freesound.org), all CC0 1.0: public
+domain, no credit needed, but here it is. Cut, levelled and looped for
+Earth Two by tools/sounds/fetch.py.
+
+  wind: "Looping Gentle Wind Ambience on an Open Desert Plain" by dhallcomposer: https://freesound.org/s/697217/
+  storm: "Sandstorm Looping" by gbayles: https://freesound.org/s/632771/
+  hull_hum: "control_room.wav" by Diboz: https://freesound.org/s/211683/
+  dome_air: "AC Unit, Interior Exhaust Close Perspective 02" by HECKFRICKER: https://freesound.org/s/753275/
+  market: "Farmer's Market Chatter RX" by greysound: https://freesound.org/s/769034/
+  fountain: "Ambiance_Fountain_Small_Loop_Stereo.wav" by Nox_Sound: https://freesound.org/s/676173/
+  generator: "Scifi_Generator_Lp" by Euphrosyyn: https://freesound.org/s/452768/
+  fans: "Industrial Factory/Fans Loop" by IanStarGem: https://freesound.org/s/271096/
+  tyres: "tire_rolling_1.wav" by mhad: https://freesound.org/s/390798/
+  engine_bike: "Motorbike Idling.wav" by lmbubec: https://freesound.org/s/119455/
+  engine_trike: "Quad Bike_ATV Engine.wav" by Alex_hears_things: https://freesound.org/s/379915/
+  engine_buggy: "Synth Car Engine Loop 1_1" by Joao_Janz: https://freesound.org/s/482664/
+  engine_rover: "Electric Scooter Loop.WAV" by pkri: https://freesound.org/s/587511/
+  engine_truck: "Diesel Truck Idling Front.wav" by ibirdfilm: https://freesound.org/s/128160/
+  step_grating: "Footsteps On Metal" by IENBA: https://freesound.org/s/834029/
+  land_loose: "Human jumping down to gravel w/ impact" by DeqstersLab: https://freesound.org/s/819656/
+  slide: "Boots Gravel Feet Slide 1_5" by Joao_Janz: https://freesound.org/s/504383/
+  whoosh: "Short Whoosh, 13x" by Kinoton: https://freesound.org/s/427979/
+  skid: "auto car or van stop brake skid gravel short" by kyles: https://freesound.org/s/637161/

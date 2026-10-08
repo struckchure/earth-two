@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "golang",
+  "steps": {
+    "build": {
+      "commands": [
+        "CGO_ENABLED=0 go build -trimpath -ldflags=-s -o landing-page ./cmd/landing"
+      ]
+    }
+  },
+  "deploy": {
+    "startCommand": "./landing-page"
+  }
+}
