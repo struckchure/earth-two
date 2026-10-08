@@ -1,0 +1,23 @@
+[package]
+name = "earth-two-server"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+spacetimedb = "=2.11.0"
+ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["alloc"] }
+sha2 = "=0.10.9"
+hex = "=0.4.3"
+log = "=0.4.28"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+url = "2.5"
+
+[profile.release]
+lto = true
+opt-level = "s"
+codegen-units = 1

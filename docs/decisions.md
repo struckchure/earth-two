@@ -19,6 +19,7 @@ links to the doc that covers it in full.
 | Combat | Can be lethal, collection work included | [Shared world](shared-world.md) |
 | Weapons | The usual sci-fi range and anything money can buy: Earth guns, lasers, katanas, more | [Economy](economy.md) |
 | Multiplayer | One shared, persistent world for all players; it runs while they're offline | [Shared world](shared-world.md) |
+| Player identity | Player-owned signing keys; optional email; portable encrypted key import/export inside the game | [Shared world](shared-world.md) |
 | Starting debt | Every player owes their passage to Ada Vellér | [Factions](factions.md) |
 | Population | Fixed total with a set player-to-NPC ratio; full means no new joins | [Shared world](shared-world.md) |
 | Clock | Real time: one in-game day is one real day | [Shared world](shared-world.md) |

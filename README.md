@@ -31,6 +31,70 @@ browser build to `build/web/` (static files you can host anywhere). The first
 web build compiles raylib and Jolt with emscripten, which takes a minute;
 later builds take seconds.
 
+### Player identity and the server
+
+**Identity** is in the title and pause menus on desktop and web. Create a key
+with a passphrase, unlock it, and use **Connect account** to register or reconnect.
+Email is optional. Display names are editable, allow Unicode/spaces/punctuation,
+and do not have to be unique; names never replace the account ID. Every account
+change is signed by the player's Ed25519 key;
+connection tokens alone cannot change the account. Private keys never go to the
+server. Encrypted key backups use PBKDF2-SHA256 and AES-256-GCM and can be exported
+even while locked, then imported into the other client without changing the
+account ID. Email cannot recover a lost key.
+
+Desktop stores its encrypted private key at `$HOME/earth-two/pk` and its public
+key as lowercase hex at `$HOME/earth-two/pub`; `EARTH_TWO_IDENTITY_PATH` overrides
+the private-key path and puts the public key beside it.
+The key-file field selects the import/export path. Web stores encrypted keys
+in browser storage; Import opens a file chooser and Export downloads a backup.
+Importing another identity preserves the previous encrypted key locally.
+Tab/arrows select fields and actions, Enter activates, and Esc returns to the
+previous menu. Passphrases are masked; Ctrl/Cmd+A clears a field and Ctrl/Cmd+V
+pastes. No separate account webpage is used.
+
+The bottom-left HUD shows **Connected** or **Disconnected** beside FPS. While
+connected, it also shows measured database round-trip latency in milliseconds,
+sampled every three seconds with a read-only probe.
+Menus use a folded parchment cursor with an ink edge and a small shadow on both
+clients. Desktop gameplay keeps its existing hidden/captured camera pointer.
+
+Set `SPACETIMEDB_SERVER` and `SPACETIMEDB_DATABASE` for desktop; defaults are
+`http://localhost:3000` and `earth-two`. Browser builds accept `?server=<URL>&database=<name>`.
+Account management works offline; **Connect account** and email changes require
+the module. The existing first contract and movement are still local until the
+world simulation and gameplay reducers are integrated.
+
+The database module is in `internals/server/module`, pinned to the official
+Rust SpacetimeDB SDK 2.11.0. Install Rust's `wasm32-unknown-unknown` target and
+SpacetimeDB 2.11.0, then run:
+
+```sh
+spacetime start                         # separate terminal
+make server-module
+spacetime publish earth-two --server http://localhost:3000 \
+  --bin-path build/server/target/wasm32-unknown-unknown/release/earth_two_server.wasm
+go run ./cmd/server                    # native companion; health on :8081
+```
+
+`cmd/server` contains only configuration/startup; native lifecycle and logs are
+in `internals/server`. Account authorization and OTA reducers run inside the
+database. Native clients use DigitalXero's Go SDK 0.6.2. Web uses the official
+TypeScript SDK behind a networking adapter; identity UI, cryptography and
+import/export are shared Go code in the game client. `make web` builds that
+adapter automatically, using Node.js/npm or Emscripten's bundled runtime.
+
+`cmd/account` provides optional command-line key tools: `create`, `import -in`,
+`export -out`, `status`, `email -email`, and `name -name`. Use `-key` to select a key file.
+Passphrases are prompted without echo or read from `-passphrase-file`; never
+pass a key or passphrase as a command-line argument. New files have mode 0600,
+and these commands refuse to overwrite existing backups.
+
+Go and TypeScript bindings are checked in. After changing/publishing the module,
+run `make server-bindings STDB_SERVER=http://localhost:3000 STDB_DATABASE=earth-two`.
+See [OTA integration](docs/server-ota-handoff.md) and
+[asset schema constraints](docs/server-asset-handoff.md) for coordination.
+
 Native Make targets prepare private dependency copies in `build/deps` using
 `tools/deps`. These fix stb_vorbis's offset check before pointer arithmetic
 and remove illusion's redundant macOS `libc++` link. Warnings remain enabled;

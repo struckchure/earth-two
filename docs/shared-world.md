@@ -3,6 +3,20 @@
 Earth Two is one persistent, multiplayer world. Every player lives in the same
 world, and it keeps running (prices, contracts, debts) while they're offline.
 
+## Player identity
+
+A player owns an Ed25519 signing key. Their account ID comes from its public
+key, independently of their character's name, email, device or connection.
+Account changes require that key's signature. Email is optional private contact
+metadata and cannot authorize actions or recover an account.
+
+Accounts have an editable display name. Names can be shared by multiple players;
+the name is a label, and the signing key remains the owner identifier.
+
+Players can export a passphrase-encrypted key backup and import it on desktop
+or web through the game's Identity menu. Importing preserves account ownership.
+Losing every key copy means losing access; email does not bypass key ownership.
+
 ## Arriving
 
 - Each player arrives on their own drifter (a cargo hauler from Earth), at their own time.

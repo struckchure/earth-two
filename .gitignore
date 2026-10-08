@@ -12,3 +12,9 @@ out/
 
 # Local secrets (the Sketchfab API key for tools/world/sketchfab.py).
 .env
+
+node_modules/
+internals/server/module/target/
+
+# Player keys and database transport credentials are local, never source assets.
+*.earth-two-key.json
