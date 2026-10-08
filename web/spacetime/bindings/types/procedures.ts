@@ -10,4 +10,3 @@ import * as ConnectionPingProcedure from "../connection_ping_procedure";
 
 export type ConnectionPingArgs = __Infer<typeof ConnectionPingProcedure.params>;
 export type ConnectionPingResult = __Infer<typeof ConnectionPingProcedure.returnType>;
-

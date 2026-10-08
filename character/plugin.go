@@ -76,7 +76,12 @@ func (pl Plugin) Build(app *illusion.App) {
 	}))
 	app.AddSystems(illusion.FixedUpdate, illusion.Chain(illusion.Fn8(traverse), illusion.Fn4(locomote)))
 	app.AddSystems(illusion.FixedPostUpdate, illusion.Fn1(rememberMotion).After(physics.Writeback))
+	app.AddSystems(illusion.FixedPostUpdate,
+		illusion.Fn4(fallIncapacitated).Before(physics.Prepare),
+		illusion.Fn4(stepRagdolls).After(physics.Writeback),
+	)
 	app.ConfigureSets(illusion.Update, Act.After(Input))
+	app.AddSystems(illusion.Update, illusion.Fn1(stopDowned).After(Input).Before(Act))
 	app.AddSystems(illusion.Update,
 		illusion.Fn4(playerInput).InSet(Input),
 		illusion.Chain(
@@ -88,6 +93,7 @@ func (pl Plugin) Build(app *illusion.App) {
 		).InSet(Act),
 	)
 	app.AddSystems(illusion.PostUpdate,
+		illusion.Fn7(poseDowned).Before(render.Animate).Before(transform.Propagate),
 		illusion.Fn4(presentMotion).Before(render.Animate).Before(transform.Propagate),
 		illusion.Fn8(fitPoseToWorld).InSet(render.Animate).After(render.AdvanceAnimations).Before(render.AttachBones),
 		illusion.Fn6(ride).InSet(render.Animate).After(render.AdvanceAnimations).Before(render.AttachBones),

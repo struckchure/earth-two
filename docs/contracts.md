@@ -6,6 +6,18 @@ mechanics already in the game (traversal, interact, pick up, punch, wardrobe),
 so the first templates can ship without new systems. For how filing, bonds and
 defaults work, see [The Exchange](exchange.md).
 
+System-published contracts are **personal instances**: one assigned player,
+one taker and one settlement. Templates are pooled for every licence tier;
+the same template can produce distinct jobs for different players. Another
+player cannot claim, consume or receive payment for your system contract.
+Player-posted jobs use their separate public-market rules.
+
+The [contract review book](contracts/README.md) contains the first tier-by-tier
+writing pass, with issuer messages and proposed terms. Its [system rules](contracts/system-contracts.md)
+define ownership and replenishment, and its [voice guide](contracts/tone.md)
+sets the tone. These drafts are not a claim that the full pools already run
+in the prototype.
+
 | Contract | Filed or off-book | Example | Plays with | From tier |
 | --- | --- | --- | --- | --- |
 | Courier | Filed | Carry a sealed filing from the Exchange to Charter Row before the session closes | Traversal, time limit | 1 |
@@ -45,7 +57,17 @@ it alone does not finish the work. E at the counter hands it over and shows
 the receipt. J opens the contract journal in each state: one **Ongoing** slot
 and a separate **Completed** history. Delivery clears the ongoing slot and
 adds the accepted terms and debt credit to completed receipts. Empty sections
-say so; an unaccepted offer is not shown as ongoing work.
+say so; unaccepted offers appear separately under **Available contracts**.
+
+When offers are available, the compact money card carries a numeric badge.
+Its count and the journal's offer list come from the same available work
+orders. The journal carries compact notifications showing which terminal and
+location have offers, and how many. Players visit the terminal to view the
+contract's issuer, objective, pay and terms, and to accept it. Open the book
+with J or by clicking the money card or its badge. Reading a notification
+leaves the offer available; accepting at the arrivals terminal removes it
+from the badge and moves it into ongoing work. Delivered work appears only
+in completed receipts.
 
 J presents a personal accounting book. Its summary shows spendable **Balance**
 and outstanding **Debt** in marks. The ruled **Debts owed** table identifies
@@ -53,7 +75,8 @@ Ada and her passage debt, with columns for original amount, repaid and due,
 followed by totals. **Completed contracts** lists filing references, contract
 names and payers, actual debt credits and delivery status, with a total for all
 receipts. Four receipts fit on the page; scroll to browse older entries.
-The ongoing work order remains on the facing page.
+Available-contract notifications and the ongoing work order remain on the
+facing page.
 A compact balance/debt summary in play matches the time/weather card's
 footprint; J opens the full breakdown and ongoing/completed work. Arrivals
 have zero spendable marks and owe

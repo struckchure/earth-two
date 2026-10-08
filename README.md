@@ -135,6 +135,17 @@ F7 cycles shadows through Full, Low and Off while playing; F1 shows the
 current setting in the test panel. Off skips the shadow pass entirely for
 devices where it costs too much.
 
+The test panel also controls a local NPC crowd: F8 toggles it on or off;
+F9 opens the population field. Type an exact count, press Enter to apply it,
+or Esc to cancel (Backspace edits). The default is 25, initially off; the
+range is 0–4,199, leaving one place for the player in the 4,200-resident cap.
+The panel shows the requested count and the number currently live. NPCs use
+the character bodies, clothes and physics, pause and wander nearby, and spawn
+in batches of eight per frame. Moving more than 128 m from the crowd's centre
+rebuilds it around the player, keeping it on streamed terrain. Turning it off
+removes its characters and clothes. These are test NPCs; persistent residents
+and job/contract AI are still to come.
+
 For frame measurements, open `/?benchmark=1`. It starts play at the Pads
 at 11:00 in clear weather, warms up for 60 frames, then reports FPS, mean
 and p95 frame time, CPU time and rendering time every five seconds. CPU
@@ -207,13 +218,17 @@ to a public Registrar counter in the Exchange, in Landfall. Press E there
 to hand it over: Ada credits 150 marks, leaving 1,850 owed. There is no bond
 or time limit, and this work does not grant a licence or Standing.
 
-J opens a personal account book: a ruled table of debts owed, with creditor,
-original amount, repaid and due; one ongoing contract; and a table of completed
+J, or a click on the money card, opens a personal account book: a ruled table
+of debts owed, with creditor, original amount, repaid and due; one ongoing
+contract; and a table of completed
 receipts showing references, payers, debt credits and totals. Receipts appear
 newest first (scroll over the completed section to browse).
 In play, a compact top-right summary shows balance and total debt; it matches
-the time/weather card's size. Press J for the breakdown. Delivery moves the
-job into completed history and reduces debt; this first reward does not add
+the time/weather card's size. A badge counts available contracts; it disappears
+when no offers remain. The book's Available contracts section contains compact
+notices with the terminal, location and offer count. Visit the arrivals terminal
+to view the full contract details and accept. The task HUD tracks ongoing work.
+Delivery moves the job into completed history and reduces debt; this first reward does not add
 spendable marks. The task HUD clears after delivery.
 
 A manually marked map destination takes priority over the job marker;
@@ -244,8 +259,20 @@ The menus (`game/menu.go`, drawn by `game/screens.go`) stack, so Esc or
 Back returns to whichever screen opened the one in front. The HUD shows
 the frame rate in the bottom left, contextual interaction prompts, current
 work under the minimap, and a balance/debt card in the top right. Navigation
-bindings are listed in Controls. Text is Inter
-(`game/fonts`, SIL Open Font License), embedded in the binary and rasterised
+bindings are listed in Controls.
+
+The menus are paperwork (`game/paper.go`, after docs/look-and-feel.md):
+each a sheet of the Exchange's paper, punched for its file, with a form
+header (who issued it, its number), its values typed, and its choices boxes
+to tick on ruled lines, the one in hand ticked and highlighted. The contract
+offer is the contract: the poster's terms, its fields, the poster's
+signature and the seal of the licence it's open to. Confirming stamps it:
+ADMITTED on the arrival form as play starts, FILED on an accepted contract,
+SETTLED in the account book on delivery; a closed form is taken away, its
+stamp on it. Licence tiers are the Registrar's brass seals.
+
+Text is Inter, and what's typed on the forms Courier Prime
+(`game/fonts`, both SIL Open Font License), embedded in the binary and rasterised
 in the screen's own pixels
 at about each size it's drawn at (rounded up a little, so resizing the
 window loads a few sizes, not hundreds), so it stays sharp at any window
@@ -291,6 +318,38 @@ Dynamic. Left alone, it holds its brakes and parks itself again once it's
 still, or at once if the ground it's on is about to stream away. Its
 springs are as stiff as makes its wheels sink to where they're modelled,
 so it doesn't move when it wakes.
+
+Vehicle impacts affect NPCs and players alike: **10 km/h closing speed causes
+critical injury; 30 km/h causes instant death** (`vehicle.ImpactRules`). Actual
+capsule/chassis contact is checked before the solver. Serious hits replace
+the standing controller with a 70 kg dynamic torso and an articulated ragdoll, so the vehicle can
+run the character over instead of stopping against an upright, immovable
+capsule. Glancing contact uses closing speed along the contact normal; simply
+passing near someone causes no damage. Walls and other chassis remain solid.
+
+The ragdoll starts from the character's current pose. Head, arm and leg joints
+fall under gravity, keep their bone lengths and sweep against world geometry;
+hands and feet turn on contact, and clothes follow the same skeleton. The
+torso receives momentum from vehicles; character contacts never apply forces
+or torque to the vehicle, regardless of character size or body mass. Wheels
+ignore standing and fallen characters as suspension surfaces. The limb solver uses constrained
+particles rather than separate Jolt rigid bodies. Leg-hit momentum is guided
+by the Mixamo **Hit On Legs** reference: legs sweep ahead while the torso falls
+back. Any critical/dead health change also starts a ragdoll, and recovery
+releases its simulation and restores animation.
+
+Once the torso is prone, ground contact supplies rolling resistance. Quiet
+bodies and limbs sleep on level ground and gentle slopes; a later impact wakes
+them again. Airborne falls and slides on steep slopes retain their momentum.
+
+Critical and dead characters cannot move or interact. Their bodies lie fallen,
+and NPC injuries persist when they leave and return to the active area. F1's
+test panel shows critical/dead NPC counts; toggling the test NPCs off and on
+starts a fresh crowd. An incapacitated player sees their state and can press
+R for prototype emergency recovery or respawn at the Pads. This restores
+health and controls; the designed respawn points/debt flow is not implemented
+yet. Low-speed contacts retain normal pushing, with nearby pedestrians stepped
+at full frequency only for the physics step.
 
 How a vehicle is built comes from `tools/world/vehicles.py` (`Piece.wheel`,
 `seat`, `chassis` and `drive` in `kit.py`), in world.json under "vehicle".
@@ -525,6 +584,14 @@ dome is seen through without sorting what's drawn. To go with it,
 `tools/paint` (`make paint`) gives the textures in `assets/characters` a
 painted look, in place. It marks what it paints and skips it next time, so
 it's safe to run again.
+
+Fixed world lamps are always on, including those inside buildings. Their
+positions, colours and ranges come from the terrain-adjusted layout
+(`game/lamps.go`) and are compiled into the toon shader. Each surface receives
+the lamps within reach; moving the player or camera cannot replace them with
+the eight nearest lights. Distant settlements' lamps are skipped together
+when they cannot illuminate that surface. Vehicle headlights remain
+independently switchable.
 
 The sun moves on the real clock (`game/daylight.go`), Landfall time being
 UTC: it rises about 05:00, crosses the south no higher than 30° at noon,

@@ -21,7 +21,9 @@ links to the doc that covers it in full.
 | Multiplayer | One shared, persistent world for all players; it runs while they're offline | [Shared world](shared-world.md) |
 | Player identity | Player-owned signing keys; optional email; portable encrypted key import/export inside the game | [Shared world](shared-world.md) |
 | Starting debt | Every player owes their passage to Ada Vellér | [Factions](factions.md) |
-| Population | Fixed total with a set player-to-NPC ratio; full means no new joins | [Shared world](shared-world.md) |
+| System contracts | Personal to one assigned player; no system instance can be taken by another user. Template pools cover all licence tiers. | [System contract rules](contracts/system-contracts.md) |
+| Population | Fixed cap of 4,200 residents, players and NPCs combined; offline players keep their slots; full means no new joins | [Shared world](shared-world.md) |
+| Vehicle impacts | NPCs and players become critical at 10 km/h closing speed and die instantly at 30 km/h; fallen bodies do not act as standing barriers | [Shared world](shared-world.md) |
 | Clock | Real time: one in-game day is one real day | [Shared world](shared-world.md) |
 | Seasons | Three months; filings are tallied and the world resets | [Story](story.md) |
 | Season winner | The richest player by net worth, whatever their rank, wins a share of the season's economy | [Shared world](shared-world.md) |
@@ -36,6 +38,7 @@ links to the doc that covers it in full.
 
 ## Open
 
+- **Player-to-NPC ratio.** How many of the world's 4,200 resident places are player slots?
 - **Respawn points.** What are "points", and how does a player earn them? Are they marks, or a separate currency?
 - **The Receivership's arrival.** Act 2 ends with the ship entering orbit, but the ship is a shared world event and stories are personal. Does the ship arrive at a fixed point in each season (say, the last few weeks), with players who aren't at Act 3 yet still able to work for or against it?
 - **Late joiners.** Should new arrivals stop in a season's last few weeks, so nobody joins with too little time to play the story?

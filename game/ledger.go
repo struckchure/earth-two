@@ -34,12 +34,18 @@ type ledgerCell struct {
 // ledgerTable draws fixed ruled rows, keeping unused lines blank like a book.
 // The final row contains totals for the whole account, not only visible rows.
 func ledgerTable(p painter, r rl.Rectangle, columns []ledgerColumn, rows [][]ledgerCell, totals []ledgerCell, empty string) {
-	const head, row, foot = 28, 52, 30
+	const head, row = 28, 52
+	foot := float32(0)
+	if len(totals) > 0 {
+		foot = 30
+	}
 	edge := max(1, p.px(1))
 	rl.DrawRectangleRec(r, ledgerPaper)
 	rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: r.Y, Width: r.Width, Height: p.px(head)}, ledgerHead)
 	footerY := r.Y + r.Height - p.px(foot)
-	rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: footerY, Width: r.Width, Height: p.px(foot)}, ledgerHead)
+	if foot > 0 {
+		rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: footerY, Width: r.Width, Height: p.px(foot)}, ledgerHead)
+	}
 	x := r.X
 	for col, column := range columns {
 		width := r.Width * column.share
@@ -77,8 +83,13 @@ func ledgerTable(p painter, r rl.Rectangle, columns []ledgerColumn, rows [][]led
 	for y := r.Y + p.px(head); y < footerY; y += p.px(row) {
 		rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: y, Width: r.Width, Height: edge}, ledgerRule)
 	}
-	for _, y := range []float32{r.Y, footerY, footerY + p.px(3), r.Y + r.Height - edge} {
+	for _, y := range []float32{r.Y, r.Y + r.Height - edge} {
 		rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: y, Width: r.Width, Height: edge}, ledgerRule)
+	}
+	if foot > 0 {
+		for _, y := range []float32{footerY, footerY + p.px(3)} {
+			rl.DrawRectangleRec(rl.Rectangle{X: r.X, Y: y, Width: r.Width, Height: edge}, ledgerRule)
+		}
 	}
 	rl.DrawRectangleRec(rl.Rectangle{X: r.X + r.Width - edge, Y: r.Y, Width: edge, Height: r.Height}, ledgerRule)
 	if len(rows) == 0 {
@@ -121,7 +132,7 @@ func drawContractJournal(p painter, l layout, c *contracts, focus, offset int) {
 	middle := l.panel.X + l.panel.Width/2
 	rl.DrawRectangleRec(rl.Rectangle{X: middle - p.px(6), Y: l.panel.Y, Width: p.px(12), Height: l.panel.Height}, rl.NewColor(103, 91, 65, 25))
 	for _, x := range []float32{l.debts.X - p.px(8), l.rows[1].X - p.px(8)} {
-		rl.DrawRectangleRec(rl.Rectangle{X: x, Y: l.panel.Y + p.px(150), Width: max(1, p.px(1)), Height: p.px(395)}, rl.NewColor(151, 82, 66, 95))
+		rl.DrawRectangleRec(rl.Rectangle{X: x, Y: l.panel.Y + p.px(150), Width: max(1, p.px(1)), Height: l.panel.Height - p.px(190)}, rl.NewColor(151, 82, 66, 95))
 	}
 	x, y := l.heading.X, l.heading.Y
 	p.text("PERSONAL LEDGER • UNLISTED", rl.Vector2{X: x, Y: y}, 10, semibold, ledgerMuted)
@@ -142,8 +153,24 @@ func drawContractJournal(p painter, l layout, c *contracts, focus, offset int) {
 	}}, []ledgerCell{{text: "Total"}, {text: marks(passageDebt)}, {text: marks(repaid), ink: ledgerCredit}, {text: marks(c.debt), ink: ledgerDebit}}, "")
 	p.textIn("Work credits repay the passage debt.", rl.Rectangle{X: l.debts.X, Y: l.debts.Y + l.debts.Height + p.px(12), Width: l.debts.Width, Height: p.px(22)}, 12, regular, ledgerMuted, left)
 
+	available := c.availableContracts()
+	count := fmt.Sprintf("%d notices", len(available))
+	if len(available) == 1 {
+		count = "1 notice"
+	}
+	section("Available contracts", count, l.available)
+	columns := []ledgerColumn{{"TERMINAL / LOCATION", .75, left}, {"AVAILABLE", .25, right}}
+	var notices [][]ledgerCell
+	if len(available) > 0 {
+		notices = [][]ledgerCell{{{text: "Arrivals terminal", note: "The Pads"}, {text: fmt.Sprint(len(available)), ink: ledgerCredit}}}
+	}
+	ledgerTable(p, l.available, columns, notices, nil, "No contract notifications.")
+	if len(available) > 0 {
+		p.textIn("Visit the terminal to read the terms and accept.", rl.Rectangle{X: l.available.X, Y: l.available.Y + l.available.Height + p.px(10), Width: l.available.Width, Height: p.px(20)}, 12, regular, ledgerMuted, left)
+	}
+
 	ongoing := l.rows[0]
-	count := "0 / 1 active"
+	count = "0 / 1 active"
 	if c.ongoing != nil {
 		count = "1 / 1 active"
 	}
@@ -151,16 +178,12 @@ func drawContractJournal(p painter, l layout, c *contracts, focus, offset int) {
 	rl.DrawRectangleRec(ongoing, ledgerHead)
 	if order := c.ongoing; order != nil {
 		ledgerLine(p, ongoing, order.title, 9, 18, semibold, ledgerInk)
-		ledgerLine(p, ongoing, order.id+" • "+order.poster, 35, 11, regular, ledgerMuted)
-		ledgerLine(p, ongoing, order.objective, 56, 13, regular, ledgerInk)
-		ledgerLine(p, ongoing, fmt.Sprintf("Pay: %s marks to debt • E to hand over", marks(order.pay)), 86, 12, semibold, ledgerCredit)
+		ledgerLine(p, ongoing, order.id+" • "+order.poster, 30, 11, regular, ledgerMuted)
+		ledgerLine(p, ongoing, order.objective, 50, 13, regular, ledgerInk)
+		ledgerLine(p, ongoing, fmt.Sprintf("Pay: %s marks to debt • E to hand over", marks(order.pay)), 73, 12, semibold, ledgerCredit)
 	} else {
-		ledgerLine(p, ongoing, "No ongoing contract", 22, 17, semibold, ledgerInk)
-		hint := "One contract at a time."
-		if c.state == contractAvailable {
-			hint = "Ada has work at the arrivals terminal on the Pads."
-		}
-		ledgerLine(p, ongoing, hint, 57, 12, regular, ledgerMuted)
+		ledgerLine(p, ongoing, "No ongoing contract", 17, 17, semibold, ledgerInk)
+		ledgerLine(p, ongoing, "One contract at a time.", 50, 12, regular, ledgerMuted)
 	}
 
 	history := l.rows[1]
@@ -174,7 +197,7 @@ func drawContractJournal(p painter, l layout, c *contracts, focus, offset int) {
 		count = fmt.Sprintf("%d-%d of %d", start+1, start+visible, len(c.completed))
 	}
 	section("Completed contracts", count, history)
-	columns := []ledgerColumn{{"REF.", .15, left}, {"CONTRACT / PAYER", .43, left}, {"DEBT CREDIT", .23, right}, {"STATUS", .19, left}}
+	columns = []ledgerColumn{{"REF.", .15, left}, {"CONTRACT / PAYER", .43, left}, {"DEBT CREDIT", .23, right}, {"STATUS", .19, left}}
 	var rows [][]ledgerCell
 	for i := 0; i < visible; i++ {
 		receipt := c.completed[len(c.completed)-1-start-i]

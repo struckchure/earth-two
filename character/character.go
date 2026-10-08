@@ -206,6 +206,7 @@ type Body struct{}
 // State is the body's current animation. It goes on the Body.
 type State struct {
 	Current Anim
+	downed  bool
 	skin    int     // index into Roster.Skins
 	air     float32 // seconds off the ground
 	turn    float32 // how fast the body is turning, in radians per second

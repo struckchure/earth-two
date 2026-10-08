@@ -73,4 +73,3 @@ export const OtaRelease = __t.object("OtaRelease", {
   createdAt: __t.timestamp(),
 });
 export type OtaRelease = __Infer<typeof OtaRelease>;
-

@@ -110,6 +110,10 @@ func Run() {
 
 // build is the game, opening on m.
 func build(m *menu) *illusion.App {
+	lamps, err := fixedLamps(assetRoot())
+	if err != nil {
+		panic(err)
+	}
 	return illusion.New().
 		AddPlugins(
 			defaults.Plugins(defaults.Config{
@@ -121,9 +125,11 @@ func build(m *menu) *illusion.App {
 			// Outlines on people only: the world is painted, not inked.
 			world.Plugin{Manifest: "world/world.json"},
 			vehicle.Plugin{},
+			injuryPlugin{},
 			residentsPlugin{},
 			testPlugin{},
 			shading.Plugin{
+				Lamps: lamps,
 				// Violet, but light enough that shaded faces still read.
 				// Cast shadows darken this fill towards black.
 				ShadowColor: rl.NewColor(205, 190, 235, 255),

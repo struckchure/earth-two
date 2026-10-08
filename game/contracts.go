@@ -53,6 +53,15 @@ func firstWorkOrder() contractRecord {
 	}
 }
 
+// Available offers are separate from accepted work and completed receipts.
+// The current world authors one offer; both the badge and journal use this list.
+func (c *contracts) availableContracts() []contractRecord {
+	if c.state != contractAvailable {
+		return nil
+	}
+	return []contractRecord{firstWorkOrder()}
+}
+
 // newContracts locates the arrivals terminal and a public Registrar counter
 // in the layout. Their interaction points turn and stand with their models.
 func newContracts(k *world.Kit, placed []world.Placement) (*contracts, error) {

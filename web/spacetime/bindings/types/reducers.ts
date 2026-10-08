@@ -21,4 +21,3 @@ export type PublishOtaReleaseParams = __Infer<typeof PublishOtaReleaseReducer>;
 export type RegisterAccountParams = __Infer<typeof RegisterAccountReducer>;
 export type SetAccountDisplayNameParams = __Infer<typeof SetAccountDisplayNameReducer>;
 export type SetAccountEmailParams = __Infer<typeof SetAccountEmailReducer>;
-

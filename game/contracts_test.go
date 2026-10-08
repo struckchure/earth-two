@@ -62,6 +62,9 @@ func ptrTransform(feet rl.Vector3) *transform.Transform {
 
 func TestFirstContractReviewDeclineAndAccept(t *testing.T) {
 	app, c, p, keys := contractRig(t)
+	if len(c.availableContracts()) != 1 {
+		t.Fatal("the arrival must see one available offer")
+	}
 	m := ecs.GetResource[menu](app.World)
 	in := ecs.NewMap[character.Intent](app.World).Get(p)
 	tick := func() { app.Tick(time.Second / 60) }
@@ -77,7 +80,7 @@ func TestFirstContractReviewDeclineAndAccept(t *testing.T) {
 	}
 	tap(rl.KeyDown)
 	tap(rl.KeyEnter) // Leave it for now.
-	if m.screen() != playing || c.state != contractAvailable || !ecs.GetResource[character.Controls](app.World).Enabled {
+	if m.screen() != playing || c.state != contractAvailable || len(c.availableContracts()) != 1 || !ecs.GetResource[character.Controls](app.World).Enabled {
 		t.Fatal("declining must resume play and keep the job available")
 	}
 	tap(rl.KeyJ)
@@ -94,7 +97,7 @@ func TestFirstContractReviewDeclineAndAccept(t *testing.T) {
 	in.Act = character.Interact
 	tick()
 	tap(rl.KeyEnter)
-	if m.screen() != playing || c.state != contractAccepted || c.debt != passageDebt || m.acceptContract {
+	if m.screen() != playing || c.state != contractAccepted || len(c.availableContracts()) != 0 || c.debt != passageDebt || m.acceptContract {
 		t.Fatalf("explicit acceptance: screen %v, record %+v, pending %v", m.screen(), c, m.acceptContract)
 	}
 	tap(rl.KeyJ)
@@ -136,7 +139,7 @@ func TestFirstContractMouseAcceptanceAndDelivery(t *testing.T) {
 	}
 	in.Act = character.Interact
 	tick()
-	if c.state != contractDelivered || c.debt != 1850 || m.screen() != contractJournal {
+	if c.state != contractDelivered || len(c.availableContracts()) != 0 || c.debt != 1850 || m.screen() != contractJournal {
 		t.Fatalf("handover must show receipt and credit Ada's debt: %+v, screen %v", c, m.screen())
 	}
 	if c.deliver(c.delivery) || c.accept() || c.debt != 1850 {
@@ -298,5 +301,40 @@ func TestJournalBrowsesHistoryWithoutChangingAccount(t *testing.T) {
 	}
 	if c.balance != 73 || c.debt != 1600 || len(c.completed) != 5 || c.completed[0].id != "OLDER" || c.completed[4].id != "LATEST" {
 		t.Fatal("browsing must not pay, edit or reorder completed work")
+	}
+}
+
+func TestMoneyCardAndBadgeOpenJournalWithoutAcceptingOffer(t *testing.T) {
+	for _, target := range []string{"card", "badge"} {
+		t.Run(target, func(t *testing.T) {
+			app, c, player, keys := contractRig(t)
+			*ecs.NewMap[transform.Transform](app.World).Get(player) = *ptrTransform(c.delivery)
+			win := ecs.GetResource[window.Window](app.World)
+			p := painter{s: uiScale(win)}
+			card := accountSummaryRect(p, float32(win.Width))
+			at := middle(card)
+			if target == "badge" {
+				badge := accountBadgeRect(p, card)
+				// Click the part of the badge outside the card itself.
+				at = rl.Vector2{X: badge.X + badge.Width/4, Y: badge.Y + badge.Height/4}
+			}
+			ecs.GetResource[input.Mouse](app.World).Position = at
+			buttons := ecs.GetResource[input.MouseButtons](app.World)
+			buttons.Press(rl.MouseButtonLeft)
+			app.Tick(time.Second / 60)
+			buttons.Release(rl.MouseButtonLeft)
+			buttons.Clear()
+			m := ecs.GetResource[menu](app.World)
+			if m.screen() != contractJournal || c.state != contractAvailable || len(c.availableContracts()) != 1 || c.ongoing != nil || c.debt != passageDebt || c.balance != 0 {
+				t.Fatal("clicking the money card or badge must only open the journal")
+			}
+			keys.Press(rl.KeyEnter) // Back, not remote acceptance.
+			app.Tick(time.Second / 60)
+			keys.Release(rl.KeyEnter)
+			keys.Clear()
+			if m.screen() != playing || c.state != contractAvailable || len(c.availableContracts()) != 1 {
+				t.Fatal("viewing and closing available offers must not accept them")
+			}
+		})
 	}
 }

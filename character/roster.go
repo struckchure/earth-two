@@ -109,6 +109,7 @@ func (r *Roster) Spawn(cmd *illusion.Commands, skin int, feet rl.Vector3, extra 
 	center := rl.Vector3Add(feet, rl.Vector3{Y: capsuleHeight / 2})
 	root := append([]illusion.Component{
 		illusion.C(Default()),
+		illusion.C(Health{}),
 		illusion.C(MotionSamples{previous: center, current: center, height: capsuleHeight}),
 		illusion.C(Intent{}),
 		illusion.C(Traversal{}),
