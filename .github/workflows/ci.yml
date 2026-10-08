@@ -73,10 +73,11 @@ jobs:
         run: python -m unittest discover -s tools/desktop -p 'test_*.py' -v
       - name: Create build env file
         if: github.event_name != 'pull_request'
-        uses: SpicyPizza/create-envfile@ace6d4f5d7802b600276c23ca417e669f1a06f6f # v2.0.3
+        uses: albesja11/create-envfile@413ca0239169a9101979b5494150c89e220d2465 # Node 24; upstream PR 182
+        env:
+          INPUT_ENVKEY_SPACETIMEDB_SERVER: ${{ secrets.SPACETIMEDB_SERVER }}
+          INPUT_ENVKEY_SPACETIMEDB_DATABASE: ${{ secrets.SPACETIMEDB_DATABASE }}
         with:
-          envkey_SPACETIMEDB_SERVER: ${{ secrets.SPACETIMEDB_SERVER }}
-          envkey_SPACETIMEDB_DATABASE: ${{ secrets.SPACETIMEDB_DATABASE }}
           file_name: .env
           fail_on_empty: true
       # go build rather than make build: Windows runners don't have make.
@@ -144,10 +145,11 @@ jobs:
         run: go test ./tools/buildenv
       - name: Create build env file
         if: github.event_name != 'pull_request'
-        uses: SpicyPizza/create-envfile@ace6d4f5d7802b600276c23ca417e669f1a06f6f # v2.0.3
+        uses: albesja11/create-envfile@413ca0239169a9101979b5494150c89e220d2465 # Node 24; upstream PR 182
+        env:
+          INPUT_ENVKEY_SPACETIMEDB_SERVER: ${{ secrets.SPACETIMEDB_SERVER }}
+          INPUT_ENVKEY_SPACETIMEDB_DATABASE: ${{ secrets.SPACETIMEDB_DATABASE }}
         with:
-          envkey_SPACETIMEDB_SERVER: ${{ secrets.SPACETIMEDB_SERVER }}
-          envkey_SPACETIMEDB_DATABASE: ${{ secrets.SPACETIMEDB_DATABASE }}
           file_name: .env
           fail_on_empty: true
       - name: Build for the browser
@@ -229,19 +231,20 @@ jobs:
             --out build/ota-release --require-all
       - name: Create publisher env file
         if: steps.fresh.outputs.publish == 'true'
-        uses: SpicyPizza/create-envfile@ace6d4f5d7802b600276c23ca417e669f1a06f6f # v2.0.3
+        uses: albesja11/create-envfile@413ca0239169a9101979b5494150c89e220d2465 # Node 24; upstream PR 182
+        env:
+          INPUT_ENVKEY_AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+          INPUT_ENVKEY_AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+          INPUT_ENVKEY_AWS_S3_SESSION_TOKEN: ${{ secrets.AWS_S3_SESSION_TOKEN }}
+          INPUT_ENVKEY_AWS_S3_ENDPOINT: ${{ secrets.AWS_S3_ENDPOINT }}
+          INPUT_ENVKEY_AWS_S3_REGION: ${{ secrets.AWS_S3_REGION }}
+          INPUT_ENVKEY_AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          INPUT_ENVKEY_AWS_S3_PUBLIC_URL: ${{ secrets.AWS_S3_PUBLIC_URL }}
+          INPUT_ENVKEY_OTA_S3_PREFIX: ${{ secrets.OTA_S3_PREFIX }}
+          INPUT_ENVKEY_SPACETIMEDB_SERVER: ${{ secrets.SPACETIMEDB_SERVER }}
+          INPUT_ENVKEY_SPACETIMEDB_DATABASE: ${{ secrets.SPACETIMEDB_DATABASE }}
+          INPUT_ENVKEY_SPACETIMEDB_PUBLISH_TOKEN: ${{ secrets.SPACETIMEDB_PUBLISH_TOKEN }}
         with:
-          envkey_AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-          envkey_AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
-          envkey_AWS_S3_SESSION_TOKEN: ${{ secrets.AWS_S3_SESSION_TOKEN }}
-          envkey_AWS_S3_ENDPOINT: ${{ secrets.AWS_S3_ENDPOINT }}
-          envkey_AWS_S3_REGION: ${{ secrets.AWS_S3_REGION }}
-          envkey_AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          envkey_AWS_S3_PUBLIC_URL: ${{ secrets.AWS_S3_PUBLIC_URL }}
-          envkey_OTA_S3_PREFIX: ${{ secrets.OTA_S3_PREFIX }}
-          envkey_SPACETIMEDB_SERVER: ${{ secrets.SPACETIMEDB_SERVER }}
-          envkey_SPACETIMEDB_DATABASE: ${{ secrets.SPACETIMEDB_DATABASE }}
-          envkey_SPACETIMEDB_PUBLISH_TOKEN: ${{ secrets.SPACETIMEDB_PUBLISH_TOKEN }}
           file_name: .env
           # Temporary session credentials are optional; the publisher validates required values.
           fail_on_empty: false

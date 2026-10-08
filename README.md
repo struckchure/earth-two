@@ -43,7 +43,7 @@ their public connection defaults. Exported values take precedence. The file
 is never sourced, bundled, or needed by a shipped client; S3 keys and publisher
 tokens are never compiled into the game.
 
-CI uses [SpicyPizza/create-envfile](https://github.com/SpicyPizza/create-envfile)
+CI uses the pinned [Node 24 update of create-envfile](https://github.com/SpicyPizza/create-envfile/pull/182)
 to create `.env` from the Actions repository secrets `SPACETIMEDB_SERVER` and
 `SPACETIMEDB_DATABASE` for push/manual builds. Set these under repository
 Settings → Secrets and variables → Actions. Both settings are required for

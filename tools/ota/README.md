@@ -13,7 +13,7 @@ workflow never replaces the database module or clears its data.
 
 An ignored `.env` containing dummy values has been created for this checkout.
 Fill those values; `.env.example` is the tracked template for other checkouts.
-In CI, [SpicyPizza/create-envfile](https://github.com/SpicyPizza/create-envfile)
+In CI, the pinned [Node 24 update of create-envfile](https://github.com/SpicyPizza/create-envfile/pull/182)
 creates `.env` from individual GitHub secrets with the names below; cleanup
 removes the file after publishing, including failures. Local runs can read
 `.env` too. Only publisher settings are loaded,

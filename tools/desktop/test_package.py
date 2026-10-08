@@ -4,6 +4,7 @@ from pathlib import Path
 import plistlib
 import stat
 import struct
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -55,11 +56,33 @@ class PackagingTests(unittest.TestCase):
     @unittest.skipIf(os.name == "nt", "macOS symlink layout")
     def test_dmg_keeps_full_version_and_arch_in_name(self):
         output = self.root / "earth-two-1.2.3-macos-arm64"
-        with patch.object(package, "run") as run:
+        with patch.object(package, "run") as run, patch.object(package, "create_dmg") as create:
             artifacts = package.package_mac(self.binary, self.assets, self.stage, output, "1.2.3", None, None)
         self.assertEqual(artifacts[0].name, "earth-two-1.2.3-macos-arm64.dmg")
+        create.assert_called_once_with(self.stage, artifacts[0])
         self.assertEqual((self.stage / "Applications").readlink(), Path("/Applications"))
         self.assertIn(("codesign", "--force", "--sign", "-", self.stage / "Earth Two.app"), [call.args for call in run.call_args_list])
+
+    def test_dmg_retries_busy_service_and_uses_hfs(self):
+        busy = subprocess.CompletedProcess([], 1, "", "hdiutil: create failed - Resource busy\n")
+        success = subprocess.CompletedProcess([], 0, "created\n", "")
+        with patch.object(package.subprocess, "run", side_effect=[busy, success]) as run, \
+                patch.object(package.time, "sleep") as sleep:
+            package.create_dmg(self.stage, self.root / "game.dmg")
+        self.assertEqual(run.call_count, 2)
+        sleep.assert_called_once_with(2)
+        command = run.call_args.args[0]
+        self.assertEqual(command[command.index("-fs") + 1], "HFS+")
+
+    def test_dmg_errors_are_not_hidden_or_retried_forever(self):
+        for message, attempts in [("Resource busy", 3), ("Permission denied", 1)]:
+            with self.subTest(message=message):
+                failure = subprocess.CompletedProcess([], 1, "", message)
+                with patch.object(package.subprocess, "run", return_value=failure) as run, \
+                        patch.object(package.time, "sleep"), \
+                        self.assertRaises(subprocess.CalledProcessError):
+                    package.create_dmg(self.stage, self.root / "game.dmg")
+                self.assertEqual(run.call_count, attempts)
 
     def test_windows_zip_contains_only_runtime_and_credits(self):
         output = self.root / "earth-two-1.2.3-windows-amd64"

@@ -11,8 +11,10 @@ import re
 import shutil
 import struct
 import subprocess
+import sys
 import tarfile
 import tempfile
+import time
 import zipfile
 
 
@@ -71,6 +73,27 @@ def mac_app(binary, assets, stage, version):
     return app
 
 
+def create_dmg(stage, dmg):
+    command = ["hdiutil", "create", "-volname", "Earth Two", "-srcfolder", str(stage),
+               "-fs", "HFS+", "-format", "UDZO", "-ov", str(dmg)]
+    for attempt in range(3):
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.stdout:
+            print(result.stdout, end="")
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
+        if result.returncode == 0:
+            return
+        # The hosted macOS disk-image service occasionally stays busy after
+        # creating its temporary volume. Do not retry other packaging errors.
+        if "resource busy" not in result.stderr.lower() or attempt == 2:
+            raise subprocess.CalledProcessError(result.returncode, command,
+                                                output=result.stdout, stderr=result.stderr)
+        delay = 2 * (attempt + 1)
+        print(f"Disk-image service is busy; retrying in {delay}s", file=sys.stderr)
+        time.sleep(delay)
+
+
 def package_mac(binary, assets, stage, output, version, identity, notary_profile):
     app = mac_app(binary, assets, stage, version)
     signing = ["codesign", "--force", "--sign", identity or "-"]
@@ -80,8 +103,7 @@ def package_mac(binary, assets, stage, output, version, identity, notary_profile
     run("codesign", "--verify", "--strict", app)
     (stage / "Applications").symlink_to("/Applications", target_is_directory=True)
     dmg = Path(str(output) + ".dmg")
-    run("hdiutil", "create", "-volname", "Earth Two", "-srcfolder", stage,
-        "-format", "UDZO", "-ov", dmg)
+    create_dmg(stage, dmg)
     run("hdiutil", "verify", dmg)
     if identity:
         run("codesign", "--sign", identity, "--timestamp", dmg)
