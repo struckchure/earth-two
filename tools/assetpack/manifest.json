@@ -1,0 +1,7 @@
+{
+  "world": "world/world.json",
+  "layouts": ["world/landfall.json"],
+  "roots": ["characters/wardrobe.json"],
+  "keep": ["characters/CREDITS.txt", "world/CREDITS.txt", "sounds/CREDITS.txt"],
+  "code": ["game"]
+}

@@ -14,7 +14,7 @@ NATIVE_GO = env GOWORK="$(CURDIR)/build/deps/native.work" go
 # a module that isn't in the cache yet has no directory to list.
 ILLUSION = $(shell go mod download github.com/struckchure/illusion 2>/dev/null; go list -m -f '{{.Dir}}' github.com/struckchure/illusion)
 
-.PHONY: deps run build web serve test characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
+.PHONY: assets deps run build web serve test characters people wardrobe traversal-animations paint bindpose world world-fast world-layouts clean
 
 deps:
 	go run ./tools/deps
@@ -24,12 +24,16 @@ run build test serve people wardrobe paint bindpose: deps
 run:
 	$(NATIVE_GO) run ./cmd/desktop
 
-build:
+build: assets
 	$(NATIVE_GO) build -o build/$(GAME)$(shell go env GOEXE) ./cmd/desktop
 
+# Stage the release asset graph; source assets stay available to make run.
+assets:
+	go run ./tools/assetpack
+
 # cmd/web compiled for the browser is the game (cmd/web/game_js.go).
-web:
-	sh "$(ILLUSION)/web/build.sh" -m . -o build/web -a assets -t "$(TITLE)" ./cmd/web
+web: assets
+	sh "$(ILLUSION)/web/build.sh" -m . -o build/web -a build/assets -t "$(TITLE)" ./cmd/web
 	go run ./tools/webcompress build/web
 
 serve: web

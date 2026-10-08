@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"github.com/mlange-42/ark/ecs"
+	"github.com/struckchure/earth-two/assetref"
 	"github.com/struckchure/illusion"
 	"github.com/struckchure/illusion/asset"
 	"github.com/struckchure/illusion/render"
@@ -97,6 +98,7 @@ func (o *Outfit) Remove(slot Slot) { o.wear[slot] = 0 }
 // the part it doesn't cover as skin patches of its own (SkinMeshes, by mesh
 // index in its model); it hides the underwear on the regions it Covers.
 type Item struct {
+	AssetID    assetref.ID // stable model reference for remote appearances
 	Name       string
 	Model      asset.Handle[render.Model]
 	Hides      []string
@@ -129,13 +131,15 @@ func NewLook(name string, put map[Slot]int, off ...Slot) Look {
 
 // Tone is a skin: the texture that replaces the body's.
 type Tone struct {
+	AssetID assetref.ID // stable texture reference for remote appearances
 	Name    string
 	Texture asset.Handle[render.Texture]
 }
 
 // BodyWardrobe is what one body can wear.
 type BodyWardrobe struct {
-	Name string
+	AssetID assetref.ID // stable body model reference
+	Name    string
 	// SkinMeshes are the body's skin meshes, by index in its model: the ones
 	// a Tone retextures.
 	SkinMeshes []int
@@ -348,15 +352,17 @@ func loadWardrobe(
 				continue
 			}
 			bw := &w.Bodies[i]
+			bw.AssetID = assetref.ForPath(b.Model)
 			bw.Name, bw.SkinMeshes, bw.Regions, bw.Underwear = b.Name, b.SkinMeshes, b.Regions, b.Underwear
 			bw.FaceMeshes = b.FaceMeshes
 			for _, s := range b.Skins {
-				bw.Tones = append(bw.Tones, Tone{Name: s.Name, Texture: textures.MustLoad(s.Path)})
+				bw.Tones = append(bw.Tones, Tone{AssetID: assetref.ForPath(s.Path), Name: s.Name, Texture: textures.MustLoad(s.Path)})
 			}
 			for s, key := range slotKeys {
 				for _, it := range b.Slots[key] {
 					item := Item{
-						Name: it.Name, Model: modelLoader.MustLoad(it.Path),
+						AssetID: assetref.ForPath(it.Path),
+						Name:    it.Name, Model: modelLoader.MustLoad(it.Path),
 						Hides: it.Hides, Covers: it.Covers, SkinMeshes: it.SkinMeshes,
 					}
 					if Slot(s) == Face {

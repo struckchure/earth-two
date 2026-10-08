@@ -1,5 +1,12 @@
 package game
 
-// assetRoot is where the game's files are: in a browser, bundled into the
-// page under assets.
-func assetRoot() string { return "assets" }
+import "os"
+
+// make web stages the shipped asset graph under build/assets. Direct engine
+// builds can still preload the source assets directory.
+func assetRoot() string {
+	if info, err := os.Stat("build/assets"); err == nil && info.IsDir() {
+		return "build/assets"
+	}
+	return "assets"
+}

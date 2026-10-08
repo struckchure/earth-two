@@ -80,6 +80,49 @@ working display clock, `/?benchmark=1&timers=1` measures uncapped,
 timer-driven frame throughput; its FPS is not display-paced browser FPS.
 Normal play installs neither the timing systems nor the benchmark overlay.
 
+`make assets` stages the release asset set in `build/assets` and writes
+`build/asset-report.json` with exact sizes, included files, excluded files and
+retained world pieces. `make build`, `make web` and desktop CI packages all
+use this step. The source `assets/` directory is kept intact for development
+and asset generation.
+
+Packing starts from the playable Landfall layout and the full wardrobe.
+It keeps world pieces and sound families named in runtime Go code, follows
+vehicle wheel references, and retains the asset credits. The staged
+`world.json` lists only retained pieces, so startup does not load stripped
+models. Test-only layouts, unreferenced world models and the unused checker
+texture are excluded. The roots are in `tools/assetpack/manifest.json`;
+add new layouts or assets assembled from dynamic names there. Non-test Go
+files in its `code` directories are scanned conservatively, including all
+platform variants; comments and tests do not retain assets.
+
+The packer shares byte-identical textures and large binary buffer views
+across models using ordinary relative glTF URIs, compacts embedded buffers,
+and recompresses PNGs losslessly. Mesh, material, node and bone ordering,
+animations, decoded texture pixels and audio stay unchanged. Packed GLBs
+must travel with their `_packed/` directory. Unsupported source glTF
+extensions or external images/buffers fail the build explicitly. Packing
+builds a fresh directory before replacing its previous output, and removes
+stale files. The checked-in assets currently shrink from **206.2 MiB to
+187.2 MiB (9.2%)** before transport compression.
+
+Release packs also include `asset-index.json`: stable logical asset IDs,
+per-file SHA-256 hashes and a fingerprint of the whole installed pack.
+`assetref` resolves peer IDs to local paths and checks the peer's pack
+fingerprint. `character.Appearance` carries body, skin and clothing IDs;
+wardrobe helpers translate those to local selections. Send appearance on
+join/change, then replicate player coordinates and actions without asset
+bytes. The multiplayer integration contract is in
+[docs/asset-network-contract.md](docs/asset-network-contract.md).
+
+To check every retained model against its source, including geometry,
+skinning, animations and decoded texture pixels:
+
+```sh
+make assets
+EARTH_TWO_PACK_CHECK="$PWD/build/assets" go test ./tools/assetpack -run TestPackedRepository
+```
+
 `make web` also generates `.gz` sidecars for the JavaScript, WebAssembly and
 bundled assets. `cmd/web` serves those when the browser accepts gzip, with
 the original content types and conditional revalidation on reload. Other
@@ -798,8 +841,8 @@ requests. Each run uploads the builds as artifacts.
   the game, from `game_js.go`.
 - `assets/` holds files the game loads by path. Desktop builds read them from
   disk: from `assets` in the working directory, or else from an `assets`
-  folder beside the program (CI's downloads come with one). Web builds bundle
-  the directory into the page.
+  folder beside the program (CI's downloads come with the packed one). Web
+  builds bundle `build/assets` into the page at that path.
 
 ## Notes for the browser
 
@@ -807,8 +850,8 @@ requests. Each run uploads the builds as artifacts.
   (illusion's `window.Config` with `Resizable` and `HighDPI`). 2D drawing is
   in device pixels there, so scale sizes by `window.Window.Scale`, as `hud`
   does.
-- Everything in `assets/` is downloaded before the game starts, so keep it to
-  what the game needs.
+- The full packed asset set is downloaded before the game starts; packing
+  strips unused source assets but does not stream the retained ones.
 - Browsers keep sound off until the player clicks or presses a key.
 - Web builds use a browser version of raylib-go that covers the functions
   illusion and its examples use. A raylib function it doesn't have yet fails
