@@ -97,6 +97,16 @@ the host's `$PORT`. It builds against the illusion in `go.mod`, so push
 illusion and update `go.mod` to it before deploying anything that needs a
 newer one.
 
+### Publishing update manifests
+
+[`tools/ota`](tools/ota/README.md) packages tested desktop and browser builds,
+uploads immutable downloads to S3, and promotes release manifests in the shared
+SpacetimeDB database. Fill the ignored `.env` from `.env.example` for local
+publishing. GitHub Actions uses separate secrets and variables; publishing is
+disabled until `OTA_PUBLISH_ENABLED=true` is configured. The
+[setup guide](tools/ota/README.md) covers storage, publisher authorization, CI and
+rollback.
+
 ## Controls
 
 The game opens on the title screen: Play, Wardrobe, Controls and (on the

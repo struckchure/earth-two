@@ -10,5 +10,7 @@ __pycache__/
 .harness/
 out/
 
-# Local secrets (the Sketchfab API key for tools/world/sketchfab.py).
+# Local configuration and secrets, including OTA publishing and Sketchfab.
 .env
+.env.*
+!.env.example

@@ -21,6 +21,12 @@ Each doc below covers one topic and can be read on its own.
 | [Glossary](glossary.md) | Every in-world term in one place |
 | [Decisions](decisions.md) | What's been decided so far, and what's still open |
 
+Technical plans:
+
+| Doc | Read it for |
+| --- | --- |
+| [OTA updates](ota-updates.md) | Browser and desktop release delivery, update recovery, and implementation phases |
+
 These docs started as the
 [World Bible](https://claude.ai/code/artifact/af36858f-ad67-46d0-8928-f4ba67765144)
 drafted on 2026-10-05.
