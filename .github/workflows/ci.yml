@@ -13,6 +13,9 @@ permissions:
 env:
   # The emscripten release web builds use.
   EMSDK_VERSION: 6.0.10
+  OTA_RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+  OTA_GAME_VERSION: ${{ vars.OTA_GAME_VERSION || github.sha }}
+  SOURCE_COMMIT: ${{ github.sha }}
 
 jobs:
   desktop:
@@ -31,6 +34,9 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
       # raylib's headers on Linux: OpenGL, and GLFW's X11 and Wayland backends.
       - name: Install raylib's libraries
         if: runner.os == 'Linux'
@@ -49,10 +55,23 @@ jobs:
       # The game loads the packed assets folder beside the executable.
       - name: Pack the runtime assets
         run: go run ./tools/assetpack
+      - name: Package OTA release
+        run: |
+          platform="$(go env GOOS)-$(go env GOARCH)"
+          python tools/ota/release.py package --root build --out "build/ota/$platform" \
+            --platform "$platform" --release-id "$OTA_RELEASE_ID" \
+            --commit "$SOURCE_COMMIT" --version "$OTA_GAME_VERSION"
       - uses: actions/upload-artifact@v7
         with:
           name: earth-two-${{ runner.os }}
-          path: build/
+          path: |
+            build/earth-two*
+            build/assets/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ota-${{ runner.os }}
+          path: build/ota/
+          if-no-files-found: error
 
   web:
     name: Web
@@ -62,6 +81,9 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
       - uses: mymindstorm/setup-emsdk@v16
         with:
           version: ${{ env.EMSDK_VERSION }}
@@ -76,7 +98,93 @@ jobs:
           restore-keys: illusion-web-${{ env.EMSDK_VERSION }}-
       - name: Build for the browser
         run: make web
+      - name: Package OTA release
+        run: |
+          python tools/ota/release.py package --root build/web --out build/ota/web \
+            --platform web --release-id "$OTA_RELEASE_ID" \
+            --commit "$SOURCE_COMMIT" --version "$OTA_GAME_VERSION"
       - uses: actions/upload-artifact@v7
         with:
           name: earth-two-web
           path: build/web
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ota-web
+          path: build/ota/
+          if-no-files-found: error
+
+  release-tools:
+    name: Validate OTA tooling
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Test packaging and publishing
+        run: python -m unittest discover -s tools/ota -p 'test_*.py' -v
+      - name: Validate storage template
+        run: |
+          python -m pip install cfn-lint==1.57.2
+          cfn-lint infra/ota-storage.json
+
+  publish-updates:
+    name: Publish OTA releases
+    needs: [desktop, web, release-tools]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      vars.OTA_PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: ota-release
+    concurrency:
+      group: earth-two-ota-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Skip superseded main builds
+        id: fresh
+        shell: bash
+        run: |
+          current_head="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ -z "$current_head" ]; then
+            echo 'Could not resolve main' >&2
+            exit 1
+          fi
+          if [ "$current_head" = "$SOURCE_COMMIT" ]; then
+            echo 'publish=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'A newer main commit exists; skipping release promotion.'
+          fi
+      - uses: actions/download-artifact@v8
+        if: steps.fresh.outputs.publish == 'true'
+        with:
+          pattern: ota-*
+          merge-multiple: true
+          path: build/ota-incoming
+      - name: Merge tested platform releases
+        if: steps.fresh.outputs.publish == 'true'
+        run: |
+          python tools/ota/release.py merge --root build/ota-incoming \
+            --out build/ota-release --require-all
+      - name: Upload S3 assets and promote manifest
+        if: steps.fresh.outputs.publish == 'true'
+        env:
+          AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+          AWS_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+          AWS_S3_SESSION_TOKEN: ${{ secrets.AWS_S3_SESSION_TOKEN }}
+          AWS_S3_ENDPOINT: ${{ vars.AWS_S3_ENDPOINT }}
+          AWS_S3_REGION: ${{ vars.AWS_S3_REGION }}
+          AWS_S3_BUCKET: ${{ vars.AWS_S3_BUCKET }}
+          OTA_S3_PREFIX: ${{ vars.OTA_S3_PREFIX || 'earth-two' }}
+          AWS_S3_PUBLIC_URL: ${{ vars.AWS_S3_PUBLIC_URL }}
+          SPACETIMEDB_SERVER: ${{ vars.SPACETIMEDB_SERVER }}
+          SPACETIMEDB_DATABASE: ${{ vars.SPACETIMEDB_DATABASE }}
+          SPACETIMEDB_PUBLISH_TOKEN: ${{ secrets.SPACETIMEDB_PUBLISH_TOKEN }}
+          OTA_RELEASE_CHANNEL: ${{ vars.OTA_RELEASE_CHANNEL || 'beta' }}
+        run: |
+          python tools/ota/release.py publish --root build/ota-release \
+            --channel "$OTA_RELEASE_CHANNEL"

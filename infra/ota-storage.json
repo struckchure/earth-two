@@ -1,0 +1,159 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Earth Two immutable OTA downloads: private S3 bucket, CloudFront and publisher policy",
+  "Parameters": {
+    "ReleasePrefix": {
+      "Type": "String",
+      "Default": "earth-two",
+      "AllowedPattern": "[a-zA-Z0-9][a-zA-Z0-9_-]*"
+    }
+  },
+  "Resources": {
+    "ReleaseBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "BlockPublicPolicy": true,
+          "IgnorePublicAcls": true,
+          "RestrictPublicBuckets": true
+        },
+        "OwnershipControls": {
+          "Rules": [{"ObjectOwnership": "BucketOwnerEnforced"}]
+        },
+        "VersioningConfiguration": {"Status": "Enabled"},
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [{
+            "ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}
+          }]
+        }
+      }
+    },
+    "OriginAccess": {
+      "Type": "AWS::CloudFront::OriginAccessControl",
+      "Properties": {
+        "OriginAccessControlConfig": {
+          "Name": {"Fn::Sub": "${AWS::StackName}-ota"},
+          "OriginAccessControlOriginType": "s3",
+          "SigningBehavior": "always",
+          "SigningProtocol": "sigv4"
+        }
+      }
+    },
+    "DownloadHeaders": {
+      "Type": "AWS::CloudFront::ResponseHeadersPolicy",
+      "Properties": {
+        "ResponseHeadersPolicyConfig": {
+          "Name": {"Fn::Sub": "${AWS::StackName}-ota-downloads"},
+          "CorsConfig": {
+            "AccessControlAllowCredentials": false,
+            "AccessControlAllowHeaders": {"Items": ["*"]},
+            "AccessControlAllowMethods": {"Items": ["GET", "HEAD", "OPTIONS"]},
+            "AccessControlAllowOrigins": {"Items": ["*"]},
+            "AccessControlExposeHeaders": {
+              "Items": ["Content-Length", "Content-Range", "Accept-Ranges", "ETag"]
+            },
+            "AccessControlMaxAgeSec": 600,
+            "OriginOverride": true
+          }
+        }
+      }
+    },
+    "Distribution": {
+      "Type": "AWS::CloudFront::Distribution",
+      "Properties": {
+        "DistributionConfig": {
+          "Enabled": true,
+          "HttpVersion": "http2and3",
+          "PriceClass": "PriceClass_100",
+          "Origins": [{
+            "Id": "release-bucket",
+            "DomainName": {"Fn::GetAtt": ["ReleaseBucket", "RegionalDomainName"]},
+            "OriginAccessControlId": {"Ref": "OriginAccess"},
+            "S3OriginConfig": {"OriginAccessIdentity": ""}
+          }],
+          "DefaultCacheBehavior": {
+            "TargetOriginId": "release-bucket",
+            "ViewerProtocolPolicy": "redirect-to-https",
+            "AllowedMethods": ["GET", "HEAD", "OPTIONS"],
+            "CachedMethods": ["GET", "HEAD", "OPTIONS"],
+            "Compress": true,
+            "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6",
+            "ResponseHeadersPolicyId": {"Ref": "DownloadHeaders"}
+          },
+          "CustomErrorResponses": [
+            {"ErrorCode": 403, "ErrorCachingMinTTL": 0},
+            {"ErrorCode": 404, "ErrorCachingMinTTL": 0}
+          ]
+        }
+      }
+    },
+    "ReleaseBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {"Ref": "ReleaseBucket"},
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "RequireConditionalReleaseWrites",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:PutObject",
+              "Resource": {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/releases/*"},
+              "Condition": {
+                "Null": {"s3:if-none-match": "true"},
+                "Bool": {"s3:ObjectCreationOperation": "true"}
+              }
+            },
+            {
+              "Sid": "CloudFrontDownloads",
+              "Effect": "Allow",
+              "Principal": {"Service": "cloudfront.amazonaws.com"},
+              "Action": "s3:GetObject",
+              "Resource": {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/releases/*"},
+              "Condition": {
+                "StringEquals": {
+                  "AWS:SourceArn": {"Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"}
+                }
+              }
+            },
+            {
+              "Sid": "RequireTLS",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Action": "s3:*",
+              "Resource": [
+                {"Fn::GetAtt": ["ReleaseBucket", "Arn"]},
+                {"Fn::Sub": "${ReleaseBucket.Arn}/*"}
+              ],
+              "Condition": {"Bool": {"aws:SecureTransport": "false"}}
+            }
+          ]
+        }
+      }
+    },
+    "PublisherPolicy": {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description": "Attach to the OTA CI publisher; upload and verify release objects only",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Action": ["s3:PutObject", "s3:GetObject"],
+            "Resource": {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/releases/*"}
+          }]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "BucketName": {"Value": {"Ref": "ReleaseBucket"}},
+    "DownloadBaseURL": {"Value": {"Fn::Sub": "https://${Distribution.DomainName}"}},
+    "ReleasePrefix": {"Value": {"Ref": "ReleasePrefix"}},
+    "PublisherPolicyArn": {"Value": {"Ref": "PublisherPolicy"}}
+  }
+}
