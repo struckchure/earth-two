@@ -57,6 +57,7 @@ pub enum StartAt {
     Arrival,
     Hull,
     Buggy,
+    Bike,
     Traversal,
 }
 
@@ -136,7 +137,10 @@ impl Plugin for GamePlugin {
         .add_systems(OnEnter(Screen::Playing), unlock)
         .add_systems(OnExit(Screen::Playing), lock);
         #[cfg(feature = "viewer")]
-        app.add_plugins(render::GameRenderPlugin);
+        app.add_plugins((
+            render::GameRenderPlugin,
+            crate::presentation::pose::PosePlugin,
+        ));
     }
 }
 
@@ -190,13 +194,33 @@ fn spawn_player(
         StartAt::Arrival => ARRIVAL,
         StartAt::Hull => Vec3::new(-15.0, 0.0, 6.0),
         StartAt::Traversal => TRAVERSAL_ORIGIN + Vec3::new(1.0, 0.0, 1.95),
-        StartAt::Buggy => {
-            let Some((car, tr)) = cars.iter().find(|(d, _)| d.name == "buggy") else {
+        StartAt::Buggy | StartAt::Bike => {
+            let name = if matches!(*start, StartAt::Bike) {
+                "bike"
+            } else {
+                "buggy"
+            };
+            let Some((car, tr)) =
+                cars.iter()
+                    .filter(|(d, _)| d.name == name)
+                    .min_by(|(_, a), (_, b)| {
+                        a.translation
+                            .distance_squared(ARRIVAL)
+                            .total_cmp(&b.translation.distance_squared(ARRIVAL))
+                    })
+            else {
                 return;
             };
             let seat = car.spec.seats.first().unwrap();
             let (p, _) = vehicle::spec::seat_pose(tr.translation, tr.rotation, seat);
-            Vec3::new(p.x + 1.6, tr.translation.y, p.z)
+            {
+                let offset = if matches!(*start, StartAt::Bike) {
+                    tr.rotation * Vec3::X
+                } else {
+                    Vec3::X * 1.6
+                };
+                Vec3::new(p.x + offset.x, tr.translation.y, p.z + offset.z)
+            }
         }
     };
     let feet = Vec3::new(

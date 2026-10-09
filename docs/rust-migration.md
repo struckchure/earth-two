@@ -6,11 +6,12 @@ its appearance, controls, movement, vehicle handling, content, account data,
 desktop and browser support, and release workflows. Performance improvements
 must be measured at equivalent quality and workload.
 
-Status: the Step 3 local review checkpoint opens a playable application with
+Status: the Step 3 playable application and Step 4 pose increment open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 261 passing headless tests; the render-side
-terrain regression and native graphical game smoke also pass. Visual and
+with `--foundation`. There are 263 passing headless tests and 85 client
+library tests. Clothing attachment, live riding and wall-contact poses are
+integrated; native graphical game smoke also passes. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
 A working module or green unit test is not evidence of integrated game parity.
@@ -272,6 +273,50 @@ walking, with no JavaScript errors. Release WASM build and workspace/all-target
 Clippy pass. Evidence: `build/migration-baseline/clothing-fix/`.
 This fixes the reported attachment defect; remaining pose/lighting parity is
 still open. The user authorized continuing into Step 4 after this fix.
+
+## Step 4 pose review checkpoint: 2026-10-09
+
+This is the first incremental slice of Step 4, ready for player review. The
+full Step 4 exit gate is still open: residents, hybrid ragdolls, injury/revival
+integration and measured vehicle/traversal parity remain to be completed.
+
+Ported `character/ride.go` into `presentation/ride.rs`: retain the original
+lean limits, reach ratio, wrist/ankle offsets, two-bone solve and palm frame.
+`presentation/pose.rs` bridges this and the existing `contacts.go` geometry
+to Bevy’s actual blended joints. It runs after animation and before transform
+propagation, so body skinning, garment skinning and desktop cloth agree.
+Restoring the authored local joints before the next sample prevents corrections
+from accumulating or remaining after dismounting/leaving a wall. Browser
+review also exposed an outline cloned before the body scene was ready;
+garment binding now remaps existing outline joints too, with regression
+coverage for that asynchronous loading order. Ladder
+rail/landing exceptions and static-surface filtering retain the Go rules.
+
+Review with `cargo run --locked -p earth-two-client -- --at=bike`, or the
+browser route `/?at=bike`. Play, press E, inspect hands/feet and clothing,
+drive/brake, then dismount and walk against nearby walls. The bike and buggy
+review routes choose their authored vehicle nearest Landfall arrival, avoiding
+an unstreamed remote vehicle selected by ECS iteration order.
+
+Evidence is under `build/migration-baseline/step-4-poses/`:
+
+- 263 headless workspace tests pass (movement/traversal, vehicles and game
+  lifecycle included); the four application tests also pass after the route fix.
+- 85 default-feature client library tests pass, including grip/peg reach,
+  palm orientation, bone-length preservation and a live-joint wall regression
+  covering a rotated/scaled hierarchy, paused frames and clearance release.
+- Native Metal graphical smoke passes mounting the actual bike, applying the
+  riding pose, driving, braking, exiting, walking, pause/title/resume.
+  `native-riding.png` shows the grips/feet and attached clothes;
+  `native-bike-exit.png` shows the return to walking.
+- Chromium/SwiftShader WebGL2 starts at the bike and mounts using normal
+  browser keyboard input. `browser-riding.png` confirms the grips and clothes
+  follow the riding pose, with no floating outline. `browser-exit.png` confirms
+  dismount restores standing; `browser-errors.log` reports no JavaScript errors.
+- Workspace/all-target Clippy passes with warnings denied; release WASM builds.
+
+This is integration evidence, not accepted Go pose/handling parity. Human
+side-by-side review and the remaining Step 4 scenarios are still required.
 
 ## Step 2 local review checkpoint: 2026-10-09
 

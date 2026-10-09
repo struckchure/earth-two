@@ -14,6 +14,8 @@ use earth_two_client::{
 fn main() {
     std::fs::create_dir_all("build/migration-baseline/step-3-playable")
         .expect("create game smoke evidence directory");
+    let bike = std::env::args().any(|a| a == "--bike");
+    std::fs::create_dir_all("build/migration-baseline/step-4-poses").unwrap();
     App::new()
         .add_plugins(
             DefaultPlugins.set(AssetPlugin {
@@ -22,7 +24,7 @@ fn main() {
                 ..default()
             }),
         )
-        .insert_resource(StartAt::Buggy)
+        .insert_resource(if bike { StartAt::Bike } else { StartAt::Buggy })
         .add_plugins(GamePlugin)
         .init_resource::<Review>()
         .add_systems(PreUpdate, review.after(InputSystems))
@@ -75,10 +77,35 @@ fn review(world: &mut World) {
                 world.write_message(MenuAction::Play);
             }
             180 => {
-                let car = world.resource::<Driving>().vehicle.expect("entered buggy");
+                let car = world
+                    .resource::<Driving>()
+                    .vehicle
+                    .expect("entered vehicle");
                 assert!(world.get::<CharacterController>(player).is_none());
                 review.before = world.get::<Transform>(car).unwrap().translation;
-                info!("Game smoke: entered buggy");
+                if matches!(*world.resource::<StartAt>(), StartAt::Bike) {
+                    assert_eq!(
+                        world
+                            .get::<earth_two_client::vehicle::Drivable>(car)
+                            .unwrap()
+                            .name,
+                        "bike"
+                    );
+                    assert!(
+                        world
+                            .query::<&earth_two_client::presentation::pose::PoseFit>()
+                            .iter(world)
+                            .any(|p| p.riding && p.frames > 20),
+                        "live bike pose was not applied"
+                    );
+                    use bevy::render::view::window::screenshot::{Screenshot, save_to_disk};
+                    world
+                        .spawn(Screenshot::primary_window())
+                        .observe(save_to_disk(
+                            "build/migration-baseline/step-4-poses/native-riding.png",
+                        ));
+                }
+                info!("Game smoke: entered vehicle");
             }
             300 => {
                 let car = world.resource::<Driving>().vehicle.unwrap();
@@ -90,7 +117,7 @@ fn review(world: &mut World) {
                         .distance(review.before)
                         > 2.0
                 );
-                info!("Game smoke: drove buggy");
+                info!("Game smoke: drove vehicle");
             }
             600 => {
                 assert!(!world.resource::<Driving>().active(), "exit after braking");
@@ -107,6 +134,13 @@ fn review(world: &mut World) {
                         > 0.5
                 );
                 world.write_message(MenuAction::Pause);
+                assert!(
+                    world
+                        .query::<&earth_two_client::presentation::pose::PoseFit>()
+                        .iter(world)
+                        .all(|p| !p.riding),
+                    "riding pose survived exit"
+                );
                 info!("Game smoke: exited and walked");
             }
             725 => review.parked = world.get::<Transform>(player).unwrap().translation,
@@ -136,11 +170,14 @@ fn review(world: &mut World) {
                 use bevy::render::view::window::screenshot::{
                     Screenshot, ScreenshotCaptured, save_to_disk,
                 };
+                let path = if matches!(*world.resource::<StartAt>(), StartAt::Bike) {
+                    "build/migration-baseline/step-4-poses/native-bike-exit.png"
+                } else {
+                    "build/migration-baseline/step-3-playable/native-play.png"
+                };
                 world
                     .spawn(Screenshot::primary_window())
-                    .observe(save_to_disk(
-                        "build/migration-baseline/step-3-playable/native-play.png",
-                    ))
+                    .observe(save_to_disk(path))
                     .observe(
                         |_: On<ScreenshotCaptured>, mut exit: MessageWriter<AppExit>| {
                             exit.write(AppExit::Success);

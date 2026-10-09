@@ -24,9 +24,12 @@ pub mod graph;
 pub mod mesh;
 pub mod outfit;
 pub mod player;
+#[cfg(feature = "viewer")]
+pub mod pose;
 // Keep the source-module name for the Go presentation.go parity port.
 #[allow(clippy::module_inception)]
 pub mod presentation;
+pub mod ride;
 pub mod roster;
 pub mod verlet;
 #[cfg(feature = "viewer")]

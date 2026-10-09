@@ -1,14 +1,15 @@
 # Earth Two Rust client
 
-The Step 3 migration preview uses Bevy 0.20.0, Avian and BSN. The default
+The migration preview uses Bevy 0.20.0, Avian and BSN. The default
 executable opens Landfall with a player, walking/traversal, vehicle controls,
 a following collision camera, and loading/title/play/pause states. Returning
 to the main menu preserves the current session, as in Go.
 
-This is a playable integration checkpoint. Remaining pose fitting,
-lighting and complete visual parity remain unfinished, as do sound, full
+This is a playable integration checkpoint. Hair and garments follow the
+body skeleton; bike/trike riding and static-wall pose fitting are connected.
+Remaining animation/foot placement, lighting and complete visual parity remain unfinished, as do sound, full
 menus/accounts, residents, injuries and other gameplay flows. Go remains the
-release default. See the [migration checkpoint](../../docs/rust-migration.md#step-3-local-review-checkpoint-2026-10-09)
+release default. See the [migration checkpoint](../../docs/rust-migration.md#step-4-pose-review-checkpoint-2026-10-09)
 for evidence and remaining work.
 
 Run from the repository root:
@@ -16,12 +17,14 @@ Run from the repository root:
 ```sh
 make rust-run       # playable Landfall preview
 cargo run --locked -p earth-two-client -- --at=buggy
+cargo run --locked -p earth-two-client -- --at=bike
 cargo run --locked -p earth-two-client -- --at=traversal
 cargo run --locked -p earth-two-client -- --foundation
 make rust-smoke     # finite headless gravity/contact check
 make rust-test      # whole workspace, without a window
 make rust-check     # native and browser compile checks
 cargo run --locked -p earth-two-client --example game_smoke
+cargo run --locked -p earth-two-client --example game_smoke -- --bike
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
@@ -32,7 +35,9 @@ uses WASD/arrows, Space handbrake, H headlamps and R recovery. Esc pauses or
 resumes; arrows and Enter select menu choices. Desktop mouse movement orbits;
 in a browser focus the canvas first and drag with either mouse button.
 
-`--at=buggy` places the player beside an authored parked buggy.
+`--at=buggy` and `--at=bike` place the player beside the authored vehicles
+nearest Landfall arrival. Press E to mount, then inspect the hands and feet
+while driving and after dismounting.
 `--at=traversal` adds the authored Hull test block above the terrain for
 isolated review. `--foundation` preserves the earlier asset/physics diagnostic.
 The `game_smoke` example uses synthetic game inputs in the native renderer
@@ -47,8 +52,8 @@ For an automatic title capture use
 `EARTH_TWO_CAPTURE=build/rust/title.png make rust-run`; it waits for content
 and a render warmup, captures a frame and exits.
 
-Local evidence includes 261 passing headless tests, a terrain/material
-streaming regression, native macOS arm64/Metal graphical smoke, and a packed
+Local evidence includes 263 passing headless tests, 85 client library tests
+with rendering/pose regressions, native macOS arm64/Metal graphical smoke, and a packed
 asset Chromium/SwiftShader WebGL2 gameplay check. CI also compiles/tests the
 Linux, Windows and both macOS architecture targets. Other runtime platforms,
 performance and exact Go parity remain unverified.
@@ -86,7 +91,7 @@ assets in `build/rust-web/`. This requires Python 3.11+ and the `wasm-bindgen`
 CLI matching `Cargo.lock`; the script prints the exact install command when
 it is missing. Serve with
 `python3 -m http.server 8080 --directory build/rust-web`.
-Use `/?at=buggy`, `/?at=traversal`, or `/?foundation` for review routes.
+Use `/?at=buggy`, `/?at=bike`, `/?at=traversal`, or `/?foundation` for review routes.
 Browser runtime validation is separate from `make rust-check`, which only
 compiles for WASM.
 

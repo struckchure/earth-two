@@ -73,6 +73,7 @@ fn start_at() -> StartAt {
     match value.as_str() {
         "hull" => StartAt::Hull,
         "buggy" => StartAt::Buggy,
+        "bike" => StartAt::Bike,
         "traversal" => StartAt::Traversal,
         _ => StartAt::Arrival,
     }

@@ -424,6 +424,7 @@ fn bind_garments(
     garments: Query<(Entity, &ChildOf, &MeshEntities, Option<&GarmentSkeleton>), With<Garment>>,
     bodies: Query<(&ModelScene, &MeshEntities), Without<Garment>>,
     names: Query<&Name>,
+    children: Query<&Children>,
     mut skins: Query<&mut SkinnedMesh>,
 ) {
     for (entity, parent, meshes, attached) in &garments {
@@ -469,7 +470,14 @@ fn bind_garments(
             .collect();
         let Some(remapped) = remapped else { continue };
         for (mesh, joints) in remapped {
-            skins.get_mut(mesh).unwrap().joints = joints;
+            skins.get_mut(mesh).unwrap().joints = joints.clone();
+            // Material adoption can precede the body's asynchronous scene
+            // readiness. Rebind any outline already cloned from this mesh.
+            for child in children.iter_descendants(mesh) {
+                if let Ok(mut skin) = skins.get_mut(child) {
+                    skin.joints = joints.clone();
+                }
+            }
         }
         commands
             .entity(entity)
@@ -724,7 +732,18 @@ mod tests {
                 ChildOf(body),
                 MeshEntities(vec![Some(mesh)]),
             ));
+            let outline = app
+                .world_mut()
+                .spawn((
+                    ChildOf(mesh),
+                    SkinnedMesh {
+                        inverse_bindposes: default(),
+                        joints: vec![old_hand, old_head],
+                    },
+                ))
+                .id();
             expected.push((mesh, vec![hand, head]));
+            expected.push((outline, vec![hand, head]));
         }
         app.update();
         for (mesh, expected) in expected {

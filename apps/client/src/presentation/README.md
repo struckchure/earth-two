@@ -27,6 +27,8 @@ in its `Act` set after `face`.
 | `mesh.rs` | raylib's Mesh | rendering-free vertex data, `ModelStore` |
 | `graph.rs` | raylib's `UpdateModelAnimationEx` | the clip clock on Bevy's `AnimationGraph`: two weighted nodes, Bevy's clocks paused |
 | `content.rs` | `game/game.go` | the clip table, the people, the starting outfit |
+| `ride.rs` | `ride.go` | astride lean, two-bone grip/peg reach and palm orientation |
+| `pose.rs` | `ride.go`, `contacts.go` | live Bevy joint sampling/writeback after animation, before transform propagation |
 | `viewer.rs` | `plugin.go`, raylib | GLB loading, scenes, skin tone and hidden meshes, cloth writeback (feature `viewer`) |
 
 Schedules, as in Go: `dress`, `clothe`, `animate` in Update (Act);
@@ -42,3 +44,8 @@ Garment GLBs have no animation clips. Their joint palettes bind by name to
 the owning body’s animated joints, retaining each garment’s inverse bind
 matrices. Desktop cloth retains that live palette after replacing GPU
 skinning with a private CPU mesh; its outline shares the same posed mesh.
+
+The playable game installs `PosePlugin`: it restores the previous authored
+local transforms before animation, reads Bevy’s blended joints, applies ride
+or static-wall contact fitting, and writes local joints before propagation.
+Garments and desktop cloth then consume that same corrected skeleton.
