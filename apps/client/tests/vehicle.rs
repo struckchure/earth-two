@@ -1110,3 +1110,95 @@ fn parked_vehicle_holds_its_brakes() {
     let input = g.get::<VehicleInput>(g.car);
     assert_eq!(input.hand_brake, 1.0);
 }
+
+/// Replays the same logical control script as the isolated Go observer.
+/// Export is optional; normal tests still verify complete, finite traces.
+#[test]
+fn migration_vehicle_trace() {
+    #[derive(serde::Deserialize)]
+    struct Phase {
+        ticks: usize,
+        forward: i32,
+        steer: i32,
+    }
+    #[derive(serde::Deserialize)]
+    struct Script {
+        version: u32,
+        scenario: String,
+        fixed_hz: u32,
+        warmup_ticks: usize,
+        phases: Vec<Phase>,
+    }
+    let script: Script =
+        serde_json::from_str(include_str!("../../../tools/migration/vehicle-inputs.json")).unwrap();
+    assert_eq!(script.version, 1);
+    assert_eq!(script.fixed_hz, 60);
+    let out = std::env::var_os("EARTH_TWO_RUST_TRACE_OUT").map(std::path::PathBuf::from);
+    if let Some(path) = &out {
+        std::fs::create_dir_all(path).unwrap();
+    }
+    for (name, spec) in real_specs() {
+        let mut g = new_rig_with(&name, &spec);
+        g.get_in();
+        assert!(g.driving().active());
+        g.tick(script.warmup_ticks);
+        let mut samples = Vec::new();
+        for phase in &script.phases {
+            g.keys(|keys| {
+                keys.forward = phase.forward as f32;
+                keys.steer = phase.steer as f32;
+            });
+            for _ in 0..phase.ticks {
+                g.tick(1);
+                let tr = g.get::<Transform>(g.car);
+                let state = g.state();
+                let input = g.get::<VehicleInput>(g.car);
+                let linear = g.velocity();
+                let angular = g.get::<AngularVelocity>(g.car).0;
+                assert!(tr.translation.is_finite() && tr.rotation.is_finite());
+                assert!(linear.is_finite() && angular.is_finite());
+                assert!(state.speed.is_finite() && state.rpm.is_finite());
+                let wheels: Vec<_> = state
+                    .wheels
+                    .iter()
+                    .map(|w| {
+                        serde_json::json!({
+                            "contact": w.contact, "suspension": w.suspension,
+                            "spin": w.spin, "steer": w.steer,
+                        })
+                    })
+                    .collect();
+                samples.push(serde_json::json!({
+                    "tick": samples.len() + 1,
+                    "entity": format!("vehicle/{name}"),
+                    "requested": [phase.forward, phase.steer],
+                    "input": [input.forward, input.right, input.brake, input.hand_brake],
+                    "position": tr.translation.to_array(),
+                    "rotation_xyzw": tr.rotation.to_array(),
+                    "linear_velocity": linear.to_array(),
+                    "angular_velocity": angular.to_array(),
+                    "up_y": (tr.rotation * Vec3::Y).y,
+                    "speed": state.speed, "rpm": state.rpm, "gear": state.gear,
+                    "touching": state.touching, "wheels": wheels,
+                }));
+            }
+        }
+        assert_eq!(
+            samples.len(),
+            script.phases.iter().map(|p| p.ticks).sum::<usize>()
+        );
+        if let Some(path) = &out {
+            let trace = serde_json::json!({
+                "version": 1, "engine": "rust-avian", "scenario": script.scenario,
+                "fixed_hz": 60,
+                "sample_phase": "after complete harness tick; root transform and last physics writeback",
+                "samples": samples,
+            });
+            std::fs::write(
+                path.join(format!("{name}.json")),
+                serde_json::to_vec(&trace).unwrap(),
+            )
+            .unwrap();
+        }
+    }
+}

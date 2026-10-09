@@ -1,0 +1,340 @@
+{
+  "version": 1,
+  "reference_commit": "c561bd69e06500aa3c79e9bb0d0d5e974694e7c7",
+  "target_authority": ".github/workflows/ci.yml jobs.desktop.strategy.matrix.include and jobs.web",
+  "targets": [
+    {
+      "id": "linux-amd64",
+      "runner": "ubuntu-24.04"
+    },
+    {
+      "id": "macos-arm64",
+      "runner": "macos-15"
+    },
+    {
+      "id": "macos-amd64",
+      "runner": "macos-15-intel"
+    },
+    {
+      "id": "windows-amd64",
+      "runner": "windows-latest"
+    },
+    {
+      "id": "web",
+      "runner": "ubuntu-latest",
+      "emsdk": "6.0.10"
+    }
+  ],
+  "browser_matrix": "Existing CI builds Web but specifies no browser engines or browser runtime tests. Local Chromium is additional observation, not a newly declared support restriction.",
+  "tolerance_policy": "Use existing Go test thresholds for discrete outcomes. Three local repeats measure variability only; zero variance does not justify zero cross-engine tolerance. Position/rotation/timing/perceptual/performance tolerances remain pending paired review.",
+  "scenarios": [
+    {
+      "id": "APP-01",
+      "title": "Startup, title, pause and resume",
+      "source_globs": [
+        "game/game.go",
+        "game/menu*.go",
+        "game/screens.go",
+        "game/cursor*.go"
+      ],
+      "setup_and_inputs": "Fresh disposable profile; start game, Play, Esc, resume, return to title and restart.",
+      "expected": "Same menu text, focus, control locking and pause behavior; no duplicated world or handlers.",
+      "comparison": "UI screenshots and playthrough",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/APP-01"
+    },
+    {
+      "id": "WORLD-01",
+      "title": "Landfall and asset identities",
+      "source_globs": [
+        "world/*.go",
+        "assetref/**/*.go",
+        "game/assets*.go",
+        "game/landfall_test.go"
+      ],
+      "setup_and_inputs": "Load source and packed assets; visit arrival pads, gate, market, lower decks and crew deck.",
+      "expected": "Same logical IDs, transforms, colliders, ladders, lamps and external packed resources.",
+      "comparison": "Manifest/pack tests and matching captures",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/WORLD-01"
+    },
+    {
+      "id": "WORLD-02",
+      "title": "Terrain, scatter, streaming and maps",
+      "source_globs": [
+        "game/terrain*.go",
+        "game/scatter*.go",
+        "game/maps*.go",
+        "game/cull*.go"
+      ],
+      "setup_and_inputs": "Walk/drive across chunk boundaries; teleport among settlements; compare map markers and terrain samples.",
+      "expected": "Same seeded placement/heights, map coordinates, draw distances and collision coverage.",
+      "comparison": "Tests, deterministic fixtures and route trace",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/WORLD-02"
+    },
+    {
+      "id": "MOVE-01",
+      "title": "Walking, running, braking and turning",
+      "source_globs": [
+        "character/locomotion*.go"
+      ],
+      "setup_and_inputs": "Walk, run, reverse direction, stop, jump and land on flat ground and slopes.",
+      "expected": "Same acceleration/braking/turning and airborne control within measured bounds.",
+      "comparison": "Existing tests plus fixed-step movement trace (pending)",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/MOVE-01"
+    },
+    {
+      "id": "MOVE-02",
+      "title": "Traversal and collision boundaries",
+      "source_globs": [
+        "character/traversal*.go",
+        "world/block_test.go"
+      ],
+      "setup_and_inputs": "Run the Hull vault, mantle, stairs, duct slide, crouch, roll, ladder and wall-kick routes; test blocked alternatives.",
+      "expected": "Identical success/rejection and input consumption; existing Go test thresholds apply.",
+      "comparison": "Existing traversal tests and route clips (pending)",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/MOVE-02"
+    },
+    {
+      "id": "TIME-01",
+      "title": "Render cadence, pauses and focus",
+      "source_globs": [
+        "character/locomotion_test.go",
+        "vehicle/vehicle_test.go",
+        "character/presentation_test.go"
+      ],
+      "setup_and_inputs": "Repeat inputs at 30/60/97/240 render Hz and multi-tick frames; pause mid-jump/drive, resume, lose/regain focus.",
+      "expected": "Each edge input consumed once; no paused drift or jump on resuming.",
+      "comparison": "Existing tests plus variable-cadence replay (pending)",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/TIME-01"
+    },
+    {
+      "id": "VEH-01",
+      "title": "All real vehicle cornering",
+      "source_globs": [
+        "vehicle/real_test.go",
+        "vehicle/handling.go",
+        "vehicle/spec.go"
+      ],
+      "setup_and_inputs": "Replay vehicle-inputs.json on every world.json vehicle, three fresh runs, 60 Hz.",
+      "expected": "Every real variant reaches minimum up.Y >= 0.8 as required by the Go test; record speed and trajectory separately.",
+      "comparison": "Go/Rust JSON traces and source test",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/VEH-01"
+    },
+    {
+      "id": "VEH-02",
+      "title": "Drive, brake, reverse, enter/exit and parking",
+      "source_globs": [
+        "vehicle/vehicle_test.go",
+        "vehicle/drive.go",
+        "vehicle/headlamps*.go",
+        "game/drive*.go",
+        "character/seat*.go",
+        "character/ride.go"
+      ],
+      "setup_and_inputs": "For buggy, bike, trike, rover, hauler and tanker: enter, accelerate, brake, reverse, attempt blocked/fast exits, park, toggle H, recover with R.",
+      "expected": "Same prompts, control response, gears, seat/hand/foot poses and lamp/parking behavior.",
+      "comparison": "Source tests and hands-on route",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/VEH-02"
+    },
+    {
+      "id": "VEH-03",
+      "title": "People and solid obstacles",
+      "source_globs": [
+        "vehicle/pedestrians*.go",
+        "vehicle/impacts*.go",
+        "vehicle/pedestrian_balance_test.go"
+      ],
+      "setup_and_inputs": "Repeat full-rate and reduced-rate pedestrian impacts, nearby misses, walls and parked-vehicle collisions, forward and reverse.",
+      "expected": "Same injury thresholds, push response and obstacle protection; every vehicle tested independently.",
+      "comparison": "Source tests and contact traces (pending)",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/VEH-03"
+    },
+    {
+      "id": "CHAR-01",
+      "title": "Animation, body and wardrobe",
+      "source_globs": [
+        "character/animate*.go",
+        "character/skin*.go",
+        "character/outfit*.go",
+        "character/appearance*.go",
+        "character/footwear*.go",
+        "character/contacts*.go",
+        "game/wardrobe*.go"
+      ],
+      "setup_and_inputs": "Cycle bodies, outfits, shoes and action clips; inspect feet on terrain/stairs and animation transitions.",
+      "expected": "Same asset selections, hidden meshes, skin tones, timing, blends and bone placement.",
+      "comparison": "Source tests, wardrobe capture and clips",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/CHAR-01"
+    },
+    {
+      "id": "CHAR-02",
+      "title": "Cloth and distant presentation",
+      "source_globs": [
+        "character/cloth*.go",
+        "character/distant.go",
+        "character/presentation*.go"
+      ],
+      "setup_and_inputs": "Walk/run/turn in normal desktop clothing; repeat browser skeletal clothing and distant crowd views.",
+      "expected": "Desktop cloth retained; browser budget retained; no clipping, attachment lag or lost animation.",
+      "comparison": "Normal-play capture, cloth tests and visual review",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/CHAR-02"
+    },
+    {
+      "id": "INJURY-01",
+      "title": "Ragdolls and revival",
+      "source_globs": [
+        "character/ragdoll*.go",
+        "character/health.go",
+        "game/injuries*.go"
+      ],
+      "setup_and_inputs": "Cause reference critical/fatal impacts, falls and revival; repeat cleanup and despawn.",
+      "expected": "Same discrete life-state outcomes, momentum transfer, limb constraints, settling and revival.",
+      "comparison": "Source tests and clips (pending)",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/INJURY-01"
+    },
+    {
+      "id": "RENDER-01",
+      "title": "Materials and light",
+      "source_globs": [
+        "shading/*.go",
+        "game/lamps*.go",
+        "game/zones.go"
+      ],
+      "setup_and_inputs": "Compare skin, clothes, world, hair, glass, interior lights and Full/Low/Off shadows at matching cameras.",
+      "expected": "Same painted look, character-only outlines, transparency, color response and shadow coverage.",
+      "comparison": "Day/night captures and visual review",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/RENDER-01"
+    },
+    {
+      "id": "SKY-01",
+      "title": "Time, weather and effects",
+      "source_globs": [
+        "game/sky*.go",
+        "game/stars*.go",
+        "game/daylight.go",
+        "game/weather*.go",
+        "game/effects*.go"
+      ],
+      "setup_and_inputs": "Hold hour 11 clear, hour 22 clear and hour 11 storm=1; inspect sky, haze, stars, particles and lamps.",
+      "expected": "Same atmosphere, night activation and platform effect budgets.",
+      "comparison": "Day/night/storm captures and source tests",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/SKY-01"
+    },
+    {
+      "id": "CAM-01",
+      "title": "Camera, interaction priority and teleport",
+      "source_globs": [
+        "game/camera*.go",
+        "game/use*.go",
+        "game/teleport*.go"
+      ],
+      "setup_and_inputs": "Orbit near walls, zoom/follow on foot and driving; use benches/machines; compete seat/contract prompts; map/P teleport.",
+      "expected": "Same camera response, occlusion, prompt priority, reach and destination/vehicle handling.",
+      "comparison": "Source tests and hands-on playthrough",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/CAM-01"
+    },
+    {
+      "id": "UI-01",
+      "title": "Menus, map, contract and ledger",
+      "source_globs": [
+        "game/menu*.go",
+        "game/paper*.go",
+        "game/ui.go",
+        "game/cursor*.go",
+        "game/contracts*.go",
+        "game/ledger.go"
+      ],
+      "setup_and_inputs": "Review all screens with keyboard and mouse; accept/deliver the first work order; inspect rewards, journal and debt.",
+      "expected": "Exact copy, choices, values, rewards and navigation; matching fonts, layout and stamps.",
+      "comparison": "Screen captures, source tests and full delivery playthrough",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/UI-01"
+    },
+    {
+      "id": "AUDIO-01",
+      "title": "Ambience and gameplay sound",
+      "source_globs": [
+        "game/sound.go",
+        "game/ambience.go",
+        "game/drivesound.go",
+        "game/cues*.go"
+      ],
+      "setup_and_inputs": "Walk on each surface; drive all families; trigger impact/action cues, pause and resume; activate browser audio.",
+      "expected": "Same clips, gain/pitch, loops, timing and attenuation; no duplicate or stuck loops.",
+      "comparison": "Cue tests and audio/playthrough capture (pending)",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/AUDIO-01"
+    },
+    {
+      "id": "ACCOUNT-01",
+      "title": "Local identity and backup interchange",
+      "source_globs": [
+        "identity/*.go",
+        "game/identity*.go",
+        "cmd/account/*.go"
+      ],
+      "setup_and_inputs": "Use disposable keys only; create/unlock/import/export/restore in both clients; test wrong password and malformed files.",
+      "expected": "Exact signature payload and crypto/file/storage compatibility; same Unicode and offline behavior.",
+      "comparison": "Crypto/storage tests and bidirectional fixture/import checks",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/ACCOUNT-01"
+    },
+    {
+      "id": "ACCOUNT-02",
+      "title": "Live connection and reconnect",
+      "source_globs": [
+        "internals/account/*.go",
+        "web/spacetime/bridge.ts"
+      ],
+      "setup_and_inputs": "Connect to a disposable test database, disconnect/reconnect, change display name and inspect latency/errors.",
+      "expected": "Same schema, authorization and session lifecycle; no new account needed.",
+      "comparison": "Live integration tests and browser playthrough (pending; env-gated tests skipped)",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/ACCOUNT-02"
+    },
+    {
+      "id": "CROWD-01",
+      "title": "Crowds, testing controls and performance",
+      "source_globs": [
+        "game/residents.go",
+        "game/testing*.go",
+        "game/performance*.go"
+      ],
+      "setup_and_inputs": "Use F1/F9 to run 0,25,400 NPC scenarios at fixed views/routes; relocate and clear; repeat release measurements.",
+      "expected": "Same batches, LOD, collision response, cleanup and quality. Frame/memory bands require measured repeats.",
+      "comparison": "Source tests, 25-NPC tour timings; 0/400 and long-run profiling pending",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/CROWD-01"
+    },
+    {
+      "id": "DELIVERY-01",
+      "title": "Build, packaging, serving and rollback",
+      "source_globs": [
+        "cmd/**/*.go",
+        "tools/**/*.go",
+        "tools/desktop/*.py",
+        "tools/ota/*.py",
+        ".github/workflows/ci.yml"
+      ],
+      "setup_and_inputs": "Build each existing CI target; stage compressed browser assets; fresh install, update from Go, failed update and rollback.",
+      "expected": "Same CLI/env/HTTP/assets/OTA contracts; accounts and rollback retained; no target dropped.",
+      "comparison": "Build/test logs and installed runtime verification",
+      "status": "defined; acceptance pending",
+      "evidence_directory": "build/migration-baseline/<run>/DELIVERY-01"
+    }
+  ]
+}

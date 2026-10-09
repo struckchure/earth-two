@@ -1,0 +1,79 @@
+// This test-only observer is injected into an isolated Go reference by trace.py.
+// It reuses the original rig and controls and never patches production code.
+package vehicle
+
+import (
+    "encoding/json"
+    "os"
+    "path/filepath"
+    "sort"
+    "testing"
+    rl "github.com/gen2brain/raylib-go/raylib"
+    "github.com/struckchure/illusion/physics"
+    "github.com/struckchure/illusion/input"
+    "github.com/struckchure/illusion/transform"
+)
+
+func TestMigrationVehicleTrace(t *testing.T) {
+    var script struct {
+        Version int `json:"version"`
+        Scenario string `json:"scenario"`
+        FixedHz int `json:"fixed_hz"`
+        Warmup int `json:"warmup_ticks"`
+        Phases []struct {
+            Ticks int `json:"ticks"`
+            Forward int `json:"forward"`
+            Steer int `json:"steer"`
+        } `json:"phases"`
+    }
+    data, err := os.ReadFile(os.Getenv("EARTH_TWO_TRACE_INPUT"))
+    if err != nil { t.Fatal(err) }
+    if err = json.Unmarshal(data, &script); err != nil { t.Fatal(err) }
+    if script.Version != 1 || script.FixedHz != 60 { t.Fatal("unsupported trace script") }
+    specs := realSpecs(t)
+    names := make([]string, 0, len(specs))
+    for name := range specs { names = append(names, name) }
+    sort.Strings(names)
+    for _, name := range names {
+        t.Run(name, func(t *testing.T) {
+            g := newRigWith(t, name, specs[name])
+            g.tap(rl.KeyE)
+            if !g.driving.Active() { t.Fatal("could not enter vehicle") }
+            g.tick(script.Warmup)
+            samples := make([]map[string]any, 0, 600)
+            tick := 0
+            for _, phase := range script.Phases {
+                for _, key := range []input.Key{rl.KeyW, rl.KeyS, rl.KeyA, rl.KeyD} { g.keys.Release(key) }
+                if phase.Forward > 0 { g.keys.Press(rl.KeyW) }
+                if phase.Forward < 0 { g.keys.Press(rl.KeyS) }
+                if phase.Steer > 0 { g.keys.Press(rl.KeyD) }
+                if phase.Steer < 0 { g.keys.Press(rl.KeyA) }
+                for range phase.Ticks {
+                    g.tick(1)
+                    tick++
+                    tr := get[transform.Transform](g, g.car)
+                    st := get[physics.VehicleState](g, g.car)
+                    v := get[physics.Velocity](g, g.car)
+                    in := get[physics.VehicleInput](g, g.car)
+                    wheels := make([]map[string]any, 0, len(st.Wheels))
+                    for _, w := range st.Wheels { wheels = append(wheels, map[string]any{"contact":w.Contact, "suspension":w.Suspension, "spin":w.Spin, "steer":w.Steer}) }
+                    samples = append(samples, map[string]any{
+                        "tick":tick, "entity":"vehicle/"+name,
+                        "requested":[]int{phase.Forward, phase.Steer},
+                        "input":[]float32{in.Forward,in.Right,in.Brake,in.HandBrake},
+                        "position":[]float32{tr.Translation.X,tr.Translation.Y,tr.Translation.Z},
+                        "rotation_xyzw":[]float32{tr.Rotation.X,tr.Rotation.Y,tr.Rotation.Z,tr.Rotation.W},
+                        "linear_velocity":[]float32{v.Linear.X,v.Linear.Y,v.Linear.Z},
+                        "angular_velocity":[]float32{v.Angular.X,v.Angular.Y,v.Angular.Z},
+                        "up_y":rl.Vector3RotateByQuaternion(rl.Vector3{Y:1},tr.Rotation).Y,
+                        "speed":st.Speed, "rpm":st.RPM, "gear":st.Gear, "touching":st.Touching, "wheels":wheels,
+                    })
+                }
+            }
+            result := map[string]any{"version":1,"engine":"go-jolt","scenario":script.Scenario,"fixed_hz":60,"sample_phase":"after complete harness tick; root transform and last physics writeback","samples":samples}
+            data,err := json.Marshal(result)
+            if err != nil { t.Fatal(err) }
+            if err = os.WriteFile(filepath.Join(os.Getenv("EARTH_TWO_TRACE_OUT"),name+".json"),append(data,'\n'),0644); err != nil { t.Fatal(err) }
+        })
+    }
+}

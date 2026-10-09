@@ -30,6 +30,14 @@ rust-smoke:
 rust-web: assets
 	$(PYTHON) tools/rust/web.py
 
+# Frozen Go evidence for incremental parity review; never changes release defaults.
+.PHONY: migration-baseline migration-tools-test
+migration-baseline:
+	$(PYTHON) tools/migration/baseline.py $(BASELINE_ARGS)
+
+migration-tools-test:
+	$(PYTHON) -m unittest discover -s tools/migration -p 'test_*.py' -v
+
 # Source fixes for native dependencies, prepared without changing the Go cache.
 NATIVE_GO = env GOWORK="$(CURDIR)/build/deps/native.work" go
 

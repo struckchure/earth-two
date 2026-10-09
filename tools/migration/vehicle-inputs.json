@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "scenario": "VEH-01-cornering",
+  "fixed_hz": 60,
+  "warmup_ticks": 60,
+  "phases": [
+    {"ticks": 240, "forward": 1, "steer": 0},
+    {"ticks": 180, "forward": 1, "steer": 1},
+    {"ticks": 180, "forward": 1, "steer": -1}
+  ]
+}

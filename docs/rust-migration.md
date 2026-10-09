@@ -8,15 +8,15 @@ must be measured at equivalent quality and workload.
 
 Status: substantial subsystem ports exist in `apps/client/`,
 `crates/world/` and `crates/identity/`, but the executable still opens the
-foundation viewer. The last validation found 238 passing headless tests and
+foundation viewer. The latest validation found 239 passing headless tests and
 two failing vehicle scenarios; native/WASM checks and Clippy passed.
 A working module or green unit test is not evidence of integrated game parity.
 The completion plan below is the execution order from this checkpoint.
 
 The reference for “the game today” is the Go implementation at
-`c561bd69e06500aa3c79e9bb0d0d5e974694e7c7`, currently both this worktree's
-HEAD and local main. Capture its asset hashes, dependency locks and build
-configuration along with the source. Features described only in the world
+`c561bd69e06500aa3c79e9bb0d0d5e974694e7c7`. The inherited Rust work and
+continuation fixes were preserved separately in local commit `870a89c`. Capture
+its asset hashes, dependency locks and build configuration along with the source. Features described only in the world
 bible are outside scope. If main changes during the migration, inventory
 those changes explicitly and update the reference scenarios before cutover.
 
@@ -71,6 +71,88 @@ Generated logs are under `build/migration-baseline/continuation-2026-10-09/`
 (ignored), including the initial and final headless runs. No Go reference
 baseline, browser runtime capture or cross-platform runtime evidence was
 added in this continuation.
+
+## Step 1 local review checkpoint: 2026-10-09
+
+This is the first reviewable baseline increment, not completion of the full
+cross-platform Step 1 exit gate. No game behavior or Go release default changes
+in this increment. Review it before starting the vehicle fixes in Step 2.
+
+The target authority is `.github/workflows/ci.yml`: Linux amd64 on
+`ubuntu-24.04`, macOS arm64 on `macos-15`, macOS amd64 on `macos-15-intel`,
+Windows amd64 on `windows-latest`, and web using Emscripten `6.0.10` on
+`ubuntu-latest`. CI builds web but does not select browser engines or run
+browser gameplay tests. Browser coverage remains an explicit open item.
+
+`tools/migration/scenarios.json` defines 21 source-linked acceptance scenarios,
+including setup, expected behavior and evidence requirements. The baseline
+runner extracts the pinned Go commit into an isolated directory, records
+asset/dependency/source hashes and test inventory, sanitizes game environment
+overrides, and uses a disposable identity path. Existing evidence directories
+are never reused. Generated evidence stays under ignored `build/`.
+
+Local evidence is in `build/migration-baseline/step-1-go-reference-v2/`:
+
+- `test-summary.json`: 420 passing Go test/subtest events, zero failures;
+  17 passing packages. Parent and subtest events are counted separately.
+  Three initial skips include two live-database tests and the packed-assets
+  test; the separate `packed-assets` run passed. The database cases remain
+  unverified.
+- `benchmarks.stdout.log`: five repeats of existing terrain, minimap and
+  visibility CPU benchmarks. These are not whole-game performance acceptance.
+- `web-run.json` and `web.*.log`: original web release build passed using
+  local Emscripten `6.0.10-git`, including the account bridge and compression.
+  `web-title.png` records normal startup and `web-startup.png` records initial
+  benchmark rendering in the automation browser;
+  its benchmark was still warming up, so no browser performance result is
+  claimed. Browser version/backend and gameplay coverage remain unverified.
+- `earth-two-reference`: built native Go reference; source/assets and prepared
+  dependency workspace are under `reference/`.
+- `traces/`: three repeats of the same 600-tick, 60 Hz driving script for bike,
+  buggy, hauler, tanker, rover and trike. All six had identical per-tick
+  positions across these local Go runs. `rust-traces/1/` holds matching Rust
+  diagnostics. The bike's minimum up.Y is about 0.837 in Go versus 0.738 in
+  Rust. Rig equivalence and other state differences still require analysis;
+  zero local variance does not establish a cross-engine zero tolerance.
+- `review-captures/`: 36 normal desktop tour captures (12 views in day, night
+  and storm conditions, each 2560×1440) and their source/settings,
+  hashes and image dimensions. Forced map capture is excluded: the original
+  tour selects that screen after the map-input initialization phase, leaving
+  zoom zero on its first draw and stalling the tour. The interrupted original
+  run and its first ten images are preserved under `captures/day/`. This does
+  not establish a fault in normal map interaction, which remains unverified.
+
+Reproduce the baseline from this worktree:
+
+```sh
+make migration-tools-test
+make migration-baseline BASELINE_ARGS='--capture --web'
+# Use the evidence directory printed by the previous command:
+python3 tools/migration/trace.py build/migration-baseline/<run>
+EARTH_TWO_RUST_TRACE_OUT="$PWD/build/migration-baseline/<run>/rust-traces/1" \
+  cargo test --locked -p earth-two-client --no-default-features \
+  --test vehicle migration_vehicle_trace -- --exact
+```
+
+To review the frozen Go game already built here:
+
+```sh
+cd build/migration-baseline/step-1-go-reference-v2/reference
+EARTH_TWO_IDENTITY_PATH="$PWD/../review-identity/pk" ../earth-two-reference
+```
+
+Validation of this increment: the five Python evidence-tool tests pass;
+`cargo fmt --all --check` and workspace Clippy with warnings denied pass;
+the complete Rust headless suite reports 239 passed, two failed, zero ignored.
+Both failures are the previously documented vehicle cases.
+
+Full interactive route clips, locomotion/animation/event traces, account/server
+integration, audio, alternate render-rate/focus/streaming stress, memory/GPU
+measurements, paired visual tolerances and remote platform runtime evidence
+remain pending. These must be added alongside the relevant subsystem increments
+before final parity acceptance; the current artifacts do not prove the Rust
+client plays like the Go game. The Rust executable still opens its foundation
+viewer, and the two existing vehicle failures remain visible.
 
 ## Dependencies and the first implementation gate
 
@@ -179,6 +261,15 @@ for engine-facing modules; keep data formats and identity logic independent
 of rendering. Extract additional crates only when there is a real reuse or
 compilation boundary, placing shared crates under `crates/`. Keep generated
 artifacts under `build/`. See [workspace organization](workspace.md).
+
+Port the Go implementation directly, function by function where practical.
+Keep its constants, formulas, control flow, input consumption and observable
+ordering; replace engine calls with the Bevy/Avian equivalent. Prefer matching
+module and function names over a redesign. Use idiomatic Rust ownership, enums,
+resources, components and plugins at the engine boundary, and document any
+scheduling or physics difference that prevents a direct translation. Never
+retune an existing threshold merely to make the port's tests pass. Organization
+changes belong at the workspace/module boundary and must preserve behavior.
 
 Use existing assets and manifests. Convert engine handles, entity identifiers
 and math types internally; do not expose Bevy entity IDs as persistent or
