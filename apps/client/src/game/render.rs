@@ -111,30 +111,36 @@ impl AssetLoader for WardrobeLoader {
 #[derive(Resource)]
 struct WardrobeRequest(Handle<WardrobeText>);
 #[derive(Component)]
-struct MenuRoot;
+pub(super) struct MenuRoot;
 #[derive(Component)]
 struct Hud;
 #[derive(Component, Clone, Copy)]
-struct Choice(MenuAction);
-use super::ui_sound::MenuFocus;
+pub(super) struct Choice {
+    pub action: MenuAction,
+    pub focus: usize,
+}
+use super::menu::{Menu, choices};
 
 pub struct GameRenderPlugin;
 impl Plugin for GameRenderPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<WardrobeText>()
             .init_asset_loader::<WardrobeLoader>()
-            .init_resource::<MenuFocus>()
-            .add_systems(Startup, setup)
+            .add_systems(Startup, (setup, super::wardrobe_render::fonts))
             .add_systems(Update, (load_wardrobe, attach_models, readiness).chain())
-            .add_systems(
-                Update,
-                menu_keys.before(GameSet::Menu).after(super::crowd::input),
-            )
             .add_observer(buttons)
+            .add_observer(hover)
             .add_systems(Update, pointer.before(GameSet::Input))
             .add_systems(
                 Update,
-                (menus, hud, injury_panel, crowd_panel).after(GameSet::Camera),
+                (
+                    menus,
+                    super::wardrobe_render::draw,
+                    hud,
+                    injury_panel,
+                    crowd_panel,
+                )
+                    .after(GameSet::Camera),
             )
             .add_systems(
                 Update,
@@ -288,7 +294,12 @@ fn pointer(
         return;
     };
     orbit.aspect = window.width() / window.height().max(1.0);
-    orbit.menu_fraction = (430.0 / window.width().max(1.0)).min(0.6);
+    orbit.menu_fraction = (if *screen.get() == Screen::Dressing {
+        448. * super::wardrobe_render::scale(window.width(), window.height())
+    } else {
+        430.
+    } / window.width().max(1.0))
+    .min(0.6);
     let playing = *screen.get() == Screen::Playing;
     if playing && !window.focused {
         actions.write(MenuAction::Pause);
@@ -307,55 +318,24 @@ fn pointer(
         orbit.turn(motion.delta);
     }
 }
-fn choices(screen: Screen) -> Vec<(&'static str, MenuAction)> {
-    match screen {
-        Screen::Title => vec![("Play", MenuAction::Play)],
-        Screen::Paused => vec![
-            ("Resume", MenuAction::Resume),
-            ("Main menu", MenuAction::MainMenu),
-        ],
-        _ => vec![],
-    }
-}
-fn menu_keys(
-    keys: Res<ButtonInput<KeyCode>>,
-    screen: Res<State<Screen>>,
-    mut focus: ResMut<MenuFocus>,
-    mut actions: MessageWriter<MenuAction>,
-) {
-    if keys.just_pressed(KeyCode::Escape) {
-        match screen.get() {
-            Screen::Playing => {
-                actions.write(MenuAction::Pause);
-            }
-            Screen::Paused => {
-                actions.write(MenuAction::Resume);
-            }
-            _ => {}
-        }
-    }
-    let n = choices(*screen.get()).len();
-    if n == 0 {
-        return;
-    }
-    if keys.any_just_pressed([KeyCode::ArrowDown, KeyCode::KeyS]) {
-        focus.0 = (focus.0 + 1) % n;
-    }
-    if keys.any_just_pressed([KeyCode::ArrowUp, KeyCode::KeyW]) {
-        focus.0 = (focus.0 + n - 1) % n;
-    }
-    focus.0 %= n;
-    if keys.just_pressed(KeyCode::Enter) {
-        actions.write(choices(*screen.get())[focus.0].1);
-    }
-}
 fn buttons(
     event: On<bevy::ui_widgets::Activate>,
     choices: Query<&Choice>,
     mut actions: MessageWriter<MenuAction>,
 ) {
     if let Ok(choice) = choices.get(event.entity) {
-        actions.write(choice.0);
+        actions.write(MenuAction::Focus(choice.focus));
+        actions.write(choice.action);
+    }
+}
+
+fn hover(
+    event: On<bevy::picking::events::PointerMove>,
+    choices: Query<&Choice>,
+    mut menu: ResMut<Menu>,
+) {
+    if let Ok(choice) = choices.get(event.entity) {
+        menu.set_focus(choice.focus);
     }
 }
 
@@ -363,11 +343,17 @@ fn menus(
     mut commands: Commands,
     screen: Res<State<Screen>>,
     session: Res<Session>,
-    focus: Res<MenuFocus>,
-    roots: Query<Entity, With<MenuRoot>>,
+    menu: Res<Menu>,
+    roots: Query<
+        Entity,
+        (
+            With<MenuRoot>,
+            Without<super::wardrobe_render::WardrobeRoot>,
+        ),
+    >,
     mut previous: Local<Option<(Screen, usize, Option<String>)>>,
 ) {
-    let key = (*screen.get(), focus.0, session.error.clone());
+    let key = (*screen.get(), menu.focus(), session.error.clone());
     if previous.as_ref() == Some(&key) {
         return;
     }
@@ -375,7 +361,7 @@ fn menus(
     for root in &roots {
         commands.entity(root).despawn();
     }
-    if *screen.get() == Screen::Playing {
+    if matches!(*screen.get(), Screen::Playing | Screen::Dressing) {
         return;
     }
     commands
@@ -418,12 +404,13 @@ fn menus(
             for (i, (label, action)) in choices(*screen.get()).into_iter().enumerate() {
                 c.spawn((
                     bevy::ui_widgets::Button,
-                    Choice(action),
+                    Choice { action, focus: i },
+                    bevy::ui_widgets::ActivateOnPress,
                     Node {
                         padding: UiRect::all(px(12)),
                         ..default()
                     },
-                    BackgroundColor(if i == focus.0 {
+                    BackgroundColor(if i == menu.focus() {
                         Color::srgb(0.36, 0.23, 0.18)
                     } else {
                         Color::srgb(0.18, 0.12, 0.13)

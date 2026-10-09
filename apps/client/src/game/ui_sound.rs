@@ -1,52 +1,72 @@
 //! Paperwork sounds for the currently playable menu and vehicle HUD.
+use super::menu::Menu;
 use super::{
     Screen,
     cues::{Cue, Voice},
 };
-use crate::vehicle::Prompt;
+use crate::{character::Player, presentation::Outfit, vehicle::Prompt};
 use bevy::prelude::*;
-/// Shared with the renderer so keyboard focus has one source of truth.
-#[derive(Resource, Default)]
-pub struct MenuFocus(pub usize);
 #[derive(Resource, Default)]
 pub struct UiSoundState {
-    previous: Option<(Screen, usize, String)>,
+    previous: Option<(Screen, usize, usize, Option<Outfit>, String)>,
 }
 impl UiSoundState {
-    pub fn update(&mut self, screen: Screen, focus: usize, note: &str) -> Vec<Cue> {
+    pub fn update(
+        &mut self,
+        screen: Screen,
+        depth: usize,
+        focus: usize,
+        outfit: Option<Outfit>,
+        note: &str,
+    ) -> Vec<Cue> {
         let mut out = vec![];
-        if let Some((top, old_focus, old_note)) = &self.previous {
-            if screen != *top {
-                // Loading is not a Go menu layer. Silence its initial handoff.
-                if *top != Screen::Loading {
-                    let (name, volume) = match screen {
-                        Screen::Playing | Screen::Title => ("ui_stamp", 0.9),
-                        Screen::Paused => ("ui_page", 0.7),
-                        Screen::Loading => ("ui_back", 0.6),
-                    };
+        if let Some((top, old_depth, old_focus, old_outfit, old_note)) = &self.previous {
+            if *top != Screen::Loading {
+                let sound = if depth > *old_depth {
+                    Some(("ui_page", 0.7))
+                } else if depth < *old_depth && depth == 0 {
+                    Some(("ui_stamp", 0.9))
+                } else if depth < *old_depth {
+                    Some(("ui_back", 0.6))
+                } else if screen != *top {
+                    Some(("ui_stamp", 0.9))
+                } else if focus != *old_focus {
+                    Some(("ui_move", 0.6))
+                } else {
+                    None
+                };
+                if let Some((name, volume)) = sound {
                     out.push(Voice::ui(name, volume));
                 }
-            } else if screen != Screen::Playing && focus != *old_focus {
-                out.push(Voice::ui("ui_move", 0.6));
+                if screen == Screen::Dressing && outfit != *old_outfit {
+                    out.push(Voice::ui("cloth", 0.9));
+                }
             }
             if !note.is_empty() && note != old_note {
                 out.push(Voice::ui("ui_deny", 0.7));
             }
         }
-        self.previous = Some((screen, focus, note.into()));
+        self.previous = Some((screen, depth, focus, outfit, note.into()));
         out
     }
 }
 pub(super) fn ui_cues(
     screen: Res<State<Screen>>,
-    focus: Option<Res<MenuFocus>>,
+    menu: Res<Menu>,
+    players: Query<&Outfit, With<Player>>,
     prompt: Res<Prompt>,
     mut memory: ResMut<UiSoundState>,
     mut cues: MessageWriter<Cue>,
 ) {
     for cue in memory.update(
-        *screen.get(),
-        focus.as_ref().map_or(0, |f| f.0),
+        if *screen.get() == Screen::Loading {
+            Screen::Loading
+        } else {
+            menu.screen()
+        },
+        menu.stack.len(),
+        menu.focus(),
+        players.single().ok().copied(),
         prompt.noting(),
     ) {
         cues.write(cue);

@@ -9,12 +9,13 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 295 passing headless tests and 99 client
+with `--foundation`. There are 302 passing headless tests and 99 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
 Step 5 now includes ambience, foot/body cues, vehicle sound, playable menu/HUD
-cues and gameplay particle emission.
+cues and gameplay particle emission. Step 6 now connects the live wardrobe
+from title/pause, its screen stack, keyboard/mouse input and outfit cues.
 Native graphical game, injury and crowd smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
@@ -383,6 +384,67 @@ cleanup and no accidental roll.
 Residents, crowd lifecycle and measured vehicle/traversal/ragdoll parity remain
 open in Step 4. Local smoke tests do not establish matching Go trajectories or
 acceptance on the entire CI platform matrix. Go remains the release default.
+
+## Step 6 wardrobe review checkpoint: 2026-10-09
+
+The live wardrobe is reachable from title and pause. `game/menu.rs` ports
+screen stacking and per-page focus: Done, Escape and Backspace return to the
+parent menu with its focus intact. The title cannot be backed out of, and
+returning to play preserves the same player and outfit. Up/Down or W/S wrap
+between rows; Left/Right or A/D cycle choices; Enter, keypad Enter and Space
+advance a row or activate Done. Pointer movement focuses a choice, row clicks
+only select it, and arrows change it on press as in Go.
+
+`game/wardrobe.rs` follows `game/wardrobe.go`: Body, Skin, Look and all nine
+slots retain the original order. Empty slots do not change, Face defaults to
+Standard, other slots cycle through None, and custom looks read Own. Changing
+bodies keeps same-name items and clamps the tone; faction looks and
+one-piece/separate replacement use the existing outfit rules. The renderer
+updates the actual player's body, textures and garment hierarchy, including
+while physics is paused. The preview uses the Go front shot (offset
+0, 0.25, 3.1; look 0, 0.05, 0), easing and body turn. Title orbit time continues
+under its wardrobe; leaving it restores the gameplay orbit.
+
+`game/wardrobe_render.rs` draws the W-1 form with the original Inter/Courier
+Prime files, row sizing, colours, paper grain, rules, highlights and drawn
+chevrons. Bevy logical-pixel layout applies display scaling once. Outfit
+changes trigger cloth at 0.9; opening and closing pages use the Go stack-depth
+rules for page/back/stamp cues. The title and pause shells still await their
+complete paper styling and remaining choices.
+
+Evidence is under ignored `build/migration-baseline/step-6-wardrobe/`:
+
+- `headless.log`: 302 workspace tests pass, including the four source wardrobe
+  cases, empty rows, parent/focus retention, outfit cues and the real game
+  keyboard/pause/live-garment integration check.
+- `client.log`: all 99 client library tests pass.
+- `clippy.log`: native workspace/all-target lint passes with warnings denied.
+- `native-smoke.log`, `native-man.png`, `native-woman.png` and
+  `native-paused.png`: real keyboard body/tone/look changes replace loaded
+  garments; preview freezes the root; changed clothes render while walking;
+  title/pause return and focus are preserved with one player.
+- `web-clippy.log` and `web-build.log`: browser lint and release WASM packaging
+  pass. `browser-initial.png`, `browser-body.png`, `browser-row.png` and
+  `browser-look.png` verify the live form, mouse body arrow, row-only selection
+  and keyboard faction look. `browser-title-return.png`,
+  `browser-paused-wardrobe.png` and `browser-pause-return.png` verify both parent
+  routes, retained clothes/focus and the mouse Done button.
+- `browser-errors.log` reports no JavaScript errors. `browser-console.log`
+  records cloth/page/back/stamp playback and no shader validation failures.
+  Expected missing audio-variant probes remain. The browser check uses
+  Chromium/SwiftShader WebGL2 and real-time night lighting; native captures
+  hold 11:00. These establish runtime behavior, not a matched visual or
+  hardware-performance comparison.
+
+Review by choosing Wardrobe on title or pause. Cycle bodies, tones, looks,
+hair, garments and shoes, then close it and walk/run to check attachments.
+The finite native review command is
+`cargo run --locked -p earth-two-client --example wardrobe_smoke`.
+
+This increment does not close the full Step 6 gate: Controls, Identity,
+map/teleport, journal/contracts, world interactions, complete menu/HUD/cursor
+styling and master-volume UI remain open, alongside paired Go/Rust visual and
+listening acceptance and the remaining platform runtime matrix.
 
 ## Step 5 particles review checkpoint: 2026-10-09
 

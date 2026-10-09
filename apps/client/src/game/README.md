@@ -19,6 +19,7 @@ The playable application and Go game-package integration on Bevy.
 | `ui_sound.rs` | `cues.go`: current title/pause focus, navigation and HUD denial cues |
 | `sound_hits.rs` | `sound.go` and illusion `audio.go`: clip variants, finite playback, eight voices per variant and cleanup |
 | `ambience.rs` | `ambience.go`: zone beds, storm/driving wind, nearest machines and menu ducking |
+| `menu.rs`, `wardrobe.rs`, `wardrobe_render.rs` | `menu.go`, `wardrobe.go`: stacked pages/focus, live outfit rows, front preview and W-1 form |
 | `render.rs` | Platform shell, asynchronous loading and temporary menu/HUD/review panels |
 
 Resident updates run before character input; crowd keys run before menu keys.
@@ -59,7 +60,8 @@ OGG then WAV. Expected missing-file probes terminate discovery; Bevy logs these
 as missing paths. Each variant permits eight overlaps; when full, slot zero is
 restarted as in illusion's `freeVoice`. Finished and unavailable-device voices
 release their entities/assets. UI sounds are integrated only for the playable
-menu/HUD; full map, wardrobe and bell interaction cues await those flows.
+menu/HUD; map and bell interaction cues await those flows. Wardrobe changes now use
+the original cloth cue, with page/back/stamp sounds based on stack depth.
 Particle emission now shares those exact foot/body/vehicle triggers. It uses
 `sky::Effects` (the existing `effects.go` simulation), with foot dust excluded
 inside the dome, landing/roll/slide dust on loose surfaces, fractional wheel
@@ -67,3 +69,14 @@ emission and crash rings/sparks. The emission clock follows Go even when menus
 pause physics. Particle motion runs after all emissions in PostUpdate, then
 the renderer updates its single sorted mesh. Paired listening/visual comparison
 and platform acceptance remain open.
+
+The wardrobe is available from title and pause. `menu::Menu` owns the page
+stack and each page's focus. The headless input/action systems run before
+character input; the rendered buttons write the same actions. Body, tone,
+look and all nine slots change the player's actual Outfit. The presentation
+systems replace and bind its garments while physics is paused. `face_camera`
+runs after character/seat posing; the camera uses Go's fixed front shot in
+the wardrobe and continues the underlying title orbit clock. Tests in
+`tests/wardrobe.rs` and `tests/game.rs` cover the source rules and full keyboard
+flow; `examples/wardrobe_smoke.rs` verifies rendered outfit replacement and
+walking afterward. Full title/pause styling and other pages remain pending.

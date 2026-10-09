@@ -211,20 +211,26 @@ fn skids_and_crashes_respect_thresholds_and_cooldowns() {
 #[test]
 fn menu_transitions_and_new_notes_sound_once() {
     let mut m = UiSoundState::default();
-    assert!(m.update(Screen::Loading, 0, "").is_empty());
-    assert!(m.update(Screen::Title, 0, "").is_empty());
-    assert_eq!(m.update(Screen::Playing, 0, "")[0].name, "ui_stamp");
-    assert_eq!(m.update(Screen::Paused, 0, "")[0].name, "ui_page");
-    assert_eq!(m.update(Screen::Paused, 1, "")[0].name, "ui_move");
-    assert!(m.update(Screen::Paused, 1, "").is_empty());
-    assert_eq!(m.update(Screen::Title, 0, "")[0].name, "ui_stamp");
-    assert_eq!(m.update(Screen::Playing, 0, "")[0].name, "ui_stamp");
+    assert!(m.update(Screen::Loading, 0, 0, None, "").is_empty());
+    assert!(m.update(Screen::Title, 1, 0, None, "").is_empty());
     assert_eq!(
-        m.update(Screen::Playing, 0, "Slow down to get out")[0].name,
+        m.update(Screen::Playing, 0, 0, None, "")[0].name,
+        "ui_stamp"
+    );
+    assert_eq!(m.update(Screen::Paused, 1, 0, None, "")[0].name, "ui_page");
+    assert_eq!(m.update(Screen::Paused, 1, 1, None, "")[0].name, "ui_move");
+    assert!(m.update(Screen::Paused, 1, 1, None, "").is_empty());
+    assert_eq!(m.update(Screen::Title, 1, 0, None, "")[0].name, "ui_stamp");
+    assert_eq!(
+        m.update(Screen::Playing, 0, 0, None, "")[0].name,
+        "ui_stamp"
+    );
+    assert_eq!(
+        m.update(Screen::Playing, 0, 0, None, "Slow down to get out")[0].name,
         "ui_deny"
     );
     assert!(
-        m.update(Screen::Playing, 0, "Slow down to get out")
+        m.update(Screen::Playing, 0, 0, None, "Slow down to get out")
             .is_empty()
     );
 }

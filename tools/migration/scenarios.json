@@ -171,8 +171,8 @@
       ],
       "setup_and_inputs": "Cycle bodies, outfits, shoes and action clips; inspect feet on terrain/stairs and animation transitions.",
       "expected": "Same asset selections, hidden meshes, skin tones, timing, blends and bone placement.",
-      "comparison": "Source tests, wardrobe capture and clips",
-      "status": "defined; acceptance pending",
+      "comparison": "Go-derived row/menu tests and live native/browser wardrobe evidence in step-6-wardrobe; matched animation/foot placement captures pending",
+      "status": "live wardrobe integrated; full presentation acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/CHAR-01"
     },
     {
@@ -260,8 +260,8 @@
       ],
       "setup_and_inputs": "Review all screens with keyboard and mouse; accept/deliver the first work order; inspect rewards, journal and debt.",
       "expected": "Exact copy, choices, values, rewards and navigation; matching fonts, layout and stamps.",
-      "comparison": "Screen captures, source tests and full delivery playthrough",
-      "status": "defined; acceptance pending",
+      "comparison": "Title/pause/wardrobe stack and live form evidence in step-6-wardrobe; remaining screens and delivery playthrough pending",
+      "status": "wardrobe checkpoint integrated; remaining screens and acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/UI-01"
     },
     {

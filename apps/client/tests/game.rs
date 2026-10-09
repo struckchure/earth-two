@@ -453,3 +453,89 @@ fn hull_review_spawn_stays_on_its_streamed_ground() {
     );
     assert!(at.y > -1., "fell through Hull ground: {at:?}");
 }
+
+#[test]
+fn wardrobe_keyboard_freezes_world_updates_body_and_preserves_parent() {
+    use earth_two_client::{
+        game::menu::Menu,
+        presentation::{
+            Outfit, Slot, Wardrobe,
+            outfit::{Garment, load_wardrobe},
+        },
+    };
+    let mut app = app_at(StartAt::Arrival);
+    let w = load_wardrobe(
+        include_str!("../../../assets/characters/wardrobe.json"),
+        &content::people(),
+        |_| None,
+    )
+    .unwrap();
+    app.insert_resource(w);
+    let p = player(&app);
+    press(&mut app, KeyCode::ArrowDown);
+    press(&mut app, KeyCode::Enter);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Dressing
+    );
+    let before = app.world().get::<Transform>(p).unwrap().translation;
+    press(&mut app, KeyCode::ArrowRight);
+    assert_eq!(app.world().get::<Outfit>(p).unwrap().body, 1);
+    // Skin, then faction look; Enter cycles a row just like Right.
+    press(&mut app, KeyCode::ArrowDown);
+    press(&mut app, KeyCode::Space);
+    press(&mut app, KeyCode::ArrowDown);
+    press(&mut app, KeyCode::Enter);
+    tick(&mut app, 30);
+    assert!(app.world().resource::<Time<Physics>>().is_paused());
+    assert_eq!(app.world().get::<Transform>(p).unwrap().translation, before);
+    assert_eq!(app.world().resource::<Menu>().focus(), 2);
+    let outfit = *app.world().get::<Outfit>(p).unwrap();
+    let expected = Slot::ALL
+        .iter()
+        .filter(|s| outfit.item(**s).is_some())
+        .count();
+    assert_eq!(
+        app.world_mut()
+            .query::<&Garment>()
+            .iter(app.world())
+            .count(),
+        expected
+    );
+    assert_eq!(
+        app.world().resource::<Wardrobe>().bodies[outfit.body as usize].name,
+        "woman"
+    );
+    press(&mut app, KeyCode::Backspace);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Title
+    );
+    assert_eq!(app.world().resource::<Menu>().focus(), 1);
+    press(&mut app, KeyCode::ArrowUp);
+    press(&mut app, KeyCode::Space);
+    tick(&mut app, 30);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Playing
+    );
+    press(&mut app, KeyCode::Escape);
+    press(&mut app, KeyCode::ArrowDown);
+    press(&mut app, KeyCode::Enter);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Dressing
+    );
+    assert_eq!(*app.world().get::<Outfit>(p).unwrap(), outfit);
+    press(&mut app, KeyCode::Escape);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Paused
+    );
+    press(&mut app, KeyCode::Escape);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Playing
+    );
+    assert_eq!(app.world().resource::<Session>().player, Some(p));
+}

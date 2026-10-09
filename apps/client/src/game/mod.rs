@@ -8,6 +8,7 @@ pub mod cues;
 pub mod drive_sound;
 pub mod effects;
 pub mod injuries;
+pub mod menu;
 pub mod people;
 #[cfg(feature = "viewer")]
 mod render;
@@ -15,6 +16,9 @@ pub mod residents;
 pub mod seats;
 pub mod sound;
 pub mod ui_sound;
+pub mod wardrobe;
+#[cfg(feature = "viewer")]
+mod wardrobe_render;
 
 use crate::{
     character::{
@@ -37,6 +41,7 @@ pub enum Screen {
     Title,
     Playing,
     Paused,
+    Dressing,
 }
 
 #[derive(Message, Debug, Clone, Copy)]
@@ -45,6 +50,10 @@ pub enum MenuAction {
     Pause,
     Resume,
     MainMenu,
+    Wardrobe,
+    Back,
+    Focus(usize),
+    CycleRow { row: usize, step: i32 },
 }
 
 #[derive(Resource, Default)]
@@ -105,6 +114,8 @@ impl Plugin for GamePlugin {
         ))
         .init_state::<Screen>()
         .init_resource::<Session>()
+        .init_resource::<menu::Menu>()
+        .init_resource::<ButtonInput<KeyCode>>()
         .init_resource::<StartAt>()
         .init_resource::<crowd::TestCrowd>()
         .add_systems(Startup, crowd::review)
@@ -139,9 +150,18 @@ impl Plugin for GamePlugin {
         .add_systems(Startup, request_world)
         .add_systems(
             Update,
-            (menu_actions, lock_controls).chain().in_set(GameSet::Menu),
+            (menu::keys, menu::actions, lock_controls)
+                .chain()
+                .in_set(GameSet::Menu),
         )
         .add_systems(Update, camera::steer.in_set(GameSet::Input))
+        .add_systems(
+            Update,
+            wardrobe::face_camera
+                .after(GameSet::Seats)
+                .after(CharacterSystems::Act)
+                .before(GameSet::Camera),
+        )
         .add_systems(
             Update,
             (injuries::recover, injuries::review_injury)
@@ -303,22 +323,6 @@ fn finish_loading(
     }
 }
 
-fn menu_actions(
-    mut actions: MessageReader<MenuAction>,
-    screen: Res<State<Screen>>,
-    mut next: ResMut<NextState<Screen>>,
-) {
-    for action in actions.read() {
-        match (screen.get(), action) {
-            (Screen::Title, MenuAction::Play) | (Screen::Paused, MenuAction::Resume) => {
-                next.set(Screen::Playing)
-            }
-            (Screen::Playing, MenuAction::Pause) => next.set(Screen::Paused),
-            (Screen::Paused, MenuAction::MainMenu) => next.set(Screen::Title),
-            _ => {}
-        }
-    }
-}
 fn lock_controls(
     screen: Res<State<Screen>>,
     mut controls: ResMut<character::Controls>,

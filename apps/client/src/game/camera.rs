@@ -136,6 +136,7 @@ pub fn follow(
     screen: Res<State<Screen>>,
     time: Res<Time>,
     fixed: Res<Time<Fixed>>,
+    menu: Res<super::menu::Menu>,
 ) {
     let Ok((player, tr, samples)) = people.single() else {
         return;
@@ -143,9 +144,13 @@ pub fn follow(
     let centre = samples.map_or(tr.translation, |s| {
         s.position(tr.translation, fixed.overstep_fraction())
     });
-    let on_title = *screen.get() == Screen::Title;
-    let (offset, look, lag) = if on_title {
+    let on_title = menu.on_title();
+    if on_title {
         orbit.title_time += time.delta_secs();
+    }
+    let (offset, look, lag) = if *screen.get() == Screen::Dressing {
+        (Vec3::new(0., 0.25, 3.1), Vec3::Y * 0.05, 5.0)
+    } else if on_title {
         let a = 0.6 * (orbit.title_time * 0.2).sin();
         (
             Vec3::new(3.4 * a.sin(), 0.5, 3.4 * a.cos()),
@@ -176,7 +181,7 @@ pub fn follow(
             camera.translation.lerp(eye, k)
         };
         let mut look = target;
-        if !on_title && *screen.get() != Screen::Loading {
+        if *screen.get() == Screen::Playing {
             let exclude = driving.vehicle.unwrap_or(player);
             look = arm(&physics, centre, target, exclude);
             eye = arm(&physics, look, eye, exclude);
