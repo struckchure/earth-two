@@ -19,8 +19,9 @@ const NAMES: [&str; 14] = [
 ];
 #[path = "sound_hits.rs"]
 pub mod hits;
+#[path = "sound_assets.rs"]
+mod optional;
 use bevy::{
-    asset::LoadState,
     audio::{ChannelCount, SampleRate, Source, Volume},
     prelude::*,
 };
@@ -124,11 +125,10 @@ impl Source for PannedDecoder {
 #[derive(Component)]
 pub struct LoopVoice(pub usize);
 struct Track {
-    file: Handle<AudioSource>,
+    pending: Option<bevy::tasks::Task<Option<AudioSource>>>,
     source: Option<Handle<PannedLoop>>,
     pan: Arc<AtomicU32>,
     entity: Option<Entity>,
-    fallback: bool,
     failed: bool,
     reported: bool,
 }
@@ -156,11 +156,10 @@ fn load(mut bank: ResMut<Bank>, assets: Res<AssetServer>) {
     bank.0 = NAMES
         .iter()
         .map(|name| Track {
-            file: assets.load(format!("sounds/{name}.wav")),
+            pending: Some(optional::track(assets.clone(), name)),
             source: None,
             pan: Arc::new(AtomicU32::new(0f32.to_bits())),
             entity: None,
-            fallback: false,
             failed: false,
             reported: false,
         })
@@ -170,8 +169,6 @@ fn load(mut bank: ResMut<Bank>, assets: Res<AssetServer>) {
 fn output(
     mut commands: Commands,
     mut bank: ResMut<Bank>,
-    assets: Res<AssetServer>,
-    files: Res<Assets<AudioSource>>,
     mut sources: ResMut<Assets<PannedLoop>>,
     ambience: Res<Ambience>,
     driving: Option<Res<DriveSound>>,
@@ -183,19 +180,20 @@ fn output(
         if track.failed {
             continue;
         }
-        if track.source.is_none() {
-            if let Some(source) = files.get(&track.file) {
-                if decode(source.clone()).is_err() {
-                    fallback(track, &assets, i);
-                    continue;
-                }
+        if let Some(task) = track.pending.as_mut()
+            && let Some(result) = bevy::tasks::block_on(bevy::tasks::poll_once(task))
+        {
+            track.pending = None;
+            if let Some(source) = result {
                 track.source = Some(sources.add(PannedLoop {
-                    source: source.clone(),
+                    source,
                     pan: track.pan.clone(),
                     repeat: true,
                 }));
-            } else if matches!(assets.load_state(track.file.id()), LoadState::Failed(_)) {
-                fallback(track, &assets, i);
+            } else {
+                warn!("sound {} is unavailable; leaving it silent", NAMES[i]);
+                track.failed = true;
+                continue;
             }
         }
         let state = if i < 8 {
@@ -259,16 +257,6 @@ fn output(
                     .id(),
             );
         }
-    }
-}
-
-fn fallback(track: &mut Track, assets: &AssetServer, index: usize) {
-    if track.fallback {
-        warn!("sound {} is unavailable; leaving it silent", NAMES[index]);
-        track.failed = true;
-    } else {
-        track.file = assets.load(format!("sounds/{}.ogg", NAMES[index]));
-        track.fallback = true;
     }
 }
 
@@ -347,18 +335,22 @@ mod tests {
             .init_asset::<PannedLoop>()
             .init_resource::<Ambience>()
             .add_systems(Update, output);
+        let pan = Arc::new(AtomicU32::new(0));
         let handle = app
             .world_mut()
-            .resource_mut::<Assets<AudioSource>>()
-            .add(wave());
+            .resource_mut::<Assets<PannedLoop>>()
+            .add(PannedLoop {
+                source: wave(),
+                pan: pan.clone(),
+                repeat: true,
+            });
         app.insert_resource(Bank(vec![Track {
-            file: handle,
-            source: None,
-            pan: Arc::new(AtomicU32::new(0)),
+            pending: None,
+            source: Some(handle),
+            pan,
             entity: None,
             failed: false,
             reported: false,
-            fallback: false,
         }]));
         for _ in 0..3 {
             app.world_mut().resource_mut::<Ambience>().loops[0].set(0.5, 1., 0., 1.);

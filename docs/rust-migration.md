@@ -9,7 +9,7 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 302 passing headless tests and 99 client
+with `--foundation`. There are 302 passing headless tests and 101 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
@@ -384,6 +384,30 @@ cleanup and no accidental roll.
 Residents, crowd lifecycle and measured vehicle/traversal/ragdoll parity remain
 open in Step 4. Local smoke tests do not establish matching Go trajectories or
 acceptance on the entire CI platform matrix. Go remains the release default.
+
+## Sound discovery fix: 2026-10-09
+
+Optional OGG/WAV candidates and the end of numbered sound families no longer
+produce Bevy asset-server errors. `game/sound_assets.rs` reads asynchronously
+through the configured native/browser asset reader, treating NotFound as an
+expected fallback. Genuine read/decoding errors still warn, as does an entirely
+unavailable sound family. Go's bare-name priority, contiguous numbering,
+OGG-first hits and WAV-first loops remain unchanged. No asset-server log filter
+is applied and no files are renamed or copied to conceal missing candidates.
+
+Evidence under `build/migration-baseline/sound-discovery-fix/`: `tests.log`
+contains 101 passing client library tests, including format/bare-name priority,
+corrupt-clip fallback, empty families and gaps in variants. Native and browser
+lint pass in `clippy.log` and `web-clippy.log`. `native-smoke.log` verifies
+actual footsteps, clothing, menu and vehicle cues, advancing engine/one-shot
+sinks and loop cleanup, with zero missing-asset errors, unavailable-sound
+warnings or read/decoding warnings. `web-build.log` records a successful
+release browser build. `browser-startup.png`, `browser-console.log` and
+`browser-errors.log` verify the title, gesture-activated UI/door cues, advancing
+wind/buggy playback and no sound-discovery or JavaScript errors on
+Chromium/SwiftShader WebGL2. The refreshed review server uses port 8096 to
+avoid the previous origin's cached WASM. Restart native clients or use the
+fresh browser review URL to pick up this fix.
 
 ## Step 6 wardrobe review checkpoint: 2026-10-09
 

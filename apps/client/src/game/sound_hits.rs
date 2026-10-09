@@ -38,20 +38,7 @@ struct Variant {
 struct Hit {
     name: &'static str,
     variants: Vec<Variant>,
-    pending: Handle<AudioSource>,
-    index: Option<usize>,
-    wav: bool,
-    done: bool,
-}
-impl Hit {
-    fn path(&self) -> String {
-        let base = if let Some(i) = self.index {
-            format!("{}_{}", self.name, i)
-        } else {
-            self.name.into()
-        };
-        format!("sounds/{base}.{}", if self.wav { "wav" } else { "ogg" })
-    }
+    pending: Option<bevy::tasks::Task<Vec<AudioSource>>>,
 }
 #[derive(Resource, Default)]
 pub(super) struct Hits(Vec<Hit>);
@@ -71,52 +58,27 @@ pub(super) fn install(app: &mut App) {
 fn load_hits(mut bank: ResMut<Hits>, assets: Res<AssetServer>) {
     bank.0 = HIT_NAMES
         .into_iter()
-        .map(|name| {
-            let mut h = Hit {
-                name,
-                variants: vec![],
-                pending: Handle::default(),
-                index: None,
-                wav: false,
-                done: false,
-            };
-            h.pending = assets.load(h.path());
-            h
+        .map(|name| Hit {
+            name,
+            variants: vec![],
+            pending: Some(optional::hit(assets.clone(), name)),
         })
         .collect();
 }
-fn discover(mut bank: ResMut<Hits>, assets: Res<AssetServer>, files: Res<Assets<AudioSource>>) {
-    for h in &mut bank.0 {
-        if h.done {
+fn discover(mut bank: ResMut<Hits>) {
+    for hit in &mut bank.0 {
+        let Some(task) = hit.pending.as_mut() else {
             continue;
-        }
-        if let Some(source) = files.get(&h.pending)
-            && decode(source.clone()).is_ok()
-        {
-            h.variants.push(Variant {
-                source: source.clone(),
-                voices: [None; 8],
-            });
-            if let Some(i) = h.index {
-                h.index = Some(i + 1);
-                h.wav = false;
-                h.pending = assets.load(h.path());
-            } else {
-                h.done = true;
-            }
-        } else if files.contains(&h.pending)
-            || matches!(assets.load_state(h.pending.id()), LoadState::Failed(_))
-        {
-            if !h.wav {
-                h.wav = true;
-                h.pending = assets.load(h.path());
-            } else if h.index.is_none() {
-                h.index = Some(0);
-                h.wav = false;
-                h.pending = assets.load(h.path());
-            } else {
-                h.done = true;
-            }
+        };
+        if let Some(sources) = bevy::tasks::block_on(bevy::tasks::poll_once(task)) {
+            hit.variants = sources
+                .into_iter()
+                .map(|source| Variant {
+                    source,
+                    voices: [None; 8],
+                })
+                .collect();
+            hit.pending = None;
         }
     }
 }
@@ -233,10 +195,7 @@ mod tests {
                     source: super::super::tests::wave(),
                     voices: [None; 8],
                 }],
-                pending: Handle::default(),
-                index: None,
-                wav: false,
-                done: true,
+                pending: None,
             }]))
             .add_systems(PostUpdate, (cleanup, play).chain());
         for _ in 0..100 {

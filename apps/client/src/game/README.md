@@ -17,6 +17,7 @@ The playable application and Go game-package integration on Bevy.
 | `effects.rs` | `cues.go`/`drivesound.go`: gameplay particle emission and surface/zone rules |
 | `drive_sound.rs` | `drivesound.go`: engine/tyre loops, entry/exit, skid and collision cues |
 | `ui_sound.rs` | `cues.go`: current title/pause focus, navigation and HUD denial cues |
+| `sound_assets.rs` | Optional native/browser asset reads, format fallback and contiguous sound discovery |
 | `sound_hits.rs` | `sound.go` and illusion `audio.go`: clip variants, finite playback, eight voices per variant and cleanup |
 | `ambience.rs` | `ambience.go`: zone beds, storm/driving wind, nearest machines and menu ducking |
 | `menu.rs`, `wardrobe.rs`, `wardrobe_render.rs` | `menu.go`, `wardrobe.go`: stacked pages/focus, live outfit rows, front preview and W-1 form |
@@ -56,8 +57,11 @@ animation/grounding transitions. Vehicle loops use each handling family's Go
 pitch/idle/throttle values; pause and exit fade them to silence.
 
 One-shots discover bare names before contiguous numbered variants, preferring
-OGG then WAV. Expected missing-file probes terminate discovery; Bevy logs these
-as missing paths. Each variant permits eight overlaps; when full, slot zero is
+OGG then WAV. Asynchronous reads through Bevy's configured asset reader treat
+missing alternatives and the end of numbered variants as normal discovery,
+without creating failed asset loads. Other read/decoding failures still warn;
+an entirely unavailable family stays silent. Loops prefer WAV then OGG.
+Each variant permits eight overlaps; when full, slot zero is
 restarted as in illusion's `freeVoice`. Finished and unavailable-device voices
 release their entities/assets. UI sounds are integrated only for the playable
 menu/HUD; map and bell interaction cues await those flows. Wardrobe changes now use
