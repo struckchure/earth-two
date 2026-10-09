@@ -12,8 +12,8 @@ use bevy::prelude::*;
 pub mod plugin;
 #[cfg(feature = "viewer")]
 pub use plugin::{
-    Daylight, OutlineMaterial, Outlined, Painted, PaintedMaterial, Smooth, lamp_point_light,
-    sun_cascades,
+    Daylight, OutlineMaterial, Outlined, Painted, PaintedMaterial, Smooth, SourceMaterial,
+    lamp_point_light, sun_cascades,
 };
 
 /// An 8-bit colour as the Go code gives it (`color.RGBA` without alpha).

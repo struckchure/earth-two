@@ -1,6 +1,7 @@
 //! Earth Two's migration client. Gameplay remains in the Go reference for now.
 
 pub mod character;
+pub mod game;
 pub mod identity;
 pub mod landfall;
 pub mod physics;

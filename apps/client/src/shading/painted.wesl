@@ -246,9 +246,9 @@ fn fragment(
         if (i >= spot_count) {
             break;
         }
-        let from = pos - painted.spot_pos[i].xyz;
-        let d = length(from);
-        let direction = from / max(d, 0.0001);
+        let from_light = pos - painted.spot_pos[i].xyz;
+        let d = length(from_light);
+        let direction = from_light / max(d, 0.0001);
         let cone = smoothstep(painted.spot_cone[i].x, painted.spot_cone[i].y, dot(direction, painted.spot_dir[i].xyz));
         let fall = max(1.0 - d / painted.spot_pos[i].w, 0.0);
         light += painted.spot_color[i].rgb * cone * fall * fall * max(dot(n, -direction), 0.0);

@@ -132,6 +132,10 @@ pub type PaintedMaterial = ExtendedMaterial<StandardMaterial, Painted>;
 #[derive(Component, Debug, Clone, Copy, Default)]
 pub struct Smooth;
 
+/// Retains source material metadata for world batching after shader adoption.
+#[derive(Component)]
+pub struct SourceMaterial(pub Handle<StandardMaterial>);
+
 /// Marks a model drawn with an outline: every mesh under it gets an
 /// inverted hull (people, not the world: the world is painted, not inked).
 #[derive(Component, Debug, Clone, Copy, Default)]
@@ -396,7 +400,7 @@ fn adopt_materials(
         commands
             .entity(entity)
             .remove::<MeshMaterial3d<StandardMaterial>>()
-            .insert(MeshMaterial3d(handle));
+            .insert((MeshMaterial3d(handle), SourceMaterial(material.0.clone())));
 
         let inked = outlined.contains(entity)
             || parents

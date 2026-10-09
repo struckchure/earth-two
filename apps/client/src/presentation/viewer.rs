@@ -84,7 +84,12 @@ pub struct ViewerPlugin;
 impl Plugin for ViewerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Loading>()
-            .add_systems(PreStartup, load_content)
+            .add_systems(
+                Update,
+                load_content.run_if(
+                    bevy::ecs::schedule::common_conditions::resource_exists_and_changed::<Content>,
+                ),
+            )
             .add_systems(
                 Update,
                 (index_models, spawn_scenes, wire_scenes, apply_parts).chain(),

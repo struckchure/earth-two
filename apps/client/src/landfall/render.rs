@@ -6,8 +6,8 @@
 //! render layers, and the layout's small pieces are merged
 //! (`PlaceMerged`).
 //!
-//! Materials are stand-ins until the shading port: the Go client painted
-//! the ground with `shading.Smooth` and its own toon shader.
+//! Ground carries `shading::Smooth`; streaming supports both the initial
+//! standard material and the painted material installed by the shading plugin.
 
 use std::collections::HashMap;
 
@@ -182,8 +182,7 @@ pub fn paint(cx: f32, cz: f32, size: f32, texels: usize) -> Image {
     image
 }
 
-/// The ground's material: its paint, matte. A stand-in for
-/// `shading.Smooth` until the shading port.
+/// Initial matte ground material, adopted by the painted shader when enabled.
 fn ground_material(texture: Handle<Image>) -> StandardMaterial {
     StandardMaterial {
         base_color_texture: Some(texture),
@@ -217,6 +216,7 @@ fn build_terrain(
         let texture = images.add(paint(cx, cz, TILE_SIZE, budget.tile_texels));
         commands.entity(entity).insert((
             Mesh3d(meshes.add(mesh)),
+            crate::shading::Smooth,
             MeshMaterial3d(materials.add(ground_material(texture))),
             TileHeights(heights),
             NotShadowCaster,
@@ -229,6 +229,7 @@ fn build_terrain(
         let texture = images.add(paint(cx, cz, CHUNK_SIZE, budget.chunk_texels));
         commands.entity(entity).insert((
             Mesh3d(meshes.add(mesh)),
+            crate::shading::Smooth,
             MeshMaterial3d(materials.add(ground_material(texture))),
             NotShadowCaster,
             Visibility::default(),
@@ -238,6 +239,7 @@ fn build_terrain(
 
 /// Reshapes and repaints the chunks the stream handed another chunk, where
 /// their transforms now are.
+#[allow(clippy::type_complexity)]
 fn rebuild_chunks(
     mut commands: Commands,
     budget: Res<Budget>,
@@ -246,24 +248,32 @@ fn rebuild_chunks(
             Entity,
             &Transform,
             &Mesh3d,
-            &MeshMaterial3d<StandardMaterial>,
+            Option<&MeshMaterial3d<StandardMaterial>>,
+            Option<&MeshMaterial3d<crate::shading::PaintedMaterial>>,
         ),
         With<ChunkRebuild>,
     >,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut painted: Option<ResMut<Assets<crate::shading::PaintedMaterial>>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    for (entity, tr, mesh, material) in &chunks {
+    for (entity, tr, mesh, standard, painted_handle) in &chunks {
         let (cx, cz) = (tr.translation.x, tr.translation.z);
         let (shaped, _) = terrain_mesh(cx, cz, CHUNK_SIZE, CHUNK_CELLS, drawn_height, no_sink);
         if let Some(mut m) = meshes.get_mut(&mesh.0) {
             *m = shaped;
         }
         let texture = images.add(paint(cx, cz, CHUNK_SIZE, budget.chunk_texels));
-        if let Some(mut m) = materials.get_mut(&material.0)
-            && let Some(old) = m.base_color_texture.replace(texture)
-        {
+        let old = if let Some(mut m) = standard.and_then(|h| materials.get_mut(&h.0)) {
+            m.base_color_texture.replace(texture)
+        } else if let Some(mut m) = painted_handle.and_then(|h| painted.as_mut()?.get_mut(&h.0)) {
+            m.base.base_color_texture.replace(texture)
+        } else {
+            images.remove(&texture);
+            continue;
+        };
+        if let Some(old) = old {
             images.remove(&old);
         }
         commands.entity(entity).remove::<ChunkRebuild>();
@@ -514,7 +524,14 @@ fn merge_pieces(
     bounds: Query<&PieceBounds>,
     children: Query<&Children>,
     roots: Query<(), With<WorldAssetRoot>>,
-    mesh_parts: Query<(&Mesh3d, &MeshMaterial3d<StandardMaterial>, &GlobalTransform)>,
+    parents: Query<&ChildOf>,
+    layouts: Query<&crate::world::LayoutRoot>,
+    mesh_parts: Query<(
+        &Mesh3d,
+        Option<&MeshMaterial3d<StandardMaterial>>,
+        Option<&crate::shading::SourceMaterial>,
+        &GlobalTransform,
+    )>,
     mut meshes: ResMut<Assets<Mesh>>,
     materials: Res<Assets<StandardMaterial>>,
     mut new_materials: Local<Vec<(Look, Handle<StandardMaterial>)>>,
@@ -526,16 +543,25 @@ fn merge_pieces(
         return;
     };
     // Every piece's model must be in, so the merge is of the whole layout.
-    let count = placed.iter().count();
-    if count < request.placements.len() || placed.iter().any(|(e, ..)| pending.contains(e)) {
+    let mut pieces: Vec<_> = placed
+        .iter()
+        .filter(|(e, ..)| {
+            parents
+                .get(*e)
+                .ok()
+                .and_then(|p| layouts.get(p.parent()).ok())
+                .is_some_and(|root| root.layout == "world/landfall.json")
+        })
+        .collect();
+    if pieces.len() < request.placements.len() || pieces.iter().any(|(e, ..)| pending.contains(*e))
+    {
         return;
     }
-    if placed.iter().any(|(e, ..)| !bounds.contains(e)) {
+    if pieces.iter().any(|(e, ..)| !bounds.contains(*e)) {
         return;
     }
     let mut plan = MergePlan::default();
     let mut small: HashMap<String, (f32, bool)> = HashMap::new();
-    let mut pieces: Vec<_> = placed.iter().collect();
     pieces.sort_by_key(|(_, p, ..)| p.index);
     for (entity, placed, model, global, kids) in pieces {
         let Some(placement) = request.placements.get(placed.index) else {
@@ -550,10 +576,14 @@ fn merge_pieces(
         let mut parts: Vec<PieceMesh> = Vec::new();
         let mut sources = Vec::new();
         for e in children.iter_descendants(entity) {
-            let Ok((mesh, material, part_global)) = mesh_parts.get(e) else {
+            let Ok((mesh, material, source_material, part_global)) = mesh_parts.get(e) else {
                 continue;
             };
-            let (Some(m), Some(mat)) = (meshes.get(&mesh.0), materials.get(&material.0)) else {
+            let handle = material
+                .map(|m| &m.0)
+                .or_else(|| source_material.map(|m| &m.0));
+            let (Some(m), Some(mat)) = (meshes.get(&mesh.0), handle.and_then(|h| materials.get(h)))
+            else {
                 continue;
             };
             let local = to_piece * part_global.affine();
@@ -663,18 +693,103 @@ fn material_with_look(
     materials: &Assets<StandardMaterial>,
     placed: &Query<(Entity, &Placed, &PieceModel, &GlobalTransform, &Children)>,
     children: &Query<&Children>,
-    mesh_parts: &Query<(&Mesh3d, &MeshMaterial3d<StandardMaterial>, &GlobalTransform)>,
+    mesh_parts: &Query<(
+        &Mesh3d,
+        Option<&MeshMaterial3d<StandardMaterial>>,
+        Option<&crate::shading::SourceMaterial>,
+        &GlobalTransform,
+    )>,
     look: Look,
 ) -> Option<Handle<StandardMaterial>> {
     for (entity, ..) in placed.iter() {
         for e in children.iter_descendants(entity) {
-            if let Ok((_, material, _)) = mesh_parts.get(e)
-                && let Some(mat) = materials.get(&material.0)
+            if let Ok((_, material, source_material, _)) = mesh_parts.get(e)
+                && let Some(handle) = material
+                    .map(|m| &m.0)
+                    .or_else(|| source_material.map(|m| &m.0))
+                && let Some(mat) = materials.get(handle)
                 && look_of(mat).0 == look
             {
-                return Some(material.0.clone());
+                return Some(handle.clone());
             }
         }
     }
     None
+}
+
+#[cfg(test)]
+mod streaming_tests {
+    use super::*;
+
+    #[test]
+    fn relocated_chunks_rebuild_before_and_after_painted_material_adoption() {
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
+            .init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<Image>>()
+            .init_resource::<Assets<StandardMaterial>>()
+            .init_resource::<Assets<crate::shading::PaintedMaterial>>()
+            .insert_resource(Budget::BROWSER)
+            .add_systems(Update, rebuild_chunks);
+        for painted in [false, true] {
+            let mesh = app
+                .world_mut()
+                .resource_mut::<Assets<Mesh>>()
+                .add(terrain_mesh(0., 0., CHUNK_SIZE, CHUNK_CELLS, drawn_height, no_sink).0);
+            let image = app
+                .world_mut()
+                .resource_mut::<Assets<Image>>()
+                .add(paint(0., 0., CHUNK_SIZE, 4));
+            let original_image = image.id();
+            let entity = app
+                .world_mut()
+                .spawn((
+                    ChunkRebuild,
+                    Transform::from_xyz(9920., 0., -1760.),
+                    Mesh3d(mesh.clone()),
+                ))
+                .id();
+            if painted {
+                let material = app
+                    .world_mut()
+                    .resource_mut::<Assets<crate::shading::PaintedMaterial>>()
+                    .add(crate::shading::PaintedMaterial {
+                        base: ground_material(image),
+                        extension: default(),
+                    });
+                app.world_mut()
+                    .entity_mut(entity)
+                    .insert(MeshMaterial3d(material));
+            } else {
+                let material = app
+                    .world_mut()
+                    .resource_mut::<Assets<StandardMaterial>>()
+                    .add(ground_material(image));
+                app.world_mut()
+                    .entity_mut(entity)
+                    .insert(MeshMaterial3d(material));
+            }
+            app.update();
+            assert!(app.world().get::<ChunkRebuild>(entity).is_none());
+            assert!(
+                !app.world()
+                    .resource::<Assets<Image>>()
+                    .contains(original_image)
+            );
+            let actual = app.world().resource::<Assets<Mesh>>().get(&mesh).unwrap();
+            let expected = terrain_mesh(
+                9920.,
+                -1760.,
+                CHUNK_SIZE,
+                CHUNK_CELLS,
+                drawn_height,
+                no_sink,
+            )
+            .0;
+            assert_eq!(
+                actual.attribute(Mesh::ATTRIBUTE_POSITION),
+                expected.attribute(Mesh::ATTRIBUTE_POSITION)
+            );
+        }
+    }
 }

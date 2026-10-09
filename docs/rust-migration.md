@@ -6,11 +6,13 @@ its appearance, controls, movement, vehicle handling, content, account data,
 desktop and browser support, and release workflows. Performance improvements
 must be measured at equivalent quality and workload.
 
-Status: substantial subsystem ports exist in `apps/client/`,
-`crates/world/` and `crates/identity/`, but the executable still opens the
-foundation viewer. The Step 2 local checkpoint has 257 passing headless tests
-and no failures; the two inherited vehicle failures are repaired. See its
-evidence and remaining acceptance gaps below.
+Status: the Step 3 local review checkpoint opens a playable application with
+Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
+loading/title/play/pause lifecycle. The foundation viewer remains available
+with `--foundation`. There are 261 passing headless tests; the render-side
+terrain regression and native graphical game smoke also pass. Visual and
+handling parity, full gameplay/UI, and the release-platform matrix remain
+open. Go remains the release default.
 A working module or green unit test is not evidence of integrated game parity.
 The completion plan below is the execution order from this checkpoint.
 
@@ -154,6 +156,105 @@ remain pending. These must be added alongside the relevant subsystem increments
 before final parity acceptance; the current artifacts do not prove the Rust
 client plays like the Go game. The Rust executable still opens its foundation
 viewer, and the two existing vehicle failures remain visible.
+
+## Step 3 local review checkpoint: 2026-10-09
+
+The Rust executable now assembles the existing subsystem ports into the first
+playable slice. `game::GamePlugin` owns loading/title/playing/paused states,
+player creation, input and interaction ordering, seats, orbit/follow/collision
+camera, stream centre, nearby vehicle ground coverage and the sky/shading
+light bridge. World placements remain the authored BSN assemblies. Wardrobe
+JSON and character/world models load asynchronously through AssetServer on
+both platforms. Failed assets/dependencies and malformed wardrobe data are
+shown in the loading panel.
+
+The Go main menu preserves its current player and world. This port therefore
+resumes the same session on Play; it does not invent a fresh-world reset.
+Physics and gameplay controls pause in menus. Tests repeat this cycle five
+times and check that one player and the same layout roots remain. Vehicle
+entry removes the character capsule, seats the player at the authored pose,
+and exits restore the standing controller. Hand/foot IK and complete ride
+poses remain Step 4 work.
+
+Integration exposed three render problems: a reserved shader identifier,
+terrain rebuilds that stopped when standard materials became painted
+materials, and world batching that lost its source-material metadata. Those
+are fixed. Ground uses the smooth painted material, batching retains source
+metadata, and the review block is excluded from Landfall's merge. Native
+Landfall batches into 1,027 meshes. Browser terrain/scatter retains the
+existing lower platform budget.
+
+From `silent-ibis`:
+
+```sh
+cargo run --locked -p earth-two-client
+cargo run --locked -p earth-two-client -- --at=buggy
+cargo run --locked -p earth-two-client -- --at=traversal
+cargo run --locked -p earth-two-client -- --foundation
+```
+
+The default spawn is Go's Landfall arrival. The buggy option starts beside
+an authored parked buggy. The traversal option adds the exact Hull test
+block placements above the live terrain at y=40, with its test floor; this
+is an opt-in review fixture, not new default game content. Its placement
+manifest is embedded because Go's release pack excludes development layouts.
+Models and textures still come from the selected asset root.
+
+Click Play or press Enter (focus the canvas first in a browser). WASD/arrows
+move; Shift runs; Space jumps/traverses; C crouches; Ctrl slides; R rolls.
+E enters/exits a nearby vehicle. Driving uses WASD/arrows, Space handbrake,
+H headlamps and R recovery. Mouse movement orbits on desktop; hold either
+mouse button and drag in the browser. Esc pauses/resumes; arrows and Enter
+select Resume/Main menu. Returning to the main menu retains the session.
+
+Reproduce the browser build with Python 3.11+:
+
+```sh
+python3.11 tools/rust/web.py --assets build/migration-baseline/step-1-go-reference-v2/reference/build/assets
+python3 -m http.server 8087 --bind 127.0.0.1 --directory build/rust-web
+```
+
+Open `http://127.0.0.1:8087/`, `/?at=buggy`, `/?at=traversal`, or
+`/?foundation`. `EARTH_TWO_ASSET_ROOT` selects a native asset directory.
+
+Evidence lives in `build/migration-baseline/step-3-playable/` (ignored):
+
+- `tests.log`: 261 headless tests pass, including keyboard walking,
+  enter/drive/brake/exit with capsule restoration, repeated menu transitions,
+  camera turn/recentering constants, and a keyboard-triggered vault over the
+  real Hull crate (fixture initially faces the crate, as in Go's test).
+- `terrain-render-test.log`: relocated terrain updates its mesh and replaces
+  its texture both before and after painted-material adoption.
+- `native-title.log` / `title.png`: macOS arm64 Metal loads 3,800 model scenes
+  and the player. `native-smoke.log` / `native-play.png` run a synthetic-input
+  graphical route through play, enter, drive, exit, walk, pause, title and
+  resume. Run it with `cargo run --locked -p earth-two-client --example game_smoke`.
+  This example injects game inputs and controls focus/cursor state for the
+  test; it does not send OS keyboard events.
+- `web-build-final.log`: optimized WASM and packed-asset packaging pass.
+  The dedicated Chromium/SwiftShader WebGL2 run loads 3,464 model scenes.
+  Real browser keyboard input exercises Play, buggy entry, throttle with
+  ArrowUp, exit, walking, pause and return to title. Captures include
+  `browser-seat.png`, `browser-arrow-driving.png`, `browser-exit.png`,
+  `browser-pause-menu.png` and `browser-title-after-play.png`.
+  `browser-errors.log` reports no JavaScript errors. This software adapter
+  is slow and does not establish browser hardware-performance parity.
+  The final build also loads 3,586 scenes with the Hull review fixture;
+  `browser-traversal.png` and `browser-traversal-action.png` show the block
+  and a keyboard Space action. The exact vault endpoint is asserted in the
+  headless integration test; browser animation/pose parity is still open.
+  `browser-final-errors.log` reports no JavaScript errors after this run.
+- `clippy-final.log`: workspace/all-target Clippy with warnings denied passes;
+  formatting and whitespace checks pass too.
+
+This is a gameplay integration checkpoint, not visual parity approval. Current
+captures visibly show clothing/skin fitting and animation attachment issues,
+lighting/shadow differences, and a plain temporary menu/HUD. Full title/pause
+settings, wardrobe/account UI, sound, residents, injuries and remaining
+interactions are still covered by Steps 4–6. The Step 2 handling differences
+remain open. Native macOS arm64 and a software WebGL2 browser are local
+coverage only; Linux, Windows, macOS x64 and additional browser engines still
+need runtime validation. Stop here for review before starting Step 4.
 
 ## Step 2 local review checkpoint: 2026-10-09
 
@@ -545,7 +646,7 @@ for these dependencies rather than relying on plugin insertion order.
 
 **Exit:** on desktop and browser, a player can start a session, walk through
 Landfall, use the traversal block, enter/drive/exit a buggy, pause/resume and
-return to title with clean restart. This is the first complete playable
+return to title and resume the same session without duplicate entities. This is the first complete playable
 slice; unfinished UI/art features remain explicit entries in the matrix.
 
 ### 4. Finish movement, vehicles, injuries and residents
