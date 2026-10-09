@@ -377,3 +377,61 @@ fn injury_text_matches_go_for_critical_and_fatal_impacts() {
         "Dead\nVehicle impact · 50 km/h\nR  Respawn at the Pads"
     );
 }
+
+#[test]
+fn residents_walk_on_landfall_and_population_editor_does_not_pause() {
+    use earth_two_client::game::{crowd::TestCrowd, residents::ResidentOf};
+    let mut app = app_at(StartAt::Crowd);
+    action(&mut app, MenuAction::Play);
+    tick(&mut app, 120);
+    let initial: Vec<_> = app
+        .world_mut()
+        .query_filtered::<(Entity, &Transform), With<ResidentOf>>()
+        .iter(app.world())
+        .map(|(e, t)| (e, t.translation))
+        .collect();
+    assert_eq!(initial.len(), 25);
+    tick(&mut app, 180);
+    let walkers = initial
+        .iter()
+        .filter(|(e, at)| {
+            let tr = app.world().get::<Transform>(*e).unwrap();
+            tr.translation.distance(*at) > 0.4
+                && app.world().get::<CharacterController>(*e).unwrap().grounded
+        })
+        .count();
+    assert!(walkers > 0, "no resident walked on the real Pads collision");
+    press(&mut app, KeyCode::F9);
+    press(&mut app, KeyCode::Digit0);
+    press(&mut app, KeyCode::Escape);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Playing
+    );
+    assert_eq!(app.world().resource::<TestCrowd>().population, 25);
+    action(&mut app, MenuAction::Pause);
+    let frozen: Vec<_> = initial
+        .iter()
+        .map(|(e, _)| (*e, app.world().get::<Transform>(*e).unwrap().translation))
+        .collect();
+    tick(&mut app, 30);
+    for (e, at) in frozen {
+        assert_eq!(app.world().get::<Transform>(e).unwrap().translation, at);
+    }
+    action(&mut app, MenuAction::Resume);
+    press(&mut app, KeyCode::F8);
+    assert_eq!(
+        app.world_mut()
+            .query::<&ResidentOf>()
+            .iter(app.world())
+            .count(),
+        0
+    );
+    assert_eq!(
+        app.world_mut()
+            .query_filtered::<Entity, With<Body>>()
+            .iter(app.world())
+            .count(),
+        1
+    );
+}

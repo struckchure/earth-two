@@ -6,13 +6,14 @@ its appearance, controls, movement, vehicle handling, content, account data,
 desktop and browser support, and release workflows. Performance improvements
 must be measured at equivalent quality and workload.
 
-Status: the Step 3 playable application and Step 4 pose/injury increments open with
+Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 270 passing headless tests and 90 client
+with `--foundation`. There are 277 passing headless tests and 92 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
-native graphical game and injury smoke pass. Visual and
+resident streaming, crowd controls and live detail budgets are integrated.
+Native graphical game, injury and crowd smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
 A working module or green unit test is not evidence of integrated game parity.
@@ -380,6 +381,79 @@ cleanup and no accidental roll.
 Residents, crowd lifecycle and measured vehicle/traversal/ragdoll parity remain
 open in Step 4. Local smoke tests do not establish matching Go trajectories or
 acceptance on the entire CI platform matrix. Go remains the release default.
+
+## Step 4 resident review checkpoint: 2026-10-09
+
+Ported `game/residents.go` and `testing_npcs.go` into the playable application.
+Residents wander around home, become full characters near the player, and
+continue as lightweight data far away. The Go constants remain: 55/65 m
+creation/release radii, 400 nearest characters plus 20 retained actors of
+slack, 16 new characters per frame, and eight slices for distant updates.
+Critical/dead residents retain health through release/recreation and return
+prone with a ragdoll, not a standing capsule. Clears use generations and
+recursive Bevy despawning removes body, garments and loaded scene descendants.
+
+The opt-in local test population preserves Go’s default of Off, requested
+count 25, maximum 4199, placement batch 256, golden-angle sites, wardrobe
+selection, upper-deck checks and relocation beyond 128 m. F8 toggles it; F9
+edits the count; Enter applies and Esc cancels without leaking to menu/game
+input. F1 shows/hides the NPC review panel. Other test switches and exact Go
+panel styling remain later UI work. Idle phases use a stable per-index offset
+instead of Go’s random idle offset; walking/decision constants are unchanged.
+
+`game/people.rs` now connects the existing Go-derived culling rules to actual
+Bevy characters: distance posing, physics step intervals, shadows, outlines
+and the nearby cloth budget. Layers apply to newly loaded mesh descendants
+without revealing hidden skin regions. Turning CPU cloth off restores the
+original skinned mesh and live joints; turning it on rebuilds the solver.
+Roster roots now initialize visibility, and despawned owners release cached
+skin-material handles and their painted-material copies. The port has not
+established Go-equivalent crowd
+performance or shared GPU skinning work merely by synchronizing clip times.
+
+Review from `silent-ibis`:
+
+```sh
+cargo run --locked -p earth-two-client -- --at=crowd
+cargo run --locked -p earth-two-client --example crowd_smoke
+```
+
+Browser route: `/?at=crowd`. Play, watch residents walking with their outfits,
+try F9 → 3 → Enter, F8 off/on, and pause/resume. These are the Go local test
+residents, not a new persistent population enabled in ordinary play.
+
+Evidence is under `build/migration-baseline/step-4-residents/` (ignored):
+
+- `tests-final.log`: 277 headless workspace tests pass, including hierarchy
+  cleanup, generations, batches/limits, distant movement, relocation, persistent
+  injuries, actual Landfall walking and editor/menu input ordering.
+- `resident-tests-final.log`: all six resident tests pass after strengthening
+  the exact 400 + 20 retention boundary and release checks.
+- `client-tests-final.log`: 92 graphical-feature library tests pass, including
+  late-loaded mesh culling, repeated CPU/GPU cloth transitions and asset
+  release across repeated material-owner despawns.
+- `native-smoke.log`, `native-crowd.png`, `native-recreated.png`: native
+  macOS arm64 Metal checks 25 loaded actors, distance budgets, pause, F9 shrink,
+  F8 off/on and recursive cleanup. The example holds clear weather at 11:00
+  and points the camera away from the market for a visible crowd. The later
+  post-cache-cleanup repeat (`native-smoke-final.log`) exited when its window
+  closed during startup; that repeat is not counted as a passing smoke.
+- `web-build-release.log`: final release WebAssembly build and browser asset
+  packaging pass. The final candidate at `http://127.0.0.1:8090/?at=crowd`
+  reached Playable ready and rendered 25 active residents; F9 changed the count
+  to three (`browser-crowd.png`, `browser-three.png`). F8 removed all three
+  and recreated them (`browser-off.png`, `browser-recreated.png`); the final
+  browser errors report is empty (`browser-release-errors.log`).
+  Browser automation uses SwiftShader WebGL2 and is not performance evidence.
+  One B0004 hierarchy warning appeared during world loading before residents
+  spawned; its source is still to be isolated in the platform parity work.
+- `clippy-final.log`: workspace/all-target Clippy with warnings denied passes;
+  formatting and `git diff --check` pass.
+
+This completes the resident integration increment, not the full Step 4 parity
+gate. Go/Rust vehicle handling, traversal and ragdoll trajectory comparisons,
+large-crowd profiling, long sessions and the remaining platform runtime matrix
+still need evidence. Go remains the release default.
 
 ## Step 2 local review checkpoint: 2026-10-09
 

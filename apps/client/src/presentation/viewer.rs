@@ -81,7 +81,7 @@ pub struct ClothMeshes(pub Vec<(usize, Entity, Handle<Mesh>)>);
 
 /// CPU cloth stops GPU skinning, but still needs the live joints every frame.
 #[derive(Component, Clone)]
-struct ClothSkin(SkinnedMesh);
+struct ClothSkin(SkinnedMesh, Handle<Mesh>);
 
 /// The body scene this garment's joint palette is bound to.
 #[derive(Component)]
@@ -92,6 +92,10 @@ pub struct ViewerPlugin;
 impl Plugin for ViewerPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Loading>()
+            .add_systems(
+                PostUpdate,
+                restore_skeletal_cloth.before(bevy::app::AnimationSystems),
+            )
             .add_systems(
                 Update,
                 load_content.run_if(
@@ -515,7 +519,10 @@ fn apply_parts(
     )>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut toned: Local<HashMap<(Entity, usize), Handle<StandardMaterial>>>,
+    living: Query<(), With<ModelParts>>,
 ) {
+    // Streamed/despawned residents must release their private material handles.
+    toned.retain(|(owner, _), _| living.contains(*owner));
     for (e, p, meshes, outline) in &parts {
         for (i, mesh) in meshes.0.iter().enumerate() {
             let Some(mesh) = *mesh else { continue };
@@ -544,6 +551,37 @@ fn apply_parts(
         if outline.is_some() {
             commands.entity(e).insert(Outlined);
         }
+    }
+}
+
+/// Leaving the nearby cloth budget returns the original GPU mesh and live
+/// joint palette. Dropping only the solver would freeze its last CPU vertices.
+#[allow(clippy::type_complexity)]
+fn restore_skeletal_cloth(
+    mut commands: Commands,
+    garments: Query<(Entity, &ClothMeshes), Without<Cloth>>,
+    skins: Query<&ClothSkin>,
+    children: Query<&Children>,
+    outlines: Query<(), With<crate::shading::plugin::OutlineHull>>,
+) {
+    for (garment, meshes) in &garments {
+        for (_, mesh, _) in &meshes.0 {
+            let Ok(original) = skins.get(*mesh) else {
+                continue;
+            };
+            commands
+                .entity(*mesh)
+                .insert((Mesh3d(original.1.clone()), original.0.clone()))
+                .remove::<ClothSkin>();
+            for child in children.iter_descendants(*mesh) {
+                if outlines.contains(child) {
+                    commands
+                        .entity(child)
+                        .insert((Mesh3d(original.1.clone()), original.0.clone()));
+                }
+            }
+        }
+        commands.entity(garment).remove::<ClothMeshes>();
     }
 }
 
@@ -649,7 +687,7 @@ fn simulate_cloth(
                     .insert((
                         Mesh3d(handle.clone()),
                         NoFrustumCulling,
-                        ClothSkin(skin.clone()),
+                        ClothSkin(skin.clone(), mesh.0.clone()),
                     ))
                     .remove::<SkinnedMesh>();
                 own.0.push((i, mesh_entity, handle));
@@ -764,7 +802,7 @@ mod tests {
             .init_resource::<Assets<SkinnedMeshInverseBindposes>>()
             .init_resource::<ModelStore>()
             .insert_resource(Controls { enabled: true })
-            .add_systems(Update, simulate_cloth);
+            .add_systems(Update, (restore_skeletal_cloth, simulate_cloth).chain());
         let vertices = vec![Vec3::ZERO, Vec3::X, Vec3::Y];
         app.world_mut().resource_mut::<ModelStore>().insert(
             "cloth",
@@ -819,29 +857,33 @@ mod tests {
             .world_mut()
             .spawn((
                 ChildOf(mesh_entity),
+                crate::shading::plugin::OutlineHull,
                 Mesh3d(mesh.clone()),
                 outline_skin,
                 MeshMaterial3d::<crate::shading::OutlineMaterial>(default()),
             ))
             .id();
-        app.world_mut().spawn((
-            Cloth {
-                meshes: [(
-                    0,
-                    ClothMeshSpec {
-                        freedom: vec![0.; 3],
-                    },
-                )]
-                .into(),
-                ..default()
-            },
-            GarmentSkeleton(joint),
-            ModelScene {
-                path: "cloth".into(),
-                root: mesh_entity,
-            },
-            MeshEntities(vec![Some(mesh_entity)]),
-        ));
+        let garment = app
+            .world_mut()
+            .spawn((
+                Cloth {
+                    meshes: [(
+                        0,
+                        ClothMeshSpec {
+                            freedom: vec![0.; 3],
+                        },
+                    )]
+                    .into(),
+                    ..default()
+                },
+                GarmentSkeleton(joint),
+                ModelScene {
+                    path: "cloth".into(),
+                    root: mesh_entity,
+                },
+                MeshEntities(vec![Some(mesh_entity)]),
+            ))
+            .id();
         app.update();
         assert!(app.world().get::<SkinnedMesh>(mesh_entity).is_none());
         let own = app.world().get::<Mesh3d>(mesh_entity).unwrap().0.clone();
@@ -886,5 +928,25 @@ mod tests {
                 assert!(Vec3::from(*actual).distance(*rest + Vec3::X * x) < 1e-5);
             }
         }
+        let mut cloth_again = app.world().get::<Cloth>(garment).unwrap().clone();
+        cloth_again.state = None;
+        app.world_mut().entity_mut(garment).remove::<Cloth>();
+        app.update();
+        for entity in [mesh_entity, outline] {
+            assert_eq!(app.world().get::<Mesh3d>(entity).unwrap().0, mesh);
+            assert_eq!(
+                app.world().get::<SkinnedMesh>(entity).unwrap().joints,
+                vec![joint]
+            );
+        }
+        assert!(app.world().get::<ClothMeshes>(garment).is_none());
+        assert!(app.world().get::<ClothSkin>(mesh_entity).is_none());
+        app.world_mut().entity_mut(garment).insert(cloth_again);
+        app.update();
+        assert!(app.world().get::<SkinnedMesh>(mesh_entity).is_none());
+        let rebuilt = &app.world().get::<Mesh3d>(mesh_entity).unwrap().0;
+        assert_ne!(rebuilt, &mesh);
+        assert_ne!(rebuilt, &own);
+        assert_eq!(&app.world().get::<Mesh3d>(outline).unwrap().0, rebuilt);
     }
 }

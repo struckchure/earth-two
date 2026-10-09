@@ -7,10 +7,11 @@ to the main menu preserves the current session, as in Go.
 
 This is a playable integration checkpoint. Hair and garments follow the
 body skeleton; bike/trike riding, static-wall pose fitting, articulated
-knockdowns and R recovery are connected.
+knockdowns and R recovery are connected. Residents now wander nearby, stream
+to/from lightweight data, and retain injuries across streaming.
 Remaining animation/foot placement, lighting and complete visual parity remain unfinished, as do sound, full
-menus/accounts, residents and other gameplay flows. Go remains the
-release default. See the [migration checkpoint](../../docs/rust-migration.md#step-4-injury-review-checkpoint-2026-10-09)
+menus/accounts and other gameplay flows. Go remains the
+release default. See the [migration checkpoint](../../docs/rust-migration.md#step-4-resident-review-checkpoint-2026-10-09)
 for evidence and remaining work.
 
 Run from the repository root:
@@ -19,6 +20,7 @@ Run from the repository root:
 make rust-run       # playable Landfall preview
 cargo run --locked -p earth-two-client -- --at=buggy
 cargo run --locked -p earth-two-client -- --at=bike
+cargo run --locked -p earth-two-client -- --at=crowd
 cargo run --locked -p earth-two-client -- --at=injury
 cargo run --locked -p earth-two-client -- --at=fatal
 cargo run --locked -p earth-two-client -- --at=traversal
@@ -30,6 +32,7 @@ cargo run --locked -p earth-two-client --example game_smoke
 cargo run --locked -p earth-two-client --example game_smoke -- --bike
 cargo run --locked -p earth-two-client --example injury_smoke
 cargo run --locked -p earth-two-client --example injury_smoke -- --fatal
+cargo run --locked -p earth-two-client --example crowd_smoke
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
@@ -50,6 +53,11 @@ after Play, using 25 and 50 km/h impact states. They directly invoke the
 vehicle knockdown path; they do not stage a collision. Inspect the limbs,
 hair and clothes, pause/resume, then press R to return to the Pads. The
 `injury_smoke` example asserts this flow with the native renderer.
+`--at=crowd` enables the same local test crowd as Go (25 residents). F8
+toggles it, F9 replaces the requested count (0–4199), Enter applies, Esc
+cancels, and F1 shows/hides its panel. The default game keeps this test crowd
+off. `crowd_smoke` checks loaded actors, pause, count editing and recursive
+despawning/recreation.
 The `game_smoke` example uses synthetic game inputs in the native renderer
 and asserts play/drive/exit/walk/pause/title behavior before saving a capture.
 
@@ -62,7 +70,7 @@ For an automatic title capture use
 `EARTH_TWO_CAPTURE=build/rust/title.png make rust-run`; it waits for content
 and a render warmup, captures a frame and exits.
 
-Local evidence includes 270 passing headless tests, 90 client library tests
+Local evidence includes 277 passing headless tests, 92 client library tests
 with rendering/pose regressions, native macOS arm64/Metal graphical smoke, and a packed
 asset Chromium/SwiftShader WebGL2 gameplay check. CI also compiles/tests the
 Linux, Windows and both macOS architecture targets. Other runtime platforms,
@@ -101,7 +109,7 @@ assets in `build/rust-web/`. This requires Python 3.11+ and the `wasm-bindgen`
 CLI matching `Cargo.lock`; the script prints the exact install command when
 it is missing. Serve with
 `python3 -m http.server 8080 --directory build/rust-web`.
-Use `/?at=buggy`, `/?at=bike`, `/?at=injury`, `/?at=fatal`, `/?at=traversal`, or `/?foundation` for review routes.
+Use `/?at=buggy`, `/?at=bike`, `/?at=crowd`, `/?at=injury`, `/?at=fatal`, `/?at=traversal`, or `/?foundation` for review routes.
 Browser runtime validation is separate from `make rust-check`, which only
 compiles for WASM.
 

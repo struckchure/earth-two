@@ -51,3 +51,10 @@ or static-wall contact fitting, or the fixed-step articulated ragdoll pose,
 and writes local joints before propagation. A knockdown starts from the last
 corrected blended pose; recovery releases the rig and restores clip ownership.
 Garments and desktop cloth then consume that same corrected skeleton.
+
+The game’s people adapter applies the Go distance, shadow, outline, controller
+step and cloth budgets to body/garment hierarchies, including asynchronously
+loaded meshes. When cloth leaves the budget, the viewer restores the original
+GPU mesh and live joint palette; returning builds a fresh solver. Despawned
+owners release cached tone-material handles. All roster roots initialize the
+Bevy visibility hierarchy on graphical builds.

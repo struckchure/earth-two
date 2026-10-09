@@ -374,6 +374,9 @@ fn adopt_materials(
     haze: Res<Haze>,
     sent: Res<Sent>,
 ) {
+    // Private character materials disappear on despawn. Their painted copies
+    // must leave this cache too, or repeated crowds keep every old material.
+    cache.0.retain(|(source, _), _| standard.contains(*source));
     for (entity, material, mesh, skin, smooth) in &meshes {
         // Not loaded yet: next frame.
         let Some(base) = standard.get(&material.0) else {
@@ -524,6 +527,66 @@ fn sync_materials(
         for (_, material) in outlines.iter_mut() {
             let base = material.uniform.base_color;
             material.uniform = outline_uniform(&look, &haze, base);
+        }
+    }
+}
+
+#[cfg(test)]
+mod lifetime_tests {
+    use super::*;
+    #[test]
+    fn shared_painted_materials_are_released_after_their_owners_despawn() {
+        let mut app = App::new();
+        app.add_plugins((MinimalPlugins, bevy::asset::AssetPlugin::default()))
+            .init_asset::<StandardMaterial>()
+            .init_asset::<PaintedMaterial>()
+            .init_asset::<OutlineMaterial>()
+            .init_resource::<PaintedCache>()
+            .init_resource::<Sent>()
+            .init_resource::<Look>()
+            .init_resource::<Haze>()
+            .add_systems(Update, adopt_materials);
+        for _ in 0..3 {
+            let source = app
+                .world_mut()
+                .resource_mut::<Assets<StandardMaterial>>()
+                .add(StandardMaterial::default());
+            let source_id = source.id();
+            let a = app.world_mut().spawn(MeshMaterial3d(source.clone())).id();
+            let b = app.world_mut().spawn(MeshMaterial3d(source.clone())).id();
+            drop(source);
+            app.update();
+            let painted_id = app
+                .world()
+                .get::<MeshMaterial3d<PaintedMaterial>>(a)
+                .unwrap()
+                .0
+                .id();
+            assert_eq!(
+                app.world()
+                    .get::<MeshMaterial3d<PaintedMaterial>>(b)
+                    .unwrap()
+                    .0
+                    .id(),
+                painted_id
+            );
+            assert_eq!(app.world().resource::<PaintedCache>().0.len(), 1);
+            app.world_mut().despawn(a);
+            app.world_mut().despawn(b);
+            for _ in 0..8 {
+                app.update();
+            }
+            assert!(
+                !app.world()
+                    .resource::<Assets<StandardMaterial>>()
+                    .contains(source_id)
+            );
+            assert!(app.world().resource::<PaintedCache>().0.is_empty());
+            assert!(
+                !app.world()
+                    .resource::<Assets<PaintedMaterial>>()
+                    .contains(painted_id)
+            );
         }
     }
 }

@@ -28,4 +28,6 @@ viewer reacts; without the viewer the marks are inert.
 Hooks the other ports provide: the player's root carries `StreamCentre`;
 the camera carries `CullEye` (the viewer fills it from `Camera3d`); the
 sun's `RenderLayers` include `render::SHADOW_LAYER`; the character port
-installs a `PeopleCuller`.
+installs a `PeopleCuller`. The playable game now installs this adapter in
+`game/people.rs`; it applies the existing rules to character roots, bodies and
+all loaded mesh descendants.

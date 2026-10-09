@@ -118,7 +118,7 @@ impl Roster {
         player.seek(phase * 2.0);
 
         let center = feet + Vec3::Y * (CAPSULE_HEIGHT / 2.0);
-        commands
+        let root = commands
             .spawn((
                 Character::default(),
                 Health::default(),
@@ -139,7 +139,10 @@ impl Roster {
                 Transform::from_xyz(0.0, -CAPSULE_HEIGHT / 2.0, 0.0)
                     .with_scale(Vec3::splat(s.scale)),
             ))
-            .id()
+            .id();
+        #[cfg(feature = "viewer")]
+        commands.entity(root).insert(Visibility::Inherited);
+        root
     }
 }
 

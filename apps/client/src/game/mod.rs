@@ -2,9 +2,12 @@
 //! loaded content live for the app's lifetime. As in Go, Main menu preserves
 //! the current world; Play resumes it instead of spawning a second session.
 pub mod camera;
+pub mod crowd;
 pub mod injuries;
+pub mod people;
 #[cfg(feature = "viewer")]
 mod render;
+pub mod residents;
 pub mod seats;
 
 use crate::{
@@ -52,13 +55,14 @@ pub struct GameAssets {
 }
 
 /// Review entry points only; normal play always starts at Go's arrival.
-#[derive(Resource, Default, Clone, Copy)]
+#[derive(Resource, Default, Clone, Copy, PartialEq, Eq)]
 pub enum StartAt {
     #[default]
     Arrival,
     Hull,
     Buggy,
     Bike,
+    Crowd,
     Injury,
     Fatal,
     Traversal,
@@ -88,10 +92,21 @@ impl Plugin for GamePlugin {
             crate::shading::ShadingPlugin::earth_two(),
             crate::sky::SkyPlugin,
             crate::identity::IdentityPlugin,
+            residents::ResidentsPlugin,
+            people::PeoplePlugin,
         ))
         .init_state::<Screen>()
         .init_resource::<Session>()
         .init_resource::<StartAt>()
+        .init_resource::<crowd::TestCrowd>()
+        .add_systems(Startup, crowd::review)
+        .add_systems(Update, crowd::input.before(GameSet::Menu))
+        .add_systems(
+            Update,
+            crowd::sync
+                .before(residents::ResidentsSet)
+                .after(GameSet::Menu),
+        )
         .init_resource::<camera::Orbit>()
         .init_resource::<vehicle::GroundCover>()
         .add_message::<MenuAction>()
@@ -207,7 +222,7 @@ fn spawn_player(
         return;
     }
     let feet = match *start {
-        StartAt::Arrival | StartAt::Injury | StartAt::Fatal => ARRIVAL,
+        StartAt::Arrival | StartAt::Crowd | StartAt::Injury | StartAt::Fatal => ARRIVAL,
         StartAt::Hull => Vec3::new(-15.0, 0.0, 6.0),
         StartAt::Traversal => TRAVERSAL_ORIGIN + Vec3::new(1.0, 0.0, 1.95),
         StartAt::Buggy | StartAt::Bike => {

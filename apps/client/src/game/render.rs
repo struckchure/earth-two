@@ -74,6 +74,7 @@ fn start_at() -> StartAt {
         "hull" => StartAt::Hull,
         "buggy" => StartAt::Buggy,
         "bike" => StartAt::Bike,
+        "crowd" => StartAt::Crowd,
         "injury" => StartAt::Injury,
         "fatal" => StartAt::Fatal,
         "traversal" => StartAt::Traversal,
@@ -123,10 +124,16 @@ impl Plugin for GameRenderPlugin {
             .init_resource::<MenuFocus>()
             .add_systems(Startup, setup)
             .add_systems(Update, (load_wardrobe, attach_models, readiness).chain())
-            .add_systems(Update, menu_keys.before(GameSet::Menu))
+            .add_systems(
+                Update,
+                menu_keys.before(GameSet::Menu).after(super::crowd::input),
+            )
             .add_observer(buttons)
             .add_systems(Update, pointer.before(GameSet::Input))
-            .add_systems(Update, (menus, hud, injury_panel).after(GameSet::Camera))
+            .add_systems(
+                Update,
+                (menus, hud, injury_panel, crowd_panel).after(GameSet::Camera),
+            )
             .add_systems(
                 Update,
                 sync_lighting
@@ -587,4 +594,60 @@ fn injury_panel(
                     }
                 });
         });
+}
+
+#[derive(Component)]
+struct CrowdPanel;
+fn crowd_panel(
+    mut commands: Commands,
+    crowd: Res<super::crowd::TestCrowd>,
+    residents: Res<super::residents::Residents>,
+    panels: Query<Entity, With<CrowdPanel>>,
+    mut previous: Local<String>,
+) {
+    let text = if !crowd.shown {
+        String::new()
+    } else if crowd.editing {
+        format!(
+            "NPC population: {}_\nEnter: apply   Esc: cancel",
+            crowd.digits
+        )
+    } else {
+        format!(
+            "F8  NPCs: {}\nF9  Population: {} ({} placed, {} active)\nF1  Hide",
+            if crowd.enabled { "On" } else { "Off" },
+            crowd.population,
+            crowd.live,
+            residents.near
+        )
+    };
+    if *previous == text {
+        return;
+    }
+    *previous = text.clone();
+    for panel in &panels {
+        commands.entity(panel).despawn();
+    }
+    if text.is_empty() {
+        return;
+    }
+    commands.spawn((
+        CrowdPanel,
+        Node {
+            position_type: PositionType::Absolute,
+            right: px(20),
+            top: px(20),
+            padding: UiRect::all(px(12)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.12, 0.075, 0.10, 0.94)),
+        children![(
+            Text::new(text),
+            TextFont {
+                font_size: px(16).into(),
+                ..default()
+            },
+            TextColor(Color::srgb(0.89, 0.81, 0.64))
+        )],
+    ));
 }
