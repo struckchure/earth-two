@@ -92,6 +92,10 @@ impl Plugin for CuesPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<Cue>()
             .init_resource::<CueRandom>()
+            .configure_sets(
+                PostUpdate,
+                crate::sky::effects::EffectsSystems.after(CueSet),
+            )
             .init_resource::<super::drive_sound::DriveSound>()
             .init_resource::<super::ui_sound::UiSoundState>()
             .add_systems(
@@ -130,6 +134,10 @@ impl BodyMemory {
             clank: 0.,
         }
     }
+    pub fn landing_strength(&self, cc: &CharacterController) -> Option<f32> {
+        (!self.grounded && cc.grounded && !cc.controlled && self.fall > 2.5)
+            .then(|| ((self.fall - 2.5) / 6.).clamp(0., 1.))
+    }
     pub fn update(
         &mut self,
         cur: Anim,
@@ -145,8 +153,7 @@ impl BodyMemory {
         if self.grounded && !cc.grounded && cc.velocity.y > 1. && !cc.controlled {
             out.push(("cloth", 0.5, 1.));
         }
-        if !self.grounded && cc.grounded && !cc.controlled && self.fall > 2.5 {
-            let k = ((self.fall - 2.5) / 6.).clamp(0., 1.);
+        if let Some(k) = self.landing_strength(cc) {
             let (name, pitch) = under.step();
             out.push((name, 0.6 + 0.4 * k, pitch * 0.9));
             out.push((
@@ -222,6 +229,7 @@ fn body_cues(
     mut memory: Local<HashMap<Entity, BodyMemory>>,
     mut random: ResMut<CueRandom>,
     mut cues: MessageWriter<Cue>,
+    mut fx: ResMut<crate::sky::Effects>,
 ) {
     let (Ok(camera), Some(scape)) = (cameras.single(), scape) else {
         return;
@@ -236,7 +244,23 @@ fn body_cues(
         let m = memory
             .entry(e)
             .or_insert_with(|| BodyMemory::new(st.current, cc.grounded));
-        let under = underfoot(&scape, &physics, &ground, parent.parent(), feet);
+        let landing = m.landing_strength(cc);
+        let trailing = cc.grounded && matches!(st.current, Anim::Slide | Anim::Roll);
+        let under = if landing.is_some() || trailing {
+            underfoot(&scape, &physics, &ground, parent.parent(), feet)
+        } else {
+            Footing::Sand
+        };
+        super::effects::body(
+            &mut fx,
+            feet,
+            cc.velocity,
+            under,
+            cc.grounded,
+            st.current,
+            landing,
+            time.delta_secs(),
+        );
         for (name, volume, pitch) in m.update(st.current, cc, under, time.delta_secs(), &mut random)
         {
             cues.write(v.at(name, feet + Vec3::Y, volume, 3., 28., pitch));
@@ -318,6 +342,7 @@ fn foot_cues(
     ground: Query<(), With<TerrainBody>>,
     mut memory: Local<HashMap<Entity, FootMemory>>,
     mut cues: MessageWriter<Cue>,
+    mut fx: ResMut<crate::sky::Effects>,
 ) {
     let (Ok(camera), Some(scape)) = (cameras.single(), scape) else {
         return;
@@ -350,13 +375,14 @@ fn foot_cues(
                 && stepping(st.current)
                 && speed > 0.3
             {
-                let (name, pitch) =
-                    underfoot(&scape, &physics, &ground, parent.parent(), feet).step();
+                let under = underfoot(&scape, &physics, &ground, parent.parent(), feet);
+                let (name, pitch) = under.step();
                 let mut volume = 0.35 + 0.5 * ((speed - 1.) / 4.).clamp(0., 1.);
                 if cc.height < 1.5 {
                     volume *= 0.5;
                 }
                 cues.write(v.at(name, g.translation(), volume, 3., 28., pitch));
+                super::effects::foot(&mut fx, under, g.translation(), cc.velocity, speed);
             }
         }
     }

@@ -51,6 +51,7 @@ pub struct DriveSound {
     pub shift: f32,
     pub skid: f32,
     pub crash: f32,
+    pub dust: Vec<f32>,
 }
 impl DriveSound {
     pub fn tick(&mut self, dt: f32) {
@@ -142,6 +143,7 @@ pub(super) fn drive_cues(
     )>,
     scape: Option<Res<Soundscape>>,
     mut cues: MessageWriter<Cue>,
+    mut fx: ResMut<crate::sky::Effects>,
 ) {
     let dt = time.delta_secs();
     memory.tick(dt);
@@ -163,6 +165,7 @@ pub(super) fn drive_cues(
         }
         memory.vehicle = driving.vehicle;
         memory.gear = driving.gear;
+        memory.dust.clear();
     }
     let Some(e) = driving.vehicle else {
         memory.quiet(dt);
@@ -182,6 +185,16 @@ pub(super) fn drive_cues(
         *screen.get() == Screen::Playing,
         dt,
     );
+    super::effects::wheels(
+        &mut fx,
+        &mut memory.dust,
+        &car.spec,
+        state,
+        tr,
+        **vel,
+        &scape,
+        dt,
+    );
     let slip = vel.dot(*tr.right()).abs();
     let touching = state.touching as f32 / state.wheels.len().max(1) as f32;
     if let Some(volume) = memory.skid_volume(slip, state.speed.abs(), touching, input.hand_brake) {
@@ -199,6 +212,7 @@ pub(super) fn crash_cues(
     screen: Res<State<Screen>>,
     mut memory: ResMut<DriveSound>,
     mut cues: MessageWriter<Cue>,
+    mut fx: ResMut<crate::sky::Effects>,
 ) {
     let (Some(vehicle), Ok(camera)) = (driving.vehicle, cameras.single()) else {
         events.clear();
@@ -232,6 +246,13 @@ pub(super) fn crash_cues(
             memory.crash_sound(velocity.dot(manifold.normal).abs(), ground.contains(other))
         {
             cues.write(v.at(name, point.point, volume, 4., 60., pitch));
+            super::effects::crash(
+                &mut fx,
+                point.point,
+                manifold.normal,
+                velocity.dot(manifold.normal).abs(),
+                ground.contains(other),
+            );
         }
     }
 }

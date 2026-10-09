@@ -20,6 +20,8 @@ pub mod time;
 pub mod weather;
 
 #[cfg(feature = "viewer")]
+pub mod particles;
+#[cfg(feature = "viewer")]
 pub mod render;
 
 pub use clock::{Clock, DAYLIGHT_HOURS, day_strip, part_of_day};
@@ -32,7 +34,8 @@ pub use weather::{Ambient, Haze, SunLight, Weather, conditions, storm_at};
 use bevy::prelude::*;
 
 /// Where the sky's systems run in `Update`: the sun turned, then the
-/// weather on it, then the particles moved. Systems that read `Daylight`,
+/// weather on it. Particle motion is in PostUpdate after gameplay emissions.
+/// Systems that read `Daylight`,
 /// `Weather`, `Haze`, `Ambient` or `SunLight` go after this set.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SkySystems;
@@ -56,9 +59,15 @@ impl Plugin for SkyPlugin {
             .add_systems(Startup, daylight::spawn_sun)
             .add_systems(
                 Update,
-                (daylight::turn_sun, weather::blow, effects::move_effects)
+                (daylight::turn_sun, weather::blow)
                     .chain()
                     .in_set(SkySystems),
+            )
+            .add_systems(
+                PostUpdate,
+                effects::move_effects
+                    .after(TransformSystems::Propagate)
+                    .in_set(effects::EffectsSystems),
             );
         #[cfg(feature = "viewer")]
         app.add_plugins(render::SkyRenderPlugin);

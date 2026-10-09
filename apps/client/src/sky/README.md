@@ -47,10 +47,18 @@ The dome (our own Y-poled longitude-latitude sphere, so the texture is painted
 by direction rather than through raylib's sphere UVs), the sun disc, the six
 neighbours, the stars as a line-list mesh rebuilt each frame (budget and
 crosses per `stars.rs`, wasm gets 2500 dots), the particles as one quad mesh
-with a soft-disc texture (the Go fragment shader's falloff), the blown dust as
+with `particles.wesl` (the Go soft-disc fragment formula and 0.01 alpha cutoff), the blown dust as
 UI nodes under `GlobalZIndex(-10)`, repainting the sky on an
 `AsyncComputeTaskPool` task as Go did on a goroutine, and `far_enough`, which
 raises any `Camera3d` perspective far plane to `SKY_FAR` so the dome is seen.
+
+The particle material is blended, depth-tested, unlit, double-sided and does not
+write depth, receive fog or cast shadows. Vertex tint uses the original sRGB
+bytes converted for Bevy's linear pipeline. Only live quads are submitted;
+the empty frame clears the draw range and hides the one persistent mesh.
+`effects::EffectsSystems` runs in PostUpdate after transform propagation;
+the game orders it after rendered foot emission, and particle mesh updates
+follow it. Weather/light updates remain in `SkySystems` in Update.
 
 `cargo run --example sky` captures `build/rust/sky-11.png` and
 `build/rust/sky-22.png`; with `EARTH_TWO_HOUR` set, `build/rust/sky.png`.

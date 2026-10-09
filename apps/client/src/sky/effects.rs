@@ -338,6 +338,9 @@ impl Effects {
     }
 }
 
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct EffectsSystems;
+
 /// Ages and moves the particles on the wind, as the weather has it.
 pub fn move_effects(mut fx: ResMut<Effects>, w: Res<Weather>, time: Res<Time>) {
     fx.wind = dust_wind().normalize() * (CALM_WIND + (STORM_WIND - CALM_WIND) * w.storm);

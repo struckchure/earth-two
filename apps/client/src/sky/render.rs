@@ -91,7 +91,8 @@ pub struct SkyRenderPlugin;
 
 impl Plugin for SkyRenderPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<SkyPainting>()
+        app.add_plugins(super::particles::ParticleMaterialPlugin)
+            .init_resource::<SkyPainting>()
             .add_systems(
                 Startup,
                 (
@@ -106,7 +107,11 @@ impl Plugin for SkyRenderPlugin {
             )
             .add_systems(
                 PostUpdate,
-                (move_sky, draw_stars, draw_effects).before(TransformSystems::Propagate),
+                (move_sky, draw_stars).before(TransformSystems::Propagate),
+            )
+            .add_systems(
+                PostUpdate,
+                draw_effects.after(super::effects::EffectsSystems),
             );
     }
 }
@@ -185,6 +190,7 @@ fn spawn_sky(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
+    mut particle_materials: ResMut<Assets<super::particles::ParticleMaterial>>,
 ) {
     let sphere = meshes.add(sphere_mesh(96, 48));
     let unlit = |materials: &mut Assets<StandardMaterial>, tex: Handle<Image>| {
@@ -300,7 +306,6 @@ fn spawn_sky(
     ));
     // The particles: quads facing the camera, each a soft disc in its
     // vertex colour, its edge fading out.
-    let disc = images.add(upload_texture(soft_disc(64), 64, 64));
     let mut quads = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD,
@@ -323,14 +328,7 @@ fn spawn_sky(
         Name::new("effects"),
         EffectsMesh,
         Mesh3d(meshes.add(quads)),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::WHITE,
-            base_color_texture: Some(disc),
-            unlit: true,
-            alpha_mode: AlphaMode::Blend,
-            cull_mode: None,
-            ..default()
-        })),
+        MeshMaterial3d(particle_materials.add(super::particles::ParticleMaterial::default())),
         Transform::IDENTITY,
         Visibility::Hidden,
         NotShadowCaster,
@@ -339,22 +337,6 @@ fn spawn_sky(
     ));
 }
 
-/// The particles' disc: white, soft all the way in (dust thins out from
-/// its middle, it has no rim), what the Go fragment shader drew.
-fn soft_disc(n: usize) -> Vec<u8> {
-    let mut pixels = vec![255u8; n * n * 4];
-    for y in 0..n {
-        for x in 0..n {
-            let (u, v) = ((x as f32 + 0.5) / n as f32, (y as f32 + 0.5) / n as f32);
-            let r = Vec2::new(u * 2.0 - 1.0, v * 2.0 - 1.0).length();
-            let a = f64::from(1.0 - smoothstep(0.0, 1.0, r)).powf(1.6) as f32;
-            pixels[(y * n + x) * 4 + 3] = (255.0 * a) as u8;
-        }
-    }
-    pixels
-}
-
-/// The camera the sky's drawn round, if there is one.
 fn eye(cameras: &Query<&Transform, With<Camera3d>>) -> Option<Transform> {
     cameras.iter().next().copied()
 }
@@ -579,10 +561,25 @@ fn draw_effects(
             Visibility::Inherited
         };
         if let Some(mut m) = meshes.get_mut(&mesh.0) {
-            m.insert_attribute(Mesh::ATTRIBUTE_POSITION, verts.clone());
+            m.insert_attribute(Mesh::ATTRIBUTE_POSITION, verts[..4 * n].to_vec());
+            m.insert_attribute(
+                Mesh::ATTRIBUTE_UV_0,
+                (0..n)
+                    .flat_map(|_| [[0., 1.], [1., 1.], [1., 0.], [0., 0.]])
+                    .collect::<Vec<[f32; 2]>>(),
+            );
+            m.insert_indices(Indices::U32(
+                (0..n as u32)
+                    .flat_map(|i| {
+                        let b = 4 * i;
+                        [b, b + 1, b + 2, b, b + 2, b + 3]
+                    })
+                    .collect(),
+            ));
             m.insert_attribute(
                 Mesh::ATTRIBUTE_COLOR,
-                cols.iter()
+                cols[..4 * n]
+                    .iter()
                     .map(|c| c.to_linear().to_f32_array())
                     .collect::<Vec<_>>(),
             );

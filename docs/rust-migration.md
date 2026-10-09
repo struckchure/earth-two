@@ -9,11 +9,12 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 289 passing headless tests and 99 client
+with `--foundation`. There are 295 passing headless tests and 99 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
-Step 5 now includes ambience, foot/body cues, vehicle sound and playable menu/HUD cues.
+Step 5 now includes ambience, foot/body cues, vehicle sound, playable menu/HUD
+cues and gameplay particle emission.
 Native graphical game, injury and crowd smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
@@ -382,6 +383,65 @@ cleanup and no accidental roll.
 Residents, crowd lifecycle and measured vehicle/traversal/ragdoll parity remain
 open in Step 4. Local smoke tests do not establish matching Go trajectories or
 acceptance on the entire CI platform matrix. Go remains the release default.
+
+## Step 5 particles review checkpoint: 2026-10-09
+
+The existing `sky/effects.rs` port of `game/effects.go` now receives live
+emissions from the same body, rendered-foot and vehicle transitions as Go.
+Loose footsteps outside the dome raise puffs; loose landings throw strength-
+scaled rings; grounded rolls/slides leave trails. Wheels retain fractional
+emission at 18 puffs/s at full speed, from vehicle speed or wheel spin, only
+while touching loose ground. Accepted ground crashes throw rings; metal hits
+above 7 m/s throw sparks. Vehicle changes reset wheel accumulators.
+
+Surface/zone rules, particle counts, velocities, sizes, lifetimes, drag,
+gravity, wind response and tinting use the original formulas. The same
+2,048-particle cap replaces the greatest relative-age particle when full.
+Particles follow render time, including while menus pause physics, as in Go.
+Foot sampling follows animation/pose fitting and propagation; particle
+motion then runs once after all emissions and before rebuilding the mesh.
+Body support rays now run only when a landing or trail needs the surface.
+
+The renderer uses one depth-tested transparent mesh, sorted far to near,
+with Go's close-camera fade and floor lift. An analytic WESL fragment replaces
+the earlier 64-pixel texture approximation: the original smoothstep/power
+falloff and 0.01 alpha discard, with no extra fog or lighting. The material
+casts no shadows and does not write depth. Vertex colours convert the original
+sRGB tint bytes for Bevy's linear pipeline. Only live quads are indexed; expiry
+clears the geometry and hides the persistent mesh.
+
+Evidence belongs in `build/migration-baseline/step-5-particles/`:
+
+- `headless.log`: 295 workspace tests pass, including six new emission,
+  cadence, threshold, billboard, tint and lifecycle regressions.
+
+- `client.log`: all 99 client library tests pass.
+- `clippy.log` and `web-clippy.log`: native all-target and browser lint pass
+  with warnings denied.
+- `native-smoke.log`: actual buggy driving, rendered foot plants and landing
+  emitted particles (59 live at peak). The analytic shader rendered without
+  pipeline errors; expiry left one hidden mesh with zero vertices/indices.
+- `native-wheel.png`: live wheel dust; `native-sparks.png`: an explicitly
+  injected accepted-crash burst for shader inspection, alongside live foot
+  dust. This spark capture is not a recorded physics collision.
+
+- `web-build.log`: release WASM build and browser asset staging pass.
+- `browser-console.log`, `browser-errors.log` and `browser-wheel.png`: browser
+  play, buggy entry and driving produced visible wheel dust with the analytic
+  shader, with no JavaScript or shader validation errors. This check used
+  Chromium WebGL2 with SwiftShader; hardware performance and the remaining
+  platform matrix still need acceptance.
+
+Expected empty-mesh warnings occur when the final draw range is released.
+
+Review `/?at=buggy`: Enter plays, E enters/exits, W drives, Space brakes/jumps,
+R rolls, Ctrl slides while moving, Escape pauses/resumes. Dust appears on
+sand/soil; paving, grating and rugs do not raise it. The finite native check is
+`cargo run --locked -p earth-two-client --example particles_smoke`.
+
+This is an integration checkpoint. Paired Go/Rust visual and listening
+comparison, remaining platform runtime acceptance, full map/wardrobe/bell
+interaction flows and their cues, and master-volume UI remain open.
 
 ## Step 5 gameplay cues review checkpoint: 2026-10-09
 

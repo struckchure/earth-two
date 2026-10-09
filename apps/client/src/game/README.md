@@ -14,6 +14,7 @@ The playable application and Go game-package integration on Bevy.
 | `sound.rs`, `sound_output.rs` | `sound.go`: camera listener, loop envelope, original audio decoding and raylib stereo pan law |
 | `sound_web.rs` | Browser CPAL stream ownership and user-gesture activation, retaining the same Bevy sinks and decoder |
 | `cues.rs` | `cues.go`: foot plants, body transitions, world/UI gains and pitch variation |
+| `effects.rs` | `cues.go`/`drivesound.go`: gameplay particle emission and surface/zone rules |
 | `drive_sound.rs` | `drivesound.go`: engine/tyre loops, entry/exit, skid and collision cues |
 | `ui_sound.rs` | `cues.go`: current title/pause focus, navigation and HUD denial cues |
 | `sound_hits.rs` | `sound.go` and illusion `audio.go`: clip variants, finite playback, eight voices per variant and cleanup |
@@ -59,4 +60,10 @@ as missing paths. Each variant permits eight overlaps; when full, slot zero is
 restarted as in illusion's `freeVoice`. Finished and unavailable-device voices
 release their entities/assets. UI sounds are integrated only for the playable
 menu/HUD; full map, wardrobe and bell interaction cues await those flows.
-Particles and paired listening/platform acceptance remain later increments.
+Particle emission now shares those exact foot/body/vehicle triggers. It uses
+`sky::Effects` (the existing `effects.go` simulation), with foot dust excluded
+inside the dome, landing/roll/slide dust on loose surfaces, fractional wheel
+emission and crash rings/sparks. The emission clock follows Go even when menus
+pause physics. Particle motion runs after all emissions in PostUpdate, then
+the renderer updates its single sorted mesh. Paired listening/visual comparison
+and platform acceptance remain open.

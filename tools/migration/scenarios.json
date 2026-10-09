@@ -229,8 +229,8 @@
       ],
       "setup_and_inputs": "Hold hour 11 clear, hour 22 clear and hour 11 storm=1; inspect sky, haze, stars, particles and lamps.",
       "expected": "Same atmosphere, night activation and platform effect budgets.",
-      "comparison": "Day/night/storm captures and source tests",
-      "status": "defined; acceptance pending",
+      "comparison": "Day/night/storm captures and source tests; gameplay particle emission, analytic material, native captures and lifecycle evidence in step-5-particles",
+      "status": "gameplay particles integrated; matched atmosphere/effects acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/SKY-01"
     },
     {

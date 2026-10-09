@@ -11,11 +11,11 @@ knockdowns and R recovery are connected. Residents now wander nearby, stream
 to/from lightweight data, and retain injuries across streaming.
 Wind, weather, interior and nearby machine ambience now follows the camera
 and ducks while menus are open. Foot plants, body actions, engines/tyres,
-vehicle entry/skids/crashes and the playable menu/HUD now have sound. Particles,
-remaining interactions and map/wardrobe sounds, animation/foot placement,
-full menus/accounts and complete visual parity
-remain unfinished. Go remains the
-release default. See the [migration checkpoint](../../docs/rust-migration.md#step-5-gameplay-cues-review-checkpoint-2026-10-09)
+vehicle entry/skids/crashes and the playable menu/HUD now have sound. Footstep,
+landing, slide/roll, wheel and collision particles are connected.
+Remaining interactions and map/wardrobe sounds, animation/foot placement,
+full menus/accounts and complete visual parity remain unfinished. Go remains
+the release default. See the [migration checkpoint](../../docs/rust-migration.md#step-5-particles-review-checkpoint-2026-10-09)
 for evidence and remaining work.
 
 Run from the repository root:
@@ -40,6 +40,7 @@ cargo run --locked -p earth-two-client --example crowd_smoke
 cargo run --locked -p earth-two-client --example ambience_smoke
 cargo run --locked -p earth-two-client --example cues_smoke
 cargo run --locked -p earth-two-client --example cues_smoke -- --bike
+cargo run --locked -p earth-two-client --example particles_smoke
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
@@ -84,7 +85,7 @@ For an automatic title capture use
 `EARTH_TWO_CAPTURE=build/rust/title.png make rust-run`; it waits for content
 and a render warmup, captures a frame and exits.
 
-Local evidence includes 289 passing headless tests, 99 client library tests
+Local evidence includes 295 passing headless tests, 99 client library tests
 with rendering/pose regressions, native macOS arm64/Metal graphical smoke, and a packed
 asset Chromium/SwiftShader WebGL2 gameplay check. CI also compiles/tests the
 Linux, Windows and both macOS architecture targets. Other runtime platforms,

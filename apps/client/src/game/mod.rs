@@ -6,6 +6,7 @@ pub mod camera;
 pub mod crowd;
 pub mod cues;
 pub mod drive_sound;
+pub mod effects;
 pub mod injuries;
 pub mod people;
 #[cfg(feature = "viewer")]
