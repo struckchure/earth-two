@@ -1,7 +1,7 @@
 //! Turns a parked piece into a drivable vehicle: `vehicle.Spawn` in Go. The
 //! world module places a vehicle piece as a Static root with its chassis
-//! boxes and wheel models as children ([`ParkedVehicle`]); this adds what
-//! makes it drive, from its Spec in the kit, without touching that module.
+//! boxes and wheel models as children ([`ParkedVehicle`]); this replaces the
+//! boxes with Go's single convex chassis and adds the driving components.
 
 use std::collections::BTreeMap;
 
@@ -112,32 +112,16 @@ pub fn spawn_parked(
     root
 }
 
-/// The chassis boxes' inertia about `com`, at one density, scaled to
-/// `mass`: what Jolt gave the convex hull.
+/// Inertia of the same convex hull used by Go, shifted to the authored COM.
+/// Summing overlapping boxes changes both the mass distribution and handling.
 pub fn chassis_inertia(spec: &Spec, mass: f32, com: Vec3) -> Mat3 {
-    let volume: f32 = spec
-        .chassis
-        .iter()
-        .map(|b| b.size[0] * b.size[1] * b.size[2])
-        .sum();
-    let mut total = Mat3::ZERO;
-    for b in &spec.chassis {
-        let [sx, sy, sz] = b.size;
-        let m = if volume > 0.0 {
-            mass * sx * sy * sz / volume
-        } else {
-            mass / spec.chassis.len() as f32
-        };
-        let local = Mat3::from_diagonal(
-            Vec3::new(sy * sy + sz * sz, sx * sx + sz * sz, sx * sx + sy * sy) * (m / 12.0),
-        );
-        let r = Mat3::from_quat(quat(b.rotation));
-        let d = Vec3::from(b.center) - com;
-        let shift =
-            Mat3::IDENTITY * d.length_squared() - Mat3::from_cols(d * d.x, d * d.y, d * d.z);
-        total += r * local * r.transpose() + shift * m;
-    }
-    total
+    let hull = Collider::convex_hull(&spec::corners(spec)).expect("validated chassis hull");
+    let props = hull.mass_properties(1.0);
+    let frame = Mat3::from_quat(props.local_inertial_frame);
+    let local = frame * Mat3::from_diagonal(props.principal_angular_inertia) * frame.transpose();
+    let d = props.center_of_mass - com;
+    let shift = Mat3::IDENTITY * d.length_squared() - Mat3::from_cols(d * d.x, d * d.y, d * d.z);
+    local * (mass / props.mass) + shift * mass
 }
 
 /// Makes each parked piece with a known spec drivable.
@@ -181,6 +165,12 @@ pub fn assemble(
             commands.entity(root).insert(Undrivable(why));
             continue;
         }
+        let Some(hull) = Collider::convex_hull(&spec::corners(spec)) else {
+            commands
+                .entity(root)
+                .insert(Undrivable(format!("vehicle {name}: invalid chassis hull")));
+            continue;
+        };
         let com = center_of_mass(spec);
         let vehicle = super::handling::build(spec, &h, com);
         let inertia = chassis_inertia(spec, h.mass, com);
@@ -203,12 +193,23 @@ pub fn assemble(
                 AngularInertia::from_tensor(AngularInertiaTensor::from_mat3_unchecked(inertia)),
                 NoAutoAngularInertia,
                 Friction::new(0.4),
+                LinearDamping(0.05),
+                AngularDamping(0.05),
                 SweptCcd::default(),
                 CollisionEventsEnabled,
                 TransformInterpolation,
                 NoTransformEasing,
             ),
         ));
+        commands.entity(root).with_children(|c| {
+            c.spawn((
+                Name::new("chassis"),
+                PieceCollider,
+                Transform::IDENTITY,
+                hull,
+                Friction::new(0.4),
+            ));
+        });
         let mut index = 0;
         for child in children
             .map(|c| c.iter().collect::<Vec<_>>())
@@ -219,7 +220,7 @@ pub fn assemble(
                 index += 1;
             }
             if colliders.contains(child) {
-                commands.entity(child).insert(Friction::new(0.4));
+                commands.entity(child).remove::<Collider>();
             }
         }
         commands

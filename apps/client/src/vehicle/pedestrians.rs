@@ -95,6 +95,81 @@ pub fn restore_pedestrian_steps(
     }
 }
 
+/// Port of illusion's ContactBuffer::characterResponse. Only a vehicle/person
+/// pair makes the vehicle effectively infinite-mass; walls, props and other
+/// vehicles retain the normal two-body response. Apply this to prepared
+/// constraints, including their effective masses, before any warm starting.
+#[allow(clippy::type_complexity)]
+pub fn character_response(
+    mut graph: ResMut<avian3d::dynamics::solver::constraint_graph::ConstraintGraph>,
+    bodies: Res<avian3d::dynamics::solver::solver_body::SolverBodies>,
+    softness: Res<avian3d::dynamics::solver::ContactSoftnessCoefficients>,
+    cars: Query<(), With<Drivable>>,
+    people: Query<
+        (),
+        Or<(
+            With<CharacterController>,
+            With<crate::character::CharacterBody>,
+        )>,
+    >,
+) {
+    use avian3d::{
+        dynamics::solver::contact::{ContactNormalPart, ContactTangentPart},
+        math::SymmetricTensor,
+    };
+    for color in &mut graph.colors {
+        for c in &mut color.contact_constraints {
+            let (Some(a), Some(b)) = (
+                bodies.get_entity(c.body_index1),
+                bodies.get_entity(c.body_index2),
+            ) else {
+                continue;
+            };
+            let first = cars.contains(a) && people.contains(b);
+            let second = cars.contains(b) && people.contains(a);
+            if !first && !second {
+                continue;
+            }
+            let person = if first { c.body_index2 } else { c.body_index1 };
+            let Some(inertia) = bodies.get_inertia(person) else {
+                continue;
+            };
+            let inv_mass = inertia.effective_inv_mass();
+            let inv_inertia = inertia.effective_inv_angular_inertia();
+            let (i1, i2) = if first {
+                (SymmetricTensor::ZERO, inv_inertia)
+            } else {
+                (inv_inertia, SymmetricTensor::ZERO)
+            };
+            c.relative_dominance = if first { 1 } else { -1 };
+            let tangents = [c.tangent1, (-c.normal).cross(c.tangent1)];
+            for p in &mut c.points {
+                p.normal_part = ContactNormalPart::generate(
+                    inv_mass,
+                    &i1,
+                    &i2,
+                    p.anchor1,
+                    p.anchor2,
+                    c.normal,
+                    Some(p.normal_part.impulse),
+                    softness.non_dynamic,
+                );
+                if let Some(tangent) = &mut p.tangent_part {
+                    *tangent = ContactTangentPart::generate(
+                        inv_mass,
+                        &i1,
+                        &i2,
+                        p.anchor1,
+                        p.anchor2,
+                        tangents,
+                        Some(tangent.impulse),
+                    );
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

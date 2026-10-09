@@ -98,6 +98,10 @@ fn new_rig() -> Rig {
 
 /// Parks `name`, built as `spec`, with the player beside its seat.
 fn new_rig_with(name: &str, spec: &Spec) -> Rig {
+    new_rig_with_warmup(name, spec, 30)
+}
+
+fn new_rig_with_warmup(name: &str, spec: &Spec, warmup: usize) -> Rig {
     let mut app = App::new();
     app.add_plugins((
         MinimalPlugins,
@@ -135,7 +139,7 @@ fn new_rig_with(name: &str, spec: &Spec) -> Rig {
         ))
         .id();
     let mut g = Rig { app, car, player };
-    g.tick(30);
+    g.tick(warmup);
     assert!(
         g.app.world().get::<Drivable>(car).is_some(),
         "the parked {name} should be made drivable"
@@ -642,36 +646,34 @@ fn paused_vehicle_holds_still() {
 
 /// `TestRealVehiclesStayUpright`: every vehicle, as built, drives off,
 /// turns hard at speed and stays on its wheels.
-#[test]
-fn real_vehicles_stay_upright() {
-    for (name, spec) in real_specs() {
-        let mut g = new_rig_with(&name, &spec);
-        g.get_in();
-        assert!(
-            g.driving().active(),
-            "{name}: couldn't get in: {:?}",
-            g.prompt()
-        );
-        g.tick(60);
-        g.keys(|k| k.forward = 1.0);
-        let mut worst = 1.0f32;
-        for i in 0..600 {
-            if i == 240 {
-                g.keys(|k| k.steer = 1.0);
-            }
-            if i == 420 {
-                g.keys(|k| k.steer = -1.0);
-            }
-            g.tick(1);
-            worst = worst.min(g.up_y());
+fn assert_real_vehicle_stays_upright(name: &str) {
+    let spec = real_specs().remove(name).unwrap();
+    let mut g = new_rig_with(name, &spec);
+    g.get_in();
+    assert!(
+        g.driving().active(),
+        "{name}: couldn't get in: {:?}",
+        g.prompt()
+    );
+    g.tick(60);
+    g.keys(|k| k.forward = 1.0);
+    let mut worst = 1.0f32;
+    for i in 0..600 {
+        if i == 240 {
+            g.keys(|k| k.steer = 1.0);
         }
-        let st = g.state();
-        println!("{name}: speed {:.1} m/s, worst up.Y {worst:.2}", st.speed);
-        assert!(
-            worst >= 0.8,
-            "{name}: it went over (up.Y down to {worst:.2})"
-        );
+        if i == 420 {
+            g.keys(|k| k.steer = -1.0);
+        }
+        g.tick(1);
+        worst = worst.min(g.up_y());
     }
+    let st = g.state();
+    println!("{name}: speed {:.1} m/s, worst up.Y {worst:.2}", st.speed);
+    assert!(
+        worst >= 0.8,
+        "{name}: it went over (up.Y down to {worst:.2})"
+    );
 }
 
 /// `TestBikeStaysUpSlow`: sat on at a standstill, and ridden slowly, the
@@ -1028,37 +1030,59 @@ fn pedestrian_physics_keeps_crowd_lod_outside_car_contacts() {
 }
 
 /// `TestRealVehiclesKeepNormalPedestrianResponseWithCrowdLOD`.
-#[test]
-fn real_vehicles_keep_normal_pedestrian_response_with_crowd_lod() {
-    for (name, spec) in real_specs() {
-        let run = |every: u32| {
-            let mut g = new_rig_with(&name, &spec);
-            g.get_in();
-            assert!(g.driving().active(), "could not enter the vehicle");
-            g.tick(60);
-            let start = g.translation(g.car);
-            let person = g.pedestrian(
-                Vec3::new(start.x, 0.0, start.z + bounds(&spec).1.z + 6.0),
-                every,
-            );
-            let before = g.translation(person);
-            g.keys(|k| k.forward = 1.0);
-            g.tick(300);
-            (g.translation(g.car), before, g.translation(person))
-        };
-        let (baseline, _, _) = run(1);
-        let (car, before, after) = run(6);
-        // Crowd update frequency must not change contact response.
-        assert!(
-            baseline.distance(car) <= 0.5,
-            "crowd LOD changed {name}'s collision response: full-rate car={baseline} reduced-rate car={car}"
+fn assert_real_vehicle_pedestrian_response(name: &str) {
+    let spec = real_specs().remove(name).unwrap();
+    let run = |every: u32| {
+        let mut g = new_rig_with(name, &spec);
+        g.get_in();
+        assert!(g.driving().active(), "could not enter the vehicle");
+        g.tick(60);
+        let start = g.translation(g.car);
+        let person = g.pedestrian(
+            Vec3::new(start.x, 0.0, start.z + bounds(&spec).1.z + 6.0),
+            every,
         );
-        assert!(
-            before.distance(after) >= 0.5,
-            "{name}: the pedestrian was not pushed on impact: car={car} before={before} after={after}"
+        let before = g.translation(person);
+        g.keys(|k| k.forward = 1.0);
+        g.tick(300);
+        println!(
+            "{name}/{every}: health={:?}, controller={}, car={:?}, person={:?}",
+            g.get::<Health>(person),
+            g.app.world().get::<CharacterController>(person).is_some(),
+            g.translation(g.car),
+            g.translation(person)
         );
-    }
+        (g.translation(g.car), before, g.translation(person))
+    };
+    let (baseline, _, _) = run(1);
+    let (car, before, after) = run(6);
+    // Crowd update frequency must not change contact response.
+    assert!(
+        baseline.distance(car) <= 0.5,
+        "crowd LOD changed {name}'s collision response: full-rate car={baseline} reduced-rate car={car}"
+    );
+    assert!(
+        before.distance(after) >= 0.5,
+        "{name}: the pedestrian was not pushed on impact: car={car} before={before} after={after}"
+    );
 }
+
+// Separate tests ensure a failing bike never hides the remaining vehicles.
+macro_rules! real_vehicle_cases {
+    ($($name:ident),+ $(,)?) => { $(
+        mod $name {
+            #[test]
+            fn stays_upright() {
+                super::assert_real_vehicle_stays_upright(stringify!($name));
+            }
+            #[test]
+            fn pedestrian_response_with_crowd_lod() {
+                super::assert_real_vehicle_pedestrian_response(stringify!($name));
+            }
+        }
+    )+ };
+}
+real_vehicle_cases!(bike, buggy, hauler, hauler_tanker, rover, trike);
 
 /// `TestVehicleStillStopsAtSolidObstacles`.
 #[test]
@@ -1180,6 +1204,10 @@ fn migration_vehicle_trace() {
                     "up_y": (tr.rotation * Vec3::Y).y,
                     "speed": state.speed, "rpm": state.rpm, "gear": state.gear,
                     "touching": state.touching, "wheels": wheels,
+                    "diagnostics": g.get::<earth_two_client::vehicle::sim::VehicleRuntime>(g.car).diagnostics(),
+                    "mass": g.get::<ComputedMass>(g.car).value(),
+                    "inertia_local_columns": g.get::<ComputedAngularInertia>(g.car).value().to_mat3().to_cols_array(),
+                    "center_of_mass": g.get::<ComputedCenterOfMass>(g.car).0.to_array(),
                 }));
             }
         }
@@ -1200,5 +1228,168 @@ fn migration_vehicle_trace() {
             )
             .unwrap();
         }
+    }
+}
+
+#[test]
+fn waking_a_bike_does_not_hit_its_parked_tyres() {
+    let mut g = new_rig_with("bike", &real_specs()["bike"]);
+    g.get_in();
+    for _ in 0..60 {
+        g.tick(1);
+        let p = g.get::<Position>(g.car).0;
+        assert!(
+            Vec2::new(p.x, p.z).length() < 0.03,
+            "unpowered bike launched itself: {p}"
+        );
+        assert!(
+            g.velocity().length() < 0.5,
+            "unpowered bike acquired speed: {:?}",
+            g.velocity()
+        );
+    }
+}
+
+#[test]
+fn ordinary_dynamic_props_still_exchange_momentum_with_vehicles() {
+    let run = |with_prop: bool| {
+        let mut g = new_rig();
+        g.get_in();
+        g.tick(60);
+        let prop = with_prop.then(|| {
+            g.app
+                .world_mut()
+                .spawn((
+                    RigidBody::Dynamic,
+                    Collider::cuboid(2.0, 1.8, 1.0),
+                    Mass(950.0),
+                    Friction::new(0.4),
+                    Transform::from_xyz(0.0, 0.9, 8.0),
+                ))
+                .id()
+        });
+        g.tick(2);
+        g.set_velocity(Vec3::Z * 12.0);
+        g.tick(60);
+        (g.translation(g.car), prop.map(|e| g.translation(e)))
+    };
+    let (clear, _) = run(false);
+    let (car, prop) = run(true);
+    assert!(prop.unwrap().z > 8.2, "the prop must receive momentum");
+    assert!(
+        clear.z - car.z > 0.5,
+        "ordinary props must slow the car: clear={clear} contact={car}"
+    );
+}
+
+#[derive(Resource, Default)]
+struct FixedTrace(Vec<(Vec3, Quat, Vec3)>);
+
+fn scripted_fixed_controls(mut cars: Query<&mut VehicleInput>, trace: Res<FixedTrace>) {
+    for mut input in &mut cars {
+        input.forward = 1.0;
+        input.right = if trace.0.len() >= 120 { 0.3 } else { 0.0 };
+        input.hand_brake = 0.0;
+    }
+}
+
+fn record_fixed_motion(
+    cars: Query<(&Position, &Rotation, &LinearVelocity), With<Drivable>>,
+    mut trace: ResMut<FixedTrace>,
+) {
+    let (p, r, v) = cars.single().unwrap();
+    trace.0.push((p.0, r.0, v.0));
+}
+
+#[test]
+fn fixed_vehicle_inputs_are_independent_of_render_cadence() {
+    let run = |cadence: &[f64]| {
+        let mut g = new_rig();
+        g.get_in();
+        g.tick(60);
+        // Test the simulation boundary: render input sampling is supplied by
+        // the application, and these consumed inputs change on fixed ticks.
+        g.app
+            .world_mut()
+            .resource_mut::<earth_two_client::character::Controls>()
+            .enabled = false;
+        g.app
+            .init_resource::<FixedTrace>()
+            .add_systems(FixedUpdate, scripted_fixed_controls)
+            .add_systems(
+                FixedPostUpdate,
+                record_fixed_motion.after(PhysicsSystems::Writeback),
+            );
+        let mut frame = 0;
+        while g.app.world().resource::<FixedTrace>().0.len() < 240 {
+            g.app
+                .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_secs_f64(
+                    cadence[frame % cadence.len()],
+                )));
+            g.tick(1);
+            frame += 1;
+        }
+        g.app.world_mut().resource_mut::<FixedTrace>().0[..240].to_vec()
+    };
+    let reference = run(&[1.0 / 60.0]);
+    for cadence in [&[1.0 / 30.0][..], &[1.0 / 97.0], &[1.0 / 20.0, 1.0 / 144.0]] {
+        for (tick, (expected, actual)) in reference.iter().zip(run(cadence)).enumerate() {
+            assert!(
+                expected.0.distance(actual.0) < 1e-5,
+                "position at tick {tick}: {expected:?} != {actual:?}"
+            );
+            assert!(
+                expected.1.angle_between(actual.1) < 1e-3,
+                "rotation at tick {tick}"
+            );
+            assert!(
+                expected.2.distance(actual.2) < 1e-5,
+                "velocity at tick {tick}"
+            );
+        }
+    }
+}
+
+#[test]
+fn vehicle_can_be_entered_immediately_after_assembly() {
+    for (name, spec) in real_specs() {
+        let mut g = new_rig_with_warmup(&name, &spec, 1);
+        g.get_in();
+        g.tick(120);
+        assert!(g.velocity().is_finite(), "{name}");
+        assert!(g.translation(g.car).is_finite(), "{name}");
+        assert!(g.velocity().length() < 0.5, "{name}: {:?}", g.velocity());
+    }
+}
+
+#[test]
+fn lost_vehicle_returns_home_without_interpolating_through_the_world() {
+    let mut g = new_rig();
+    g.get_in();
+    g.tick(30);
+    let lost = Vec3::new(20.0, -45.0, 30.0);
+    g.app.world_mut().get_mut::<Position>(g.car).unwrap().0 = lost;
+    g.app
+        .world_mut()
+        .get_mut::<Transform>(g.car)
+        .unwrap()
+        .translation = lost;
+    g.set_velocity(Vec3::new(3.0, -10.0, 4.0));
+    g.tick(1);
+    let home = g.get::<Drivable>(g.car).home.0 + Vec3::Y;
+    assert_eq!(g.get::<Position>(g.car).0, home);
+    assert_eq!(g.velocity(), Vec3::ZERO);
+    assert_eq!(g.get::<AngularVelocity>(g.car).0, Vec3::ZERO);
+    g.app
+        .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_secs_f64(
+            1.0 / 144.0,
+        )));
+    for _ in 0..6 {
+        g.tick(1);
+        assert!(
+            g.translation(g.car).distance(home) < 0.1,
+            "stale interpolation after recovery: {:?}",
+            g.translation(g.car)
+        );
     }
 }

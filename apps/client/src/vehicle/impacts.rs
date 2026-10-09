@@ -105,8 +105,7 @@ pub fn run_over(
         &AngularVelocity,
     )>,
     people: ImpactPeople,
-    spatial: SpatialQuery,
-    collider_of: Query<&ColliderOf>,
+    physics: character::CharacterPhysics,
     rules: Res<ImpactRules>,
     mut state: ResMut<ImpactMemory>,
     driving: Res<Driving>,
@@ -157,8 +156,6 @@ pub fn run_over(
         };
         let radius = if cc.radius <= 0.0 { 0.3 } else { cc.radius };
         let height = cc.height.max(2.0 * radius + 0.01);
-        let filter = SpatialQueryFilter::from_excluded_entities([e]);
-        let shape = Collider::capsule(radius, height - 2.0 * radius);
         for (&vehicle, car) in &s.cars {
             if car.driver == Some(e) {
                 continue;
@@ -181,23 +178,15 @@ pub fn run_over(
             // Raised by a small skin so the standing floor doesn't mask the
             // chassis.
             let origin = tr.translation + Vec3::Y * 0.025;
-            let Ok(dir) = Dir3::new(delta) else {
-                continue;
-            };
-            let config = ShapeCastConfig::from_max_distance(delta.length());
-            let Some(hit) =
-                spatial.cast_shape(&shape, origin, Quat::IDENTITY, dir, &config, &filter)
+            let Some(hit) = physics.sweep_capsule_excluding(origin, delta, radius, height, e)
             else {
                 continue;
             };
-            let hit_body = collider_of
-                .get(hit.entity)
-                .map(|c| c.body)
-                .unwrap_or(hit.entity);
+            let hit_body = physics.body_of(hit.entity);
             if hit_body != vehicle {
                 continue;
             }
-            let speed = relative.dot(hit.normal1).max(0.0);
+            let speed = relative.dot(hit.normal).max(0.0);
             if rules.condition(speed) == LifeState::Healthy {
                 continue;
             }

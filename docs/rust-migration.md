@@ -8,8 +8,9 @@ must be measured at equivalent quality and workload.
 
 Status: substantial subsystem ports exist in `apps/client/`,
 `crates/world/` and `crates/identity/`, but the executable still opens the
-foundation viewer. The latest validation found 239 passing headless tests and
-two failing vehicle scenarios; native/WASM checks and Clippy passed.
+foundation viewer. The Step 2 local checkpoint has 257 passing headless tests
+and no failures; the two inherited vehicle failures are repaired. See its
+evidence and remaining acceptance gaps below.
 A working module or green unit test is not evidence of integrated game parity.
 The completion plan below is the execution order from this checkpoint.
 
@@ -153,6 +154,116 @@ remain pending. These must be added alongside the relevant subsystem increments
 before final parity acceptance; the current artifacts do not prove the Rust
 client plays like the Go game. The Rust executable still opens its foundation
 viewer, and the two existing vehicle failures remain visible.
+
+## Step 2 local review checkpoint: 2026-10-09
+
+This increment repairs the vehicle blockers and supplies a drivable physics
+review scene. It does not complete the cross-platform parity gate or assemble
+the game lifecycle from Step 3. Go remains the release default.
+
+The implementation follows the frozen Go vehicle package and its pinned
+illusion/Jolt adapter, without changing the authored handling constants or
+weakening the original assertions:
+
+- Replace the overlapping chassis boxes with the authored convex hull and
+  its inertia shifted to the authored centre of mass. Retain Jolt's default
+  linear/angular damping and the rounded wheel-cast geometry.
+- Remove parked tyre colliders before simulation, and exclude a vehicle's
+  own tyres from casts. Their old lifecycle caused the initial motorcycle kick.
+- Solve longitudinal tyre and motorcycle lean impulses in each existing tyre
+  iteration. Apply equal/opposite wheel forces to ordinary dynamic props.
+- Preserve illusion's character layer rules: wheel casts ignore characters;
+  vehicle/character contact constraints make only the vehicle effectively
+  infinite-mass. Walls, props and other vehicles retain ordinary response.
+- Predict run-over contacts before character movement, as Go does. Prepare
+  body mass/inertia before applying vehicle forces. The native review scene
+  exposed an immediate-entry NaN that the old settled fixtures missed; a
+  regression now covers entering all six vehicles immediately after assembly.
+
+Each real vehicle now has independent cornering and crowd-LOD pedestrian
+cases, so a bike failure cannot hide later cases. Diagnostics record contact
+points/normals, suspension and tyre impulses, lean response, mass, inertia,
+centre of mass and consumed inputs. Added regressions cover waking a parked
+bike, dynamic prop momentum, fixed inputs at 30/60/97 Hz and alternating
+20/144 Hz rendering, immediate entry, recovery teleport interpolation, and
+CCD against a 10 cm wall at 1,800 m/s. Cadence coverage is at the consumed
+physics-input boundary; application input sampling remains Step 3 work.
+
+From `silent-ibis`, review any of the six authored vehicles:
+
+```sh
+cargo run --locked -p earth-two-client --example vehicle -- bike
+# Also: buggy, trike, rover, hauler, hauler_tanker
+```
+
+W/S accelerates/brakes/reverses; A/D steers; Space is the handbrake; H switches
+headlamps; hold R when tipped to recover; Esc pauses/resumes physics. The
+example is a flat physics test scene with the original models, default
+materials, a following camera and diagnostic HUD. Rider presentation,
+Landfall, menus and game flow are not integrated here.
+
+Evidence is under `build/migration-baseline/step-2-vehicles/` (ignored).
+`workspace-tests-final.log` records 257 passing tests with no failures or
+ignored cases, including all 37 vehicle tests. The matching Go upright,
+pedestrian and solid-obstacle tests were rerun successfully; their log is
+`../step-1-go-reference-v2/step2-go-vehicles.log`.
+
+Three final Rust repeats (`final-rust/{1,2,3}/`) had identical per-tick
+positions on this host. `trace-comparison.json` compares their 600-tick script
+against the frozen Go runs. This is diagnostic evidence, not an accepted
+cross-engine tolerance:
+
+| Vehicle | Min up.Y Go / Rust | Final speed Go / Rust (m/s) |
+| --- | --- | --- |
+| bike | 0.837 / 0.809 | 17.93 / 17.22 |
+| buggy | 1.000 / 0.999 | 24.03 / 23.81 |
+| hauler | 0.999 / 0.999 | 7.70 / 7.50 |
+| hauler_tanker | 0.999 / 0.999 | 7.66 / 7.53 |
+| rover | 1.000 / 0.999 | 17.14 / 17.26 |
+| trike | 0.988 / 0.983 | 13.61 / 13.87 |
+
+The bike now exceeds the unchanged 0.8 upright threshold (previously about
+0.738), but its final scripted position remains about 12.4 m from Go after
+ten seconds of driving. Exact route/handling parity is not claimed.
+
+Native macOS arm64/Metal startup and original model loading passed for all
+six vehicle choices (`*-review.png`). The review camera scales to the chassis
+bounds so trucks fit. `foundation-packed.png` captures 124 loaded model scenes
+using the unchanged frozen Go release pack, including external texture data.
+The viewer embeds its diagnostic Hull placement manifest because Go's release
+packer omits that development-only file; all model/texture loads still come
+from the selected asset root. Both original and packed asset runs report
+`Foundation ready: 124 loaded scenes`, with the physics probe settled near
+y=0.48 (`foundation-source.log`, `foundation-packed-final.log`). Workspace
+Clippy with warnings denied and formatting checks pass.
+
+The optimized WASM package also runs in the dedicated Chromium test browser:
+`browser-console.log` records 124 loaded scenes and the physics probe settled
+at y=0.5000; `browser-errors.log` reports no JavaScript errors.
+`browser-foundation.png` shows the loaded Hull and textured assets.
+`web-http.log` records successful packed model/resource requests (the optional
+favicon returns 404). The adapter is software SwiftShader through WebGL2;
+unsupported optional GPU effects use Bevy's documented fallbacks. Browser
+version/device coverage, hardware performance, vehicle driving and visual
+parity remain unverified.
+
+Rebuild this browser checkpoint with Python 3.11 or newer:
+
+```sh
+python3.11 tools/rust/web.py --assets build/migration-baseline/step-1-go-reference-v2/reference/build/assets
+python3 -m http.server 8080 --bind 127.0.0.1 --directory build/rust-web
+```
+
+Open `http://127.0.0.1:8080` for the foundation scene. The native `vehicle`
+example remains the driving review command for this increment.
+
+Handling parity is still open. Avian and Jolt use different suspension/contact
+solvers; the current Rust spring model and six tyre iterations are not an
+exact Jolt constraint solver port. Wheel contacts with other drivable vehicles
+still lack the moving-ground reaction used for ordinary dynamic props. The
+full native CI matrix (Linux amd64, macOS arm64/amd64, Windows amd64), browser
+engine/device matrix, audio activation/codecs, and full gameplay/visual
+comparisons must pass before this milestone's complete exit gate is accepted.
 
 ## Dependencies and the first implementation gate
 

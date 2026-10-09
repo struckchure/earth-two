@@ -13,7 +13,7 @@ use bevy::{
 use crate::{
     physics::EarthPhysicsPlugin,
     scenes::{Ground, Probe, foundation_scene},
-    world::{Lamp, LayoutRoot, PieceModel, Placed, SpawnLayout, Wheel, WorldPlugin},
+    world::{Lamp, LayoutAsset, LayoutRoot, PieceModel, Placed, SpawnLayout, Wheel, WorldPlugin},
 };
 
 #[derive(Resource, Default)]
@@ -70,18 +70,34 @@ pub fn run() {
     )
     .add_systems(
         Update,
-        (attach_probe_meshes, attach_pieces, attach_lamps, controls),
+        (
+            attach_probe_meshes,
+            attach_pieces,
+            attach_lamps,
+            controls,
+            report_ready,
+        ),
     )
     .run();
 }
 
 /// The Hull test block, placed from the same manifests the Go client uses.
-fn request_block(mut commands: Commands, assets: Res<AssetServer>) {
-    commands.spawn(SpawnLayout::load(
-        &assets,
-        "world/world.json",
-        "world/hull_block.json",
-    ));
+fn request_block(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    mut layouts: ResMut<Assets<LayoutAsset>>,
+) {
+    // This development layout is intentionally absent from Go's release pack.
+    // Embed only its placement manifest; models/textures still load from the
+    // selected asset root, including the unmodified packed release assets.
+    let layout = earth_two_world::kit::Layout::parse(include_bytes!(
+        "../../../assets/world/hull_block.json"
+    ))
+    .expect("valid foundation layout");
+    commands.spawn(SpawnLayout {
+        kit: assets.load("world/world.json"),
+        layout: layouts.add(LayoutAsset(layout)),
+    });
 }
 
 fn asset_ready(
@@ -92,6 +108,35 @@ fn asset_ready(
     if let Ok(root) = roots.get(event.entity) {
         loaded.0 += 1;
         debug!("Scene asset ready: {:?}", root.0.path());
+    }
+}
+
+/// A runtime check shared by native and browser captures. Compilation alone
+/// does not verify asynchronous assets or an actual browser physics step.
+fn report_ready(
+    loaded: Res<LoadedScenes>,
+    roots: Query<&WorldAssetRoot>,
+    requests: Query<(), With<SpawnLayout>>,
+    probes: Query<(&Position, &LinearVelocity), With<Probe>>,
+    mut reported: Local<bool>,
+) {
+    if *reported || !requests.is_empty() || roots.iter().count() < 3 {
+        return;
+    }
+    let Ok((probe, velocity)) = probes.single() else {
+        return;
+    };
+    // The asynchronously placed Hull can catch the probe above the plain
+    // floor. Require it to have fallen from y=3 and settled, not a fixed height.
+    if loaded.0 as usize >= roots.iter().count()
+        && (0.3..2.9).contains(&probe.y)
+        && velocity.length() < 0.05
+    {
+        info!(
+            "Foundation ready: {} loaded scenes; physics probe y={:.4}",
+            loaded.0, probe.y
+        );
+        *reported = true;
     }
 }
 

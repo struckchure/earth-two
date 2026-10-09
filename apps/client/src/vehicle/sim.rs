@@ -291,6 +291,7 @@ struct WheelSettings {
 /// Where a wheel touches the ground this step.
 #[derive(Debug, Clone, Copy)]
 struct Contact {
+    body: Option<Entity>,
     position: Vec3,
     normal: Vec3,
     longitudinal: Vec3,
@@ -358,6 +359,23 @@ pub struct VehicleRuntime {
 }
 
 impl VehicleRuntime {
+    /// Contact/solver evidence on demand; normal simulation allocates no trace data.
+    pub fn diagnostics(&self) -> serde_json::Value {
+        serde_json::json!({
+            "lean_target": self.lean.map(|l| l.target.to_array()),
+            "lean_impulse": self.lean.map(|l| l.applied_impulse),
+            "wheels": self.run.iter().map(|w| serde_json::json!({
+                "point": w.contact.map(|c| c.position.to_array()),
+                "normal": w.contact.map(|c| c.normal.to_array()),
+                "longitudinal": w.contact.map(|c| c.longitudinal.to_array()),
+                "lateral": w.contact.map(|c| c.lateral.to_array()),
+                "suspension_impulse": w.suspension_lambda,
+                "longitudinal_impulse": w.longitudinal_lambda,
+                "lateral_impulse": w.lateral_lambda,
+            })).collect::<Vec<_>>(),
+        })
+    }
+
     fn new(v: &Vehicle) -> Self {
         let up = dir_or(v.up, Vec3::Y);
         let forward = dir_or(v.forward, Vec3::Z);
@@ -562,18 +580,19 @@ fn build_vehicles(
     }
 }
 
-/// A body's velocity at a point, for the ground under a wheel. Another
-/// vehicle's chassis counts as still: its velocity is being written.
+/// Bodies under the wheels. Mutually exclusive with the vehicle query so
+/// tyres can apply equal and opposite impulses to ordinary props. Character
+/// layers are excluded by wheel casts, matching illusion. Other vehicles are
+/// still treated as stationary ground until two-vehicle wheel solving is ported.
 type GroundBodies<'w, 's> = Query<
     'w,
     's,
     (
         &'static RigidBody,
-        &'static Position,
-        &'static Rotation,
+        &'static ComputedMass,
+        &'static ComputedAngularInertia,
         &'static ComputedCenterOfMass,
-        Option<&'static LinearVelocity>,
-        Option<&'static AngularVelocity>,
+        Forces,
     ),
     Without<VehicleRuntime>,
 >;
@@ -584,6 +603,15 @@ pub(crate) struct Ground<'w, 's> {
     pub collider_of: Query<'w, 's, &'static ColliderOf>,
     pub frictions: Query<'w, 's, &'static Friction>,
     pub sensors: Query<'w, 's, (), With<Sensor>>,
+    pub characters: Query<
+        'w,
+        's,
+        (),
+        Or<(
+            With<crate::character::CharacterController>,
+            With<crate::character::CharacterBody>,
+        )>,
+    >,
     pub bodies: GroundBodies<'w, 's>,
 }
 
@@ -606,16 +634,44 @@ impl Ground<'_, '_> {
     }
 
     fn point_velocity(&self, body: Option<Entity>, point: Vec3) -> Vec3 {
-        let Some((kind, pos, rot, com, lin, ang)) = body.and_then(|b| self.bodies.get(b).ok())
-        else {
+        let Some((kind, _, _, _, forces)) = body.and_then(|b| self.bodies.get(b).ok()) else {
             return Vec3::ZERO;
         };
         if kind.is_static() {
-            return Vec3::ZERO;
+            Vec3::ZERO
+        } else {
+            forces.velocity_at_point(point)
         }
-        let lin = lin.map(|v| v.0).unwrap_or(Vec3::ZERO);
-        let ang = ang.map(|v| v.0).unwrap_or(Vec3::ZERO);
-        lin + ang.cross(point - (pos.0 + rot.0 * com.0))
+    }
+
+    fn inverse_effective_mass(&self, c: Contact, axis: Vec3) -> f32 {
+        let Some((kind, mass, inertia, com, forces)) = c.body.and_then(|b| self.bodies.get(b).ok())
+        else {
+            return 0.0;
+        };
+        if !kind.is_dynamic() {
+            return 0.0;
+        }
+        let rot = forces.rotation();
+        let r = c.position - (forces.position() + rot * com.0);
+        let rxa = r.cross(axis);
+        mass.inverse() + rxa.dot(inertia.rotated(rot).inverse().mul_vec3(rxa))
+    }
+
+    fn react_impulse(&mut self, c: Contact, impulse: Vec3) {
+        if let Some((kind, _, _, _, mut forces)) = c.body.and_then(|b| self.bodies.get_mut(b).ok())
+            && kind.is_dynamic()
+        {
+            forces.apply_linear_impulse_at_point(-impulse, c.position);
+        }
+    }
+
+    fn react_force(&mut self, c: Contact, force: Vec3) {
+        if let Some((kind, _, _, _, mut forces)) = c.body.and_then(|b| self.bodies.get_mut(b).ok())
+            && kind.is_dynamic()
+        {
+            forces.apply_force_at_point(-force, c.position);
+        }
     }
 }
 
@@ -692,7 +748,15 @@ fn step_vehicles(
     collider_of: Query<&'static ColliderOf>,
     frictions: Query<&'static Friction>,
     sensors: Query<(), With<Sensor>>,
+    characters: Query<
+        (),
+        Or<(
+            With<crate::character::CharacterController>,
+            With<crate::character::CharacterBody>,
+        )>,
+    >,
     bodies: GroundBodies,
+    parked_tyres: Query<(Entity, &super::tyres::Tyre)>,
     gravity: Res<Gravity>,
     physics_time: Res<Time<Physics>>,
     time: Res<Time>,
@@ -704,11 +768,12 @@ fn step_vehicles(
     if dt <= 0.0 {
         return;
     }
-    let ground = Ground {
+    let mut ground = Ground {
         spatial,
         collider_of,
         frictions,
         sensors,
+        characters,
         bodies,
     };
     for (
@@ -734,6 +799,11 @@ fn step_vehicles(
         let rot = rotation.0;
         let pos = position.0;
         let mut excluded = vec![entity];
+        excluded.extend(
+            parked_tyres
+                .iter()
+                .filter_map(|(tyre_entity, tyre)| (tyre.of == entity).then_some(tyre_entity)),
+        );
         if let Some(colliders) = colliders {
             excluded.extend(colliders.iter());
         }
@@ -756,6 +826,7 @@ fn step_vehicles(
         solve(
             v,
             &mut forces,
+            &mut ground,
             inv_mass,
             &inv_inertia,
             com,
@@ -855,7 +926,14 @@ fn pre_collide(
 /// Finds the ground under each wheel.
 fn collide(v: &mut VehicleRuntime, ground: &Ground, pos: Vec3, rot: Quat, excluded: &[Entity]) {
     let filter = SpatialQueryFilter::from_excluded_entities(excluded.iter().copied());
-    let not_sensor = |e: Entity| !ground.sensors.contains(e);
+    // illusion's WheelLayers excludes both standing and downed characters.
+    let not_sensor = |e: Entity| {
+        !ground.sensors.contains(e)
+            && !ground.characters.contains(e)
+            && !ground
+                .body_of(e)
+                .is_some_and(|body| ground.characters.contains(body))
+    };
     for i in 0..v.wheels.len() {
         let s = v.wheels[i];
         let origin = pos + rot * s.position;
@@ -914,7 +992,15 @@ fn collide(v: &mut VehicleRuntime, ground: &Ground, pos: Vec3, rot: Quat, exclud
             }
             WheelTester::CastCylinder => {
                 // The cylinder's axis is its Y; the wheel's is its axle.
-                let shape = Collider::cylinder(s.radius, s.width);
+                // Jolt's cast cylinder shrinks its core before adding a 10%
+                // convex radius: retain the authored outer radius and width.
+                let half_width = 0.5 * s.width;
+                let border = 0.1 * half_width.min(s.radius);
+                let shape = Collider::from(avian3d::parry::shape::SharedShape::round_cylinder(
+                    half_width - border,
+                    s.radius - border,
+                    border,
+                ));
                 let turn = Quat::from_rotation_arc(Vec3::Y, right);
                 let config = ShapeCastConfig::from_max_distance(s.suspension_max);
                 ground
@@ -942,6 +1028,7 @@ fn collide(v: &mut VehicleRuntime, ground: &Ground, pos: Vec3, rot: Quat, exclud
         let lateral = longitudinal.cross(normal).normalize();
         v.run[i].suspension_length = length;
         v.run[i].contact = Some(Contact {
+            body,
             position: point,
             normal,
             longitudinal,
@@ -1272,6 +1359,7 @@ fn update_transmission(v: &mut VehicleRuntime, dt: f32, forward: f32, can_shift_
 fn solve(
     v: &mut VehicleRuntime,
     forces: &mut ForcesItem,
+    ground: &mut Ground,
     inv_mass: f32,
     inv_inertia: &SymmetricTensor,
     com: Vec3,
@@ -1308,19 +1396,28 @@ fn solve(
         stiffness /= cos_angle;
         damping /= cos_angle;
         let compression = w.suspension_length - s.suspension_max;
-        let approach = (forces.velocity_at_point(c.position) - c.point_velocity).dot(c.normal);
+        let approach = (forces.velocity_at_point(c.position)
+            - ground.point_velocity(c.body, c.position))
+        .dot(c.normal);
         let mut force = -stiffness * compression - damping * approach;
         force += w.anti_roll_impulse / dt;
         let force = force.max(0.0);
         forces.apply_force_at_point(force * c.normal, c.position);
+        ground.react_force(c, force * c.normal);
         w.suspension_lambda = force * dt;
 
         // Bottomed out: the wheel can't come up past its minimum, so the
         // body takes the hit.
         if w.suspension_length < s.suspension_min && approach < 0.0 {
-            let m_eff = effective_mass(inv_mass, inv_inertia, c.position - com, c.normal);
+            let m_eff = effective_mass(
+                inv_mass + ground.inverse_effective_mass(c, c.normal),
+                inv_inertia,
+                c.position - com,
+                c.normal,
+            );
             let lambda = -approach * m_eff;
             forces.apply_linear_impulse_at_point(lambda * c.normal, c.position);
+            ground.react_impulse(c, lambda * c.normal);
             w.suspension_lambda += lambda;
         }
     }
@@ -1332,7 +1429,6 @@ fn solve(
     let mut max_lat = vec![0.0f32; n];
     let mut brake_range = vec![(0.0f32, 0.0f32); n];
     for i in 0..n {
-        let s = v.wheels[i];
         let w = &mut v.run[i];
         w.longitudinal_lambda = 0.0;
         w.lateral_lambda = 0.0;
@@ -1341,7 +1437,8 @@ fn solve(
         };
         max_long[i] = w.longitudinal_friction * w.suspension_lambda;
         max_lat[i] = w.lateral_friction * w.suspension_lambda;
-        let relative = forces.velocity_at_point(c.position) - c.point_velocity;
+        let relative =
+            forces.velocity_at_point(c.position) - ground.point_velocity(c.body, c.position);
         let longitudinal = relative.dot(c.longitudinal);
         if w.brake_impulse != 0.0 {
             // Brakes never push the vehicle the other way.
@@ -1351,90 +1448,118 @@ fn solve(
             } else {
                 (0.0, brake)
             };
-        } else {
-            // Spin the ground and wheel to the same speed in one step, as
-            // far as the tyre grips.
-            let desired = longitudinal / s.radius;
-            let linear = (w.angular_velocity - desired) * s.inertia / s.radius;
-            let lambda = linear.clamp(-max_long[i], max_long[i]);
-            forces.apply_linear_impulse_at_point(lambda * c.longitudinal, c.position);
-            w.longitudinal_lambda = lambda;
-            w.angular_velocity -= lambda * s.radius / s.inertia;
         }
     }
     for _ in 0..TYRE_ITERATIONS {
+        for (i, &max_longitudinal) in max_long.iter().enumerate() {
+            let s = v.wheels[i];
+            let w = &mut v.run[i];
+            let Some(c) = w.contact else {
+                continue;
+            };
+            let relative =
+                forces.velocity_at_point(c.position) - ground.point_velocity(c.body, c.position);
+            let longitudinal = relative.dot(c.longitudinal);
+            if w.brake_impulse == 0.0 {
+                // Spin the ground and wheel to the same speed in one step, as
+                // far as the tyre grips.
+                let desired = longitudinal / s.radius;
+                let linear = (w.angular_velocity - desired) * s.inertia / s.radius;
+                let total =
+                    (w.longitudinal_lambda + linear).clamp(-max_longitudinal, max_longitudinal);
+                let lambda = total - w.longitudinal_lambda;
+                forces.apply_linear_impulse_at_point(lambda * c.longitudinal, c.position);
+                ground.react_impulse(c, lambda * c.longitudinal);
+                w.longitudinal_lambda = total;
+                w.angular_velocity -= lambda * s.radius / s.inertia;
+            }
+        }
         for i in 0..n {
             let w = &mut v.run[i];
             let Some(c) = w.contact else {
                 continue;
             };
             if w.brake_impulse != 0.0 {
-                let m_eff = effective_mass(inv_mass, inv_inertia, c.position - com, c.longitudinal);
-                let relative = forces.velocity_at_point(c.position) - c.point_velocity;
+                let m_eff = effective_mass(
+                    inv_mass + ground.inverse_effective_mass(c, c.longitudinal),
+                    inv_inertia,
+                    c.position - com,
+                    c.longitudinal,
+                );
+                let relative = forces.velocity_at_point(c.position)
+                    - ground.point_velocity(c.body, c.position);
                 let lambda = -m_eff * relative.dot(c.longitudinal);
                 let (lo, hi) = brake_range[i];
                 let total = (w.longitudinal_lambda + lambda).clamp(lo, hi);
                 let delta = total - w.longitudinal_lambda;
                 forces.apply_linear_impulse_at_point(delta * c.longitudinal, c.position);
+                ground.react_impulse(c, delta * c.longitudinal);
                 w.longitudinal_lambda = total;
             }
-            let m_eff = effective_mass(inv_mass, inv_inertia, c.position - com, c.lateral);
-            let relative = forces.velocity_at_point(c.position) - c.point_velocity;
+            let m_eff = effective_mass(
+                inv_mass + ground.inverse_effective_mass(c, c.lateral),
+                inv_inertia,
+                c.position - com,
+                c.lateral,
+            );
+            let relative =
+                forces.velocity_at_point(c.position) - ground.point_velocity(c.body, c.position);
             let lambda = -m_eff * relative.dot(c.lateral);
             let total = (w.lateral_lambda + lambda).clamp(-max_lat[i], max_lat[i]);
             let delta = total - w.lateral_lambda;
             forces.apply_linear_impulse_at_point(delta * c.lateral, c.position);
+            ground.react_impulse(c, delta * c.lateral);
             w.lateral_lambda = total;
         }
-    }
 
-    // Pitch and roll: held at the limit, and brought back under it.
-    if v.cos_max_pitch_roll > -1.0 {
-        let vehicle_up = rot * v.up;
-        let cos = world_up.dot(vehicle_up);
-        if cos < v.cos_max_pitch_roll
-            && let Some(axis) = world_up.cross(vehicle_up).try_normalize()
-        {
-            let over = cos.clamp(-1.0, 1.0).acos() - v.cos_max_pitch_roll.acos();
-            let tilting = forces.angular_velocity().dot(axis);
-            let m_eff = effective_angular_mass(inv_inertia, axis);
-            let lambda = (m_eff * (tilting + PITCH_ROLL_BAUMGARTE * over / dt)).max(0.0);
-            forces.apply_angular_impulse(-lambda * axis);
+        // Pitch and roll: held at the limit, and brought back under it.
+        if v.cos_max_pitch_roll > -1.0 {
+            let vehicle_up = rot * v.up;
+            let cos = world_up.dot(vehicle_up);
+            if cos < v.cos_max_pitch_roll
+                && let Some(axis) = world_up.cross(vehicle_up).try_normalize()
+            {
+                let over = cos.clamp(-1.0, 1.0).acos() - v.cos_max_pitch_roll.acos();
+                let tilting = forces.angular_velocity().dot(axis);
+                let m_eff = effective_angular_mass(inv_inertia, axis);
+                let lambda = (m_eff * (tilting + PITCH_ROLL_BAUMGARTE * over / dt)).max(0.0);
+                forces.apply_angular_impulse(-lambda * axis);
+            }
         }
-    }
 
-    // A motorcycle leans to its target with a spring, and the wheels are
-    // kept from pushing the ground by the same impulse.
-    if let Some(mut lean) = v.lean {
-        let all_in_contact = v
-            .run
-            .iter()
-            .all(|w| w.contact.is_some() && w.suspension_lambda > 0.0);
-        if all_in_contact {
-            let forward = rot * v.forward;
-            let up = rot * v.up;
-            let d_angle = -lean.target.cross(up).dot(forward).signum()
-                * lean.target.dot(up).clamp(-1.0, 1.0).acos();
-            let ddt_angle = forces.angular_velocity().dot(forward);
-            let total = (lean.spring * d_angle - lean.damping * ddt_angle) * dt;
-            let old_w = forces.angular_velocity();
-            let delta = total - lean.applied_impulse;
-            forces.apply_angular_impulse(delta * forward);
-            lean.applied_impulse = total;
-            let dw = forces.angular_velocity() - old_w;
-            let mut linear_acceleration = Vec3::ZERO;
-            let mut total_lambda = 0.0;
-            for w in &v.run {
-                if let Some(c) = w.contact {
-                    total_lambda += w.suspension_lambda;
-                    linear_acceleration += w.suspension_lambda * dw.cross(c.position - com);
+        // A motorcycle leans to its target with a spring, and the wheels are
+        // kept from pushing the ground by the same impulse.
+        if let Some(mut lean) = v.lean {
+            let all_in_contact = v
+                .run
+                .iter()
+                .all(|w| w.contact.is_some() && w.suspension_lambda > 0.0);
+            if all_in_contact {
+                let forward = rot * v.forward;
+                let up = rot * v.up;
+                let d_angle = -lean.target.cross(up).dot(forward).signum()
+                    * lean.target.dot(up).clamp(-1.0, 1.0).acos();
+                let ddt_angle = forces.angular_velocity().dot(forward);
+                let total = (lean.spring * d_angle - lean.damping * ddt_angle) * dt;
+                let old_w = forces.angular_velocity();
+                let delta = total - lean.applied_impulse;
+                forces.apply_angular_impulse(delta * forward);
+                lean.applied_impulse = total;
+                let dw = forces.angular_velocity() - old_w;
+                let mut linear_acceleration = Vec3::ZERO;
+                let mut total_lambda = 0.0;
+                for w in &v.run {
+                    if let Some(c) = w.contact {
+                        total_lambda += w.suspension_lambda;
+                        linear_acceleration += w.suspension_lambda * dw.cross(c.position - com);
+                    }
+                }
+                if total_lambda > 0.0 {
+                    forces.apply_linear_impulse(-linear_acceleration / (total_lambda * inv_mass));
                 }
             }
-            if total_lambda > 0.0 {
-                forces.apply_linear_impulse(-linear_acceleration / (total_lambda * inv_mass));
-            }
+            v.lean = Some(lean);
         }
-        v.lean = Some(lean);
     }
 }
 
@@ -1445,8 +1570,8 @@ fn inv_inertia_local(inv_inertia: &SymmetricTensor, rot: Quat) -> SymmetricTenso
     SymmetricTensor::from_mat3_unchecked(m)
 }
 
-/// Steps the wheeled vehicles in `FixedUpdate`, before Avian's step in
-/// `FixedPostUpdate`, at the game's 60 Hz.
+/// Steps vehicles at 60 Hz after Avian prepares body mass/inertia and before
+/// simulation. A newly assembled vehicle can be entered before its first step.
 pub struct VehicleSimPlugin;
 
 /// The vehicle step, for ordering game systems after it.
@@ -1457,8 +1582,12 @@ impl Plugin for VehicleSimPlugin {
     fn build(&self, app: &mut App) {
         const { assert!(FIXED_HZ > 0.0) };
         app.add_systems(
-            FixedUpdate,
-            (build_vehicles, step_vehicles).chain().in_set(VehicleStep),
+            FixedPostUpdate,
+            (build_vehicles, step_vehicles)
+                .chain()
+                .in_set(VehicleStep)
+                .after(PhysicsSystems::Prepare)
+                .before(PhysicsSystems::StepSimulation),
         );
     }
 }

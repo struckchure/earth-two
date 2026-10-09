@@ -4,8 +4,8 @@
 //!
 //! A drivable vehicle is a root entity with a [`sim::Vehicle`] (the wheeled
 //! vehicle illusion had from Jolt, here stepped on an Avian body), its
-//! [`Drivable`] and its input and state; its chassis boxes are child
-//! colliders, and each wheel model is a child posed from
+//! [`Drivable`] and its input and state; its chassis is one convex hull
+//! child collider, and each wheel model is a child posed from
 //! [`sim::VehicleState`] so it spins, steers and rides its suspension.
 //! Parked, with nobody in it, a vehicle is Static: it costs nothing, and
 //! needs no ground colliders under it. Getting in makes it Dynamic.
@@ -169,16 +169,24 @@ impl Plugin for VehiclePlugin {
             .add_systems(
                 FixedUpdate,
                 (
-                    drive::settle.before(VehicleStep),
-                    pedestrians::prepare_pedestrians.before(CharacterSystems::Move),
-                    impacts::run_over
-                        .after(CharacterSystems::Move)
-                        .after(VehicleStep),
+                    drive::settle.before(tyres::tyres),
+                    tyres::tyres,
+                    pedestrians::prepare_pedestrians
+                        .after(impacts::run_over)
+                        .before(CharacterSystems::Move),
+                    // Go predicts impacts before physics.Prepare/moveCharacters.
+                    // Moving an upright capsule first can evade the predictive
+                    // hit and leave an infinite-mass body under the wheels.
+                    impacts::run_over.before(CharacterSystems::Move),
                     pedestrians::restore_pedestrian_steps
                         .after(CharacterSystems::Move)
                         .after(impacts::run_over),
                 )
                     .in_set(VehicleSystems::Fixed),
+            )
+            .add_systems(
+                PhysicsSchedule,
+                pedestrians::character_response.in_set(SolverSystems::PreSubstep),
             )
             .add_systems(
                 FixedPostUpdate,
