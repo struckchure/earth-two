@@ -175,7 +175,14 @@ pub fn draw(
     fonts: Res<Fonts>,
     time: Res<Time>,
     orbit: Res<super::camera::Orbit>,
-    roots: Query<Entity, (With<MenuRoot>, Without<WardrobeRoot>)>,
+    roots: Query<
+        Entity,
+        (
+            With<MenuRoot>,
+            Without<WardrobeRoot>,
+            Without<super::identity_render::IdentityRoot>,
+        ),
+    >,
     mut previous: Local<Option<(Screen, usize, Vec2, Option<String>, Option<u32>, u32)>>,
 ) {
     let Ok(window) = window.single() else { return };
@@ -206,7 +213,11 @@ pub fn draw(
     for e in &roots {
         commands.entity(e).despawn();
     }
-    if matches!(*screen.get(), Screen::Playing | Screen::Dressing) && menu.admitted.is_none() {
+    if matches!(
+        *screen.get(),
+        Screen::Playing | Screen::Dressing | Screen::Identity
+    ) && menu.admitted.is_none()
+    {
         return;
     }
     let sc = scale(size.x, size.y);

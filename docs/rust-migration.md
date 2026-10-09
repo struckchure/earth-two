@@ -411,6 +411,81 @@ Chromium/SwiftShader WebGL2. The refreshed review server uses port 8096 to
 avoid the previous origin's cached WASM. Restart native clients or use the
 fresh browser review URL to pick up this fix.
 
+## Step 7 Identity checkpoint: 2026-10-09
+
+The title and pause menus now open the live I-1 Identity form. It uses the
+source 760 × 760 centered paper layout, four fields, two-column action grid,
+masked passphrase, disabled-action veil, status/error messages and footnote.
+The parent selection and paused world survive Back/Escape. Identity-specific
+navigation uses arrows/Tab and Enter; W/S/Space type, Backspace deletes a
+Unicode character, and Ctrl/Cmd+A clears a field. Desktop Ctrl/Cmd+V uses
+Bevy's system clipboard; browser paste uses the original adapter.
+
+Menu actions now drive the existing Rust account jobs: create, unlock,
+import/export, connect, lock, save email and save display name. Keys retain
+the Go encrypted document format and storage locations. Closing the form or
+returning to title preserves the session; locking or dropping the panel
+closes it. The gameplay HUD shows connection state and measured latency.
+`tools/rust/web.py` now builds/stages the existing TypeScript account adapter,
+and the browser shell loads it before WASM. The default release is still Go.
+
+Review from either title or pause → Identity. Use a disposable profile for
+native experiments if you do not want to open your usual Go identity:
+
+```sh
+EARTH_TWO_IDENTITY_PATH="$PWD/build/identity-review/pk" cargo run --locked -p earth-two-client
+```
+
+Native connection settings use `SPACETIMEDB_SERVER` and `SPACETIMEDB_DATABASE`;
+the browser accepts `?server=...&database=...`. To reproduce the finite native
+review, start an isolated local database first:
+
+```sh
+python3.13 tools/server/dev.py --server http://127.0.0.1:3017 \
+  --database earth-two-identity-review \
+  --data-dir build/migration-baseline/step-7-identity/server \
+  --wasm build/server/target/wasm32-unknown-unknown/release/earth_two_server.wasm \
+  --database-only
+# In another terminal:
+cargo run --locked -p earth-two-client --example identity_smoke
+```
+
+The example creates its own disposable profile and exercises real keyboard/menu
+systems. Evidence is in the ignored `build/migration-baseline/step-7-identity/`.
+Validation:
+
+- `tests.log`: **305** workspace headless tests passed. Both account integration
+  suites ran against the isolated database, including signed profile updates.
+  The new menu regression checks stale text isolation, W/S/Space, Unicode
+  backspace, Tab/arrows/Enter, action routing, both parents and focus restoration.
+- `client-tests.log`: **102** graphical client library tests passed.
+- `clippy-final.log` and `web-clippy.log`: native all-target and wasm32 lint
+  checks passed with warnings denied. `web-build-final.log`: final release WASM,
+  TypeScript adapter and packed assets built/staged successfully.
+- `native-final.log` / `native-*.png`: macOS arm64 / Metal finite visual review
+  passed create, export, lock, import, connect, email/name saves, connected play,
+  pause, wrong passphrase, unlock and Back. The initial smoke assertion assumed
+  an empty display name; the server correctly supplied `Player`. The corrected
+  test clears that field through the actual modifier+A input before replacing it.
+- `browser-*.png`, `browser-console.log`, `browser-errors.log`: Chromium / WebGL2
+  review passed mouse/keyboard entry from title and pause, masked typing,
+  Tab navigation, held Ctrl+A, create, connect, email/name saves, connected
+  gameplay/latency, lock, reload, unlock and reconnect. The same account ID and
+  saved profile returned after reload. The final WASM/JS were fetched with HTTP
+  200 on that reload. No browser errors, panics or missing assets were recorded.
+  Review uses the ordinary real-time night scene and packed assets (3464 model
+  scenes); native uses held 11:00/clear weather and source assets (3800 scenes).
+
+Browser file chooser/download round trips and real OS clipboard contents were
+not exercised by automation; check them during manual review. Native transfer
+round trips and Go/Rust encrypted-backup compatibility passed automated tests.
+Runtime checks on the other CI desktop targets and other browsers remain part
+of the platform acceptance gate; no complete parity claim is made here.
+
+Map/teleport and contracts/journal/debt are the next menu increments. Remaining
+world interactions, complete HUD/settings, platform runtime acceptance and
+matched visual/performance parity remain open.
+
 ## Step 6 menus and vehicle camera checkpoint: 2026-10-09
 
 The vehicle camera excluded only the root entity while Avian returned hits

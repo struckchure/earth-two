@@ -112,6 +112,7 @@ pub struct TextInput {
     pub select_all: bool,
     pub paste: bool,
     pub chars: Vec<char>,
+    pub pasted: String,
 }
 
 #[derive(Resource)]
@@ -475,7 +476,7 @@ impl IdentityPanel {
         }
         let limit = FIELD_LIMITS[focus];
         let pasted = storage::paste_text(input.modifier && input.paste);
-        for ch in pasted.chars() {
+        for ch in pasted.chars().chain(input.pasted.chars()) {
             if ch >= ' ' && ch != '\x7f' && value.len() + ch.len_utf8() <= limit {
                 value.push(ch);
             }
@@ -534,7 +535,7 @@ impl IdentityPanel {
     /// Whether the browser bridge should capture paste events: a text field
     /// is focused and no job is running.
     pub fn wants_clipboard(&self) -> bool {
-        self.focus.is_some() && !self.busy
+        self.focus.is_some_and(|f| f != 1 || CAN_EDIT_TRANSFER) && !self.busy
     }
 }
 
@@ -544,13 +545,33 @@ pub struct IdentityPlugin;
 impl Plugin for IdentityPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<IdentityPanel>()
-            .add_systems(Update, (poll_identity, edit_from_input).chain());
+            .add_systems(
+                Update,
+                (poll_identity, edit_from_input)
+                    .chain()
+                    .before(crate::game::GameSet::Menu),
+            )
+            .add_systems(Update, sync_focus.after(crate::game::GameSet::Menu));
     }
 }
 
 fn poll_identity(mut panel: ResMut<IdentityPanel>) {
     panel.poll();
+}
+
+fn sync_focus(mut panel: ResMut<IdentityPanel>, menu: Option<Res<crate::game::menu::Menu>>) {
+    if let Some(menu) = menu {
+        panel.focus = (menu.screen() == crate::game::Screen::Identity
+            && menu.focus() < IDENTITY_FIELDS)
+            .then_some(menu.focus());
+    }
     storage::clipboard_focus(panel.wants_clipboard());
+}
+
+impl Drop for IdentityPanel {
+    fn drop(&mut self) {
+        self.close();
+    }
 }
 
 /// Feeds keyboard text into the focused field. The menus set `focus`.
@@ -558,8 +579,14 @@ fn edit_from_input(
     mut panel: ResMut<IdentityPanel>,
     keys: Option<Res<ButtonInput<KeyCode>>>,
     mut keyboard: Option<MessageReader<bevy::input::keyboard::KeyboardInput>>,
+    #[cfg(all(feature = "viewer", not(target_arch = "wasm32")))] mut clipboard: Option<
+        ResMut<bevy::clipboard::Clipboard>,
+    >,
 ) {
     let Some(focus) = panel.focus else {
+        if let Some(keyboard) = keyboard.as_mut() {
+            keyboard.clear();
+        }
         return;
     };
     let (Some(keys), Some(keyboard)) = (keys, keyboard.as_mut()) else {
@@ -577,10 +604,20 @@ fn edit_from_input(
         select_all: keys.just_pressed(KeyCode::KeyA),
         paste: keys.just_pressed(KeyCode::KeyV),
         chars: Vec::new(),
+        pasted: String::new(),
     };
+    #[cfg(all(feature = "viewer", not(target_arch = "wasm32")))]
+    if input.modifier
+        && input.paste
+        && panel.wants_clipboard()
+        && let Some(clipboard) = clipboard.as_mut()
+        && let Some(Ok(text)) = clipboard.fetch_text().poll_result()
+    {
+        input.pasted = text;
+    }
     for event in keyboard.read() {
         if event.state.is_pressed()
-            && let bevy::input::keyboard::Key::Character(text) = &event.logical_key
+            && let Some(text) = &event.text
         {
             input.chars.extend(text.chars());
         }

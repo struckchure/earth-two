@@ -144,6 +144,8 @@ impl Plugin for GameRenderPlugin {
                     super::menu_render::draw,
                     super::paper_cursor::draw,
                     super::wardrobe_render::draw,
+                    super::identity_render::draw,
+                    super::identity_render::connection,
                     hud,
                     injury_panel,
                     crowd_panel,
@@ -302,10 +304,14 @@ fn pointer(
         return;
     };
     orbit.aspect = window.width() / window.height().max(1.0);
-    orbit.menu_fraction = (super::menu_render::panel_right(*screen.get())
-        * super::paper::scale(window.width(), window.height())
-        / window.width().max(1.0))
-    .min(0.6);
+    orbit.menu_fraction = if *screen.get() == Screen::Identity {
+        super::identity_render::panel_fraction(Vec2::new(window.width(), window.height()))
+    } else {
+        (super::menu_render::panel_right(*screen.get())
+            * super::paper::scale(window.width(), window.height())
+            / window.width().max(1.0))
+        .min(0.6)
+    };
     let playing = *screen.get() == Screen::Playing;
     if playing && !window.focused {
         actions.write(MenuAction::Pause);

@@ -7,6 +7,8 @@ pub mod crowd;
 pub mod cues;
 pub mod drive_sound;
 pub mod effects;
+#[cfg(feature = "viewer")]
+mod identity_render;
 pub mod injuries;
 pub mod menu;
 #[cfg(feature = "viewer")]
@@ -49,6 +51,7 @@ pub enum Screen {
     Paused,
     Dressing,
     Controls,
+    Identity,
 }
 
 #[derive(Message, Debug, Clone, Copy)]
@@ -59,6 +62,8 @@ pub enum MenuAction {
     MainMenu,
     Wardrobe,
     Controls,
+    Identity,
+    IdentityAct(crate::identity::IdentityAction),
     Quit,
     Back,
     Focus(usize),

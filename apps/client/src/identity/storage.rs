@@ -84,8 +84,8 @@ mod native {
         earth_two_identity::config::network_defaults()
     }
 
-    /// Go read the raylib clipboard here. Bevy has no clipboard; the desktop
-    /// form takes typed text only until a clipboard crate is adopted.
+    /// Desktop input supplies text through Bevy's system clipboard resource.
+    /// Only the browser needs a separately captured paste event.
     pub fn paste_text(_pressed: bool) -> String {
         String::new()
     }

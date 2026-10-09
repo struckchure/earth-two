@@ -17,9 +17,13 @@ The live wardrobe opens from title/pause, with original rows, outfit rules,
 front camera, keyboard/mouse controls and clothing sounds. Title/pause and
 Controls use the original paper forms, fonts, tick marks and parchment pointer;
 Play stamps the arrival form. Desktop Quit closes the application.
+Identity opens from title/pause with the original I-1 form: create, import/export,
+unlock/lock, connect, optional email and display name. Tab/arrows select fields
+and buttons, Enter advances a field or presses a button, Escape returns, and
+Backspace edits. Ctrl/Cmd+A clears a field; Ctrl/Cmd+V pastes.
 Remaining interactions and map sounds, animation/foot placement,
-full menus/accounts and complete visual parity remain unfinished. Go remains
-the release default. See the [migration checkpoint](../../docs/rust-migration.md#step-6-menus-and-vehicle-camera-checkpoint-2026-10-09)
+map/journal/contracts, full HUD and complete visual parity remain unfinished. Go remains
+the release default. See the [migration checkpoint](../../docs/rust-migration.md#step-7-identity-checkpoint-2026-10-09)
 for evidence and remaining work.
 
 Run from the repository root:
@@ -95,7 +99,7 @@ For an automatic title capture use
 `EARTH_TWO_CAPTURE=build/rust/title.png make rust-run`; it waits for content
 and a render warmup, captures a frame and exits.
 
-Local evidence includes 304 passing headless tests, 102 client library tests
+Local evidence includes 305 passing headless tests, 102 client library tests
 with rendering/pose regressions, native macOS arm64/Metal graphical smoke, and a packed
 asset Chromium/SwiftShader WebGL2 gameplay check. CI also compiles/tests the
 Linux, Windows and both macOS architecture targets. Other runtime platforms,

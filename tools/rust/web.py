@@ -39,6 +39,8 @@ def main():
         "cargo", "build", "--locked", "--release", "-p", "earth-two-client",
         "--target", "wasm32-unknown-unknown", "--target-dir", str(ROOT / "build/rust"),
     ], cwd=ROOT, check=True)
+    subprocess.run(["npm", "ci", "--prefix", "web/spacetime"], cwd=ROOT, check=True)
+    subprocess.run(["npm", "run", "build", "--prefix", "web/spacetime"], cwd=ROOT, check=True)
     output = ROOT / "build/rust-web"
     # Generate in a fresh directory so failed builds leave the last candidate intact.
     with tempfile.TemporaryDirectory(prefix="rust-web-", dir=ROOT / "build") as temp:
@@ -50,6 +52,7 @@ def main():
             "--target", "web", "--out-dir", str(staged), "--out-name", "earth_two_client",
         ], check=True)
         shutil.copy2(ROOT / "apps/client/web/index.html", staged / "index.html")
+        shutil.copy2(ROOT / "build/spacetime/account.js", staged / "account.js")
         shutil.copytree(args.assets, staged / "assets")
         previous = Path(temp) / "previous"
         if output.exists():

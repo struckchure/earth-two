@@ -209,6 +209,10 @@ fn in_game_account_connection_survives_operation_completion() {
     p.fields[2].clear();
     p.act(IdentityAction::Email);
     wait_identity(&mut p);
+    p.fields[3] = "Menu name 二".into();
+    p.act(IdentityAction::Name);
+    wait_identity(&mut p);
+    assert_eq!(session.details().unwrap().display_name, "Menu name 二");
     // The HUD label should pick up a latency reading within a few polls.
     let started = std::time::Instant::now();
     while p.latency.is_zero() && started.elapsed() < Duration::from_secs(5) {
@@ -217,5 +221,125 @@ fn in_game_account_connection_survives_operation_completion() {
     }
     assert!(p.connection_label().0.starts_with("Connected"));
     p.close();
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+// Drive the real menu/input systems rather than calling the form methods directly.
+#[test]
+fn live_menu_routes_text_and_actions_without_leaking_input_between_screens() {
+    use bevy::{
+        input::{
+            ButtonState,
+            keyboard::{Key, KeyboardInput},
+        },
+        prelude::*,
+    };
+    use earth_two_client::{
+        character::Player,
+        game::{
+            GameSet, MenuAction, Screen,
+            menu::{self, Menu},
+        },
+        identity::IdentityPlugin,
+        presentation::{Outfit, Wardrobe},
+    };
+    let _guard = ENV.lock().unwrap();
+    let dir = temp_dir("menu");
+    set_identity_path(&dir.join("pk"));
+    let mut app = App::new();
+    app.add_plugins((
+        MinimalPlugins,
+        bevy::state::app::StatesPlugin,
+        IdentityPlugin,
+    ))
+    .init_state::<Screen>()
+    .init_resource::<Menu>()
+    .init_resource::<Wardrobe>()
+    .init_resource::<ButtonInput<KeyCode>>()
+    .add_message::<MenuAction>()
+    .add_message::<KeyboardInput>()
+    .add_systems(
+        Update,
+        (menu::keys, menu::actions).chain().in_set(GameSet::Menu),
+    );
+    app.world_mut().spawn((Player, Outfit::default()));
+    app.world_mut()
+        .resource_mut::<NextState<Screen>>()
+        .set(Screen::Title);
+    app.update();
+    fn action(app: &mut App, action: MenuAction) {
+        app.world_mut().write_message(action);
+        app.update();
+        app.update();
+    }
+    fn press(app: &mut App, key: KeyCode, text: Option<&str>) {
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .press(key);
+        app.world_mut().write_message(KeyboardInput {
+            key_code: key,
+            logical_key: Key::Character(text.unwrap_or("").into()),
+            text: text.map(Into::into),
+            state: ButtonState::Pressed,
+            repeat: false,
+            window: Entity::PLACEHOLDER,
+        });
+        app.update();
+        app.world_mut()
+            .resource_mut::<ButtonInput<KeyCode>>()
+            .reset_all();
+        app.update();
+    }
+    // Text from a previous screen cannot become part of the passphrase.
+    press(&mut app, KeyCode::KeyX, Some("stale"));
+    action(&mut app, MenuAction::Focus(3));
+    press(&mut app, KeyCode::Enter, None);
+    assert_eq!(app.world().resource::<Menu>().screen(), Screen::Identity);
+    assert_eq!(app.world().resource::<Menu>().choices(), 13);
+    assert!(app.world().resource::<IdentityPanel>().fields[0].is_empty());
+    press(&mut app, KeyCode::KeyW, Some("w"));
+    press(&mut app, KeyCode::KeyS, Some("s"));
+    press(&mut app, KeyCode::Space, Some(" "));
+    press(&mut app, KeyCode::KeyX, Some("二🦊"));
+    press(&mut app, KeyCode::Backspace, None);
+    assert_eq!(app.world().resource::<Menu>().focus(), 0);
+    assert_eq!(app.world().resource::<IdentityPanel>().fields[0], "ws 二");
+    press(&mut app, KeyCode::Enter, None);
+    assert_eq!(app.world().resource::<Menu>().focus(), 1);
+    press(&mut app, KeyCode::Tab, None);
+    assert_eq!(app.world().resource::<Menu>().focus(), 2);
+    press(&mut app, KeyCode::ArrowUp, None);
+    assert_eq!(app.world().resource::<Menu>().focus(), 1);
+    action(&mut app, MenuAction::Focus(4));
+    press(&mut app, KeyCode::Enter, None);
+    let started = std::time::Instant::now();
+    while app.world().resource::<IdentityPanel>().busy
+        && started.elapsed() < Duration::from_secs(30)
+    {
+        app.update();
+        std::thread::sleep(Duration::from_millis(1));
+    }
+    assert!(!app.world().resource::<IdentityPanel>().failed);
+    assert!(app.world().resource::<IdentityPanel>().key.is_some());
+    assert!(app.world().resource::<IdentityPanel>().fields[0].is_empty());
+    action(&mut app, MenuAction::IdentityAct(IdentityAction::Lock));
+    assert!(app.world().resource::<IdentityPanel>().key.is_none());
+    press(&mut app, KeyCode::Escape, None);
+    assert_eq!(app.world().resource::<Menu>().screen(), Screen::Title);
+    assert_eq!(app.world().resource::<Menu>().focus(), 3);
+    assert_eq!(app.world().resource::<IdentityPanel>().focus, None);
+    // Account actions cannot be invoked outside the form.
+    action(&mut app, MenuAction::IdentityAct(IdentityAction::Unlock));
+    assert!(!app.world().resource::<IdentityPanel>().failed);
+    action(&mut app, MenuAction::Play);
+    action(&mut app, MenuAction::Pause);
+    action(&mut app, MenuAction::Focus(4));
+    press(&mut app, KeyCode::Enter, None);
+    assert_eq!(app.world().resource::<Menu>().screen(), Screen::Identity);
+    action(&mut app, MenuAction::Focus(12));
+    press(&mut app, KeyCode::Enter, None);
+    assert_eq!(app.world().resource::<Menu>().screen(), Screen::Paused);
+    assert_eq!(app.world().resource::<Menu>().focus(), 4);
+    drop(app);
     let _ = std::fs::remove_dir_all(dir);
 }

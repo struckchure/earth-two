@@ -18,13 +18,21 @@ compiles for wasm32). This module is the form's state machine and the glue:
 - `IdentityPlugin` polls the panel in `Update` and types keyboard text into
   the field the menus have focused (`IdentityPanel::focus`).
 
-The menus draw the form. They get the pieces `drawIdentity` used:
+The live title/pause menus open `game/identity_render.rs`, which draws FORM I-1
+with the shared paper primitives. Menu actions route to the panel; editing runs
+before navigation, and focus/clipboard capture synchronize afterward. Closing a
+form preserves the connection; dropping the panel closes it. Desktop paste uses
+Bevy’s system clipboard; browser paste uses the original event adapter.
+
+The renderer gets the pieces `drawIdentity` used:
 `account_line()`, `FIELD_LABELS`, `field_text(i)`, `IdentityAction::ITEMS`,
 `enabled(action)`, `message`/`failed`, `FOOTNOTE`, and for the HUD
 `connection_label()` (text and RGBA, as `drawConnectionHUD`).
 
 In the browser the page must load the existing networking adapter
 (`web/spacetime/bridge.ts`, built to expose `globalThis.EarthTwoAccount`)
-before the game starts; the Rust client calls it exactly as the Go client did.
+before the game starts; `tools/rust/web.py` builds/stages it as `account.js` and
+the preview imports it before WASM starts. The Rust client calls it exactly as
+the Go client did.
 Desktop talks to the database in-process through `spacetimedb-sdk`, as the Go
 client did through its SDK.

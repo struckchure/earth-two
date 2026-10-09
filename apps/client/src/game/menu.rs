@@ -5,6 +5,7 @@ use super::{
 };
 use crate::{
     character::Player,
+    identity::{IDENTITY_FIELDS, IdentityAction, IdentityPanel},
     presentation::{Outfit, Wardrobe},
 };
 use bevy::prelude::*;
@@ -46,6 +47,8 @@ impl Menu {
         choices(self.screen()).len()
             + if self.screen() == Screen::Dressing {
                 ROW_COUNT
+            } else if self.screen() == Screen::Identity {
+                IDENTITY_FIELDS
             } else {
                 0
             }
@@ -82,6 +85,9 @@ impl Menu {
             MenuAction::Controls if matches!(self.screen(), Screen::Title | Screen::Paused) => {
                 self.open(Screen::Controls)
             }
+            MenuAction::Identity if matches!(self.screen(), Screen::Title | Screen::Paused) => {
+                self.open(Screen::Identity)
+            }
             MenuAction::Focus(focus) => self.set_focus(focus),
             MenuAction::CycleRow { row, step }
                 if self.screen() == Screen::Dressing && row < ROW_COUNT =>
@@ -99,8 +105,13 @@ impl Menu {
                 step: 1,
             });
         }
+        if self.screen() == Screen::Identity && self.focus() < IDENTITY_FIELDS {
+            return Some(MenuAction::Focus((self.focus() + 1) % IDENTITY_FIELDS));
+        }
         let first = if self.screen() == Screen::Dressing {
             ROW_COUNT
+        } else if self.screen() == Screen::Identity {
+            IDENTITY_FIELDS
         } else {
             0
         };
@@ -115,13 +126,28 @@ pub fn choices(screen: Screen) -> Vec<(&'static str, MenuAction)> {
             ("Play", MenuAction::Play),
             ("Wardrobe", MenuAction::Wardrobe),
             ("Controls", MenuAction::Controls),
+            ("Identity", MenuAction::Identity),
         ],
         Screen::Paused => vec![
             ("Resume", MenuAction::Resume),
             ("Wardrobe", MenuAction::Wardrobe),
             ("Controls", MenuAction::Controls),
             ("Main menu", MenuAction::MainMenu),
+            ("Identity", MenuAction::Identity),
         ],
+        Screen::Identity => IdentityAction::ITEMS
+            .into_iter()
+            .map(|(label, action)| {
+                (
+                    label,
+                    if action == IdentityAction::Back {
+                        MenuAction::Back
+                    } else {
+                        MenuAction::IdentityAct(action)
+                    },
+                )
+            })
+            .collect(),
         Screen::Dressing => vec![("Done", MenuAction::Back)],
         Screen::Controls => vec![("Back", MenuAction::Back)],
         _ => vec![],
@@ -140,7 +166,8 @@ pub fn keys(
     if *screen.get() == Screen::Loading {
         return;
     }
-    if keys.any_just_pressed([KeyCode::Escape, KeyCode::Backspace]) {
+    let identity = menu.screen() == Screen::Identity;
+    if keys.just_pressed(KeyCode::Escape) || (!identity && keys.just_pressed(KeyCode::Backspace)) {
         actions.write(if menu.screen() == Screen::Playing {
             MenuAction::Pause
         } else {
@@ -152,10 +179,16 @@ pub fn keys(
     if n == 0 {
         return;
     }
+    if identity && keys.just_pressed(KeyCode::Tab) {
+        let focus = menu.focus();
+        menu.set_focus((focus + 1) % n);
+    }
     let focus = menu.focus();
-    if keys.any_just_pressed([KeyCode::ArrowUp, KeyCode::KeyW]) {
+    if keys.just_pressed(KeyCode::ArrowUp) || (!identity && keys.just_pressed(KeyCode::KeyW)) {
         menu.set_focus((focus + n - 1) % n);
-    } else if keys.any_just_pressed([KeyCode::ArrowDown, KeyCode::KeyS]) {
+    } else if keys.just_pressed(KeyCode::ArrowDown)
+        || (!identity && keys.just_pressed(KeyCode::KeyS))
+    {
         menu.set_focus((focus + 1) % n);
     } else if menu.screen() == Screen::Dressing
         && focus < ROW_COUNT
@@ -174,12 +207,14 @@ pub fn keys(
                 1
             },
         });
-    } else if keys.any_just_pressed([KeyCode::Enter, KeyCode::NumpadEnter, KeyCode::Space])
+    } else if (keys.just_pressed(KeyCode::Enter)
+        || (!identity && keys.any_just_pressed([KeyCode::NumpadEnter, KeyCode::Space])))
         && let Some(action) = menu.press()
     {
         actions.write(action);
     }
 }
+#[allow(clippy::too_many_arguments)]
 pub fn actions(
     mut actions: MessageReader<MenuAction>,
     screen: Res<State<Screen>>,
@@ -188,6 +223,7 @@ pub fn actions(
     wardrobe: Res<Wardrobe>,
     mut players: Query<&mut Outfit, With<Player>>,
     mut exit: MessageWriter<AppExit>,
+    mut identity: ResMut<IdentityPanel>,
 ) {
     if *screen.get() == Screen::Loading {
         actions.clear();
@@ -202,6 +238,11 @@ pub fn actions(
             && matches!(menu.screen(), Screen::Title | Screen::Paused)
         {
             exit.write(AppExit::Success);
+        }
+        if let MenuAction::IdentityAct(action) = action
+            && menu.screen() == Screen::Identity
+        {
+            identity.act(*action);
         }
         menu.apply(*action, &wardrobe, &mut outfit);
     }
