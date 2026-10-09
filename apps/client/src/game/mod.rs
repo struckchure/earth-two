@@ -10,9 +10,12 @@ pub mod effects;
 #[cfg(feature = "viewer")]
 mod identity_render;
 pub mod injuries;
+#[cfg(feature = "viewer")]
+mod map_render;
 pub mod menu;
 #[cfg(feature = "viewer")]
 mod menu_render;
+pub mod navigation;
 #[cfg(feature = "viewer")]
 mod paper;
 #[cfg(feature = "viewer")]
@@ -52,6 +55,7 @@ pub enum Screen {
     Dressing,
     Controls,
     Identity,
+    Mapping,
 }
 
 #[derive(Message, Debug, Clone, Copy)]
@@ -63,6 +67,7 @@ pub enum MenuAction {
     Wardrobe,
     Controls,
     Identity,
+    Map,
     IdentityAct(crate::identity::IdentityAction),
     Quit,
     Back,
@@ -129,6 +134,7 @@ impl Plugin for GamePlugin {
             people::PeoplePlugin,
             ambience::AmbiencePlugin,
             cues::CuesPlugin,
+            navigation::NavigationPlugin,
         ))
         .init_state::<Screen>()
         .init_resource::<Session>()

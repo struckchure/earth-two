@@ -9,7 +9,7 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 304 passing headless tests and 102 client
+with `--foundation`. There are 312 passing headless tests and 105 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
@@ -18,6 +18,9 @@ cues and gameplay particle emission. Step 6 now connects the live wardrobe
 from title/pause, its screen stack, keyboard/mouse input and outfit cues.
 The title/pause/Controls paper forms, parchment cursor and desktop Quit are
 connected; vehicle camera sweeps exclude all child chassis colliders.
+Step 7 connects the live Identity form and account flows. Step 8 connects
+full-map/minimap/compass navigation, manual destinations and development
+teleporting on foot or in any of the six vehicle types.
 Native graphical game, injury and crowd smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
@@ -410,6 +413,72 @@ wind/buggy playback and no sound-discovery or JavaScript errors on
 Chromium/SwiftShader WebGL2. The refreshed review server uses port 8096 to
 avoid the previous origin's cached WASM. Restart native clients or use the
 fresh browser review URL to pick up this fix.
+
+## Step 8 map and teleport checkpoint: 2026-10-10
+
+`game/navigation.rs` connects the existing `landfall/maps.rs` projection,
+footprint index, place names, bounds and destination math to the live game.
+M opens the full map from play; M/Escape/Backspace close it and resume physics.
+Each opening centers on the player at the source 0.1 zoom. Either mouse button
+pans, the wheel zooms around the pointer within 0.03–16, and a left click marks
+or clears a destination. Dragging does not place a mark; the center and marked
+point remain inside world bounds. Arrival clears a manual mark within six meters.
+
+`game/map_render.rs` draws the source footprint colors, roads, prioritized place
+labels, player arrow, route and cyan destination diamonds. In play, the minimap
+turns with the drawn camera, the compass shows headings, and the world marker
+shows distance or points along the screen edge. The full map is north-up.
+The renderer retains/reuses Bevy UI nodes, clips rotated footprints to the
+viewport, and measures rendered font widths for label overlap. Map opening,
+marking/clearing and arrival use the source ui_open/ui_mark/ui_arrive sounds.
+
+P retains Go's development teleport behavior: the point under the full-map
+pointer, or the manual destination in play. Driving moves the vehicle upright,
+keeps the driver seated and clears linear/angular velocity; on foot it clears
+controller/traversal motion. Camera and interpolation state move with the
+player, and destination terrain colliders stream before the next physics tick.
+Landing uses analytic ground beyond the collider ring, permits standing under
+a high roof and otherwise chooses the obstruction's top. Physics ray and
+capsule-overlap exclusions now ignore compound child colliders too.
+
+Review with `cargo run --locked -p earth-two-client`, or start beside a vehicle
+using `-- --at=hauler` (also bike/trike/buggy/rover/hauler_tanker). The finite
+native review is `cargo run --locked -p earth-two-client --example maps_smoke`.
+Try M, click a destination, zoom/pan, close M, and P; repeat while driving.
+Use the fresh local browser candidate at `http://127.0.0.1:8099/`.
+
+Evidence is under ignored `build/migration-baseline/step-8-maps/`:
+
+- `tests.log`: 312 headless workspace tests passed, including all six real
+  vehicle types, camera/streaming movement, standing room/roofs, compound-body
+  exclusion, menu/pause behavior, gestures and map sound transitions.
+- `client-tests.log`: 105 client library tests passed.
+- `clippy.log` and `web-clippy.log`: native all-target and browser lint passed
+  with warnings denied; formatting and whitespace checks passed.
+- `native.log` and `native-*.png`: macOS arm64/Metal review verifies live input,
+  map label replacement, minimap/compass, marking, pan/zoom, foot teleport and
+  hauler map-pointer teleport, immediate arrival and settling. The fixture
+  selects the arrival hauler deterministically and uses the source test's
+  open destination. Early review logs retained separately exposed stale label
+  pooling (fixed) and an ambiguous vehicle fixture (fixed).
+- `browser-*.png`, `browser-console.log`, `browser-errors.log`: Chromium/
+  SwiftShader WebGL2 review verifies map opening, marking, right-button panning,
+  pointer zoom, play guidance, foot teleport, arrival clearing, map recentering
+  and terrain settling. Final WASM reload also verifies source wheel scaling
+  and hauler map-pointer teleport while preserving the driver and chase camera.
+  `web-build.log` records successful release packaging. No JavaScript errors.
+  Existing WebGL capability and
+  hierarchy warnings remain; these captures are runtime checks, not matched
+  Go/Rust lighting or hardware performance acceptance.
+
+
+Contract-generated navigation targets remain part of the next journal/debt/
+contracts increment; this checkpoint connects manual map destinations.
+Remaining work also includes world interactions, full HUD/settings, visual and
+handling parity, Rust release tooling, and platform runtime acceptance.
+The existing CI matrix remains Linux x64, Windows x64, macOS arm64/x64 and the
+browser target. Local runtime validation covers macOS arm64 and Chromium;
+the Go release default is unchanged.
 
 ## Step 7 Identity checkpoint: 2026-10-09
 

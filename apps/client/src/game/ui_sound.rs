@@ -8,9 +8,26 @@ use crate::{character::Player, presentation::Outfit, vehicle::Prompt};
 use bevy::prelude::*;
 #[derive(Resource, Default)]
 pub struct UiSoundState {
+    previous_map: Option<(bool, Vec2)>,
     previous: Option<(Screen, usize, usize, Option<Outfit>, String)>,
 }
 impl UiSoundState {
+    pub fn navigation(&mut self, screen: Screen, marked: bool, dest: Vec2) -> Vec<Cue> {
+        let mut out = vec![];
+        if let Some((old_marked, old_dest)) = self.previous_map {
+            if marked && (!old_marked || dest != old_dest) {
+                out.push(Voice::ui("ui_mark", 0.8));
+            } else if !marked && old_marked {
+                out.push(if screen == Screen::Mapping {
+                    Voice::ui("ui_mark", 0.6)
+                } else {
+                    Voice::ui("ui_arrive", 0.8)
+                });
+            }
+        }
+        self.previous_map = Some((marked, dest));
+        out
+    }
     pub fn update(
         &mut self,
         screen: Screen,
@@ -22,7 +39,9 @@ impl UiSoundState {
         let mut out = vec![];
         if let Some((top, old_depth, old_focus, old_outfit, old_note)) = &self.previous {
             if *top != Screen::Loading {
-                let sound = if depth > *old_depth {
+                let sound = if depth > *old_depth && screen == Screen::Mapping {
+                    Some(("ui_open", 0.8))
+                } else if depth > *old_depth {
                     Some(("ui_page", 0.7))
                 } else if depth < *old_depth && depth == 0 {
                     Some(("ui_stamp", 0.9))
@@ -50,11 +69,13 @@ impl UiSoundState {
         out
     }
 }
+#[allow(clippy::too_many_arguments)]
 pub(super) fn ui_cues(
     screen: Res<State<Screen>>,
     menu: Res<Menu>,
     players: Query<&Outfit, With<Player>>,
     prompt: Res<Prompt>,
+    map: Option<Res<crate::landfall::maps::WorldMap>>,
     mut memory: ResMut<UiSoundState>,
     mut cues: MessageWriter<Cue>,
 ) {
@@ -69,6 +90,12 @@ pub(super) fn ui_cues(
         players.single().ok().copied(),
         prompt.noting(),
     ) {
+        cues.write(cue);
+    }
+    let (marked, dest) = map
+        .as_ref()
+        .map_or((false, Vec2::ZERO), |m| (m.marked, m.dest));
+    for cue in memory.navigation(menu.screen(), marked, dest) {
         cues.write(cue);
     }
 }

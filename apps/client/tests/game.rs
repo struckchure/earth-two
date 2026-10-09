@@ -579,3 +579,221 @@ fn controls_navigation_preserves_parent_focus_and_pause_then_native_quit_exits()
     press(&mut app, KeyCode::Enter);
     assert!(app.should_exit().is_some());
 }
+
+#[test]
+fn map_keys_pause_recenter_and_preserve_destination_across_menus() {
+    use earth_two_client::{
+        game::navigation::{MapPointer, full_frame},
+        landfall::maps::WorldMap,
+    };
+    let mut app = app_at(StartAt::Arrival);
+    press(&mut app, KeyCode::KeyM);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Title
+    );
+    action(&mut app, MenuAction::Play);
+    tick(&mut app, 60);
+    let e = player(&app);
+    let before = app.world().get::<Transform>(e).unwrap().translation;
+    press(&mut app, KeyCode::KeyM);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Mapping
+    );
+    assert!(app.world().resource::<Time<Physics>>().is_paused());
+    let map = app.world().resource::<WorldMap>();
+    assert!(map.at.distance(before.xz()) < 0.1);
+    let f = full_frame(map, app.world().resource::<MapPointer>().size);
+    let pointer = f.middle() + Vec2::new(80., -30.);
+    let dest = f.to_world(pointer);
+    {
+        let mut p = app.world_mut().resource_mut::<MapPointer>();
+        p.at = Some(pointer);
+        p.left = true;
+        p.pressed = true;
+    }
+    tick(&mut app, 1);
+    {
+        let mut p = app.world_mut().resource_mut::<MapPointer>();
+        p.left = false;
+        p.pressed = false;
+        p.released = true;
+    }
+    tick(&mut app, 1);
+    app.world_mut().resource_mut::<MapPointer>().released = false;
+    assert!(app.world().resource::<WorldMap>().marked);
+    assert!(app.world().resource::<WorldMap>().dest.distance(dest) < 0.1);
+    let under = full_frame(
+        app.world().resource::<WorldMap>(),
+        app.world().resource::<MapPointer>().size,
+    )
+    .to_world(pointer);
+    app.world_mut().resource_mut::<MapPointer>().wheel = 5.;
+    tick(&mut app, 1);
+    app.world_mut().resource_mut::<MapPointer>().wheel = 0.;
+    let after = full_frame(
+        app.world().resource::<WorldMap>(),
+        app.world().resource::<MapPointer>().size,
+    )
+    .to_world(pointer);
+    assert!(after.distance(under) < 0.01, "zoom stays under pointer");
+    tick(&mut app, 15);
+    assert_eq!(before, app.world().get::<Transform>(e).unwrap().translation);
+    press(&mut app, KeyCode::Backspace);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Playing
+    );
+    press(&mut app, KeyCode::KeyM);
+    assert_eq!(app.world().resource::<WorldMap>().zoom, 0.1);
+    assert!(app.world().resource::<WorldMap>().marked);
+    press(&mut app, KeyCode::Escape);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Playing
+    );
+}
+
+#[test]
+fn map_teleport_moves_camera_streaming_and_character_without_old_motion() {
+    use earth_two_client::{
+        game::navigation::{MapPointer, full_frame},
+        landfall::{maps::WorldMap, terrain::Terrain},
+    };
+    use earth_two_world::terrain::{chunk_of, walk_height};
+    let mut app = app_at(StartAt::Arrival);
+    action(&mut app, MenuAction::Play);
+    tick(&mut app, 60);
+    let e = player(&app);
+    let dest = Vec2::new(-1500., 11900.);
+    {
+        let mut m = app.world_mut().resource_mut::<WorldMap>();
+        m.dest = dest;
+        m.marked = true;
+    }
+    press(&mut app, KeyCode::KeyP);
+    let tr = app.world().get::<Transform>(e).unwrap();
+    assert!(tr.translation.xz().distance(dest) < 0.1);
+    let camera = app
+        .world_mut()
+        .query_filtered::<&Transform, With<GameCamera>>()
+        .single(app.world())
+        .unwrap();
+    assert!(camera.translation.xz().distance(dest) < 20.);
+    assert_eq!(
+        app.world().resource::<Terrain>().ci,
+        chunk_of(dest.x, dest.y).0
+    );
+    tick(&mut app, 90);
+    let tr = app.world().get::<Transform>(e).unwrap();
+    let cc = app.world().get::<CharacterController>(e).unwrap();
+    assert!(cc.grounded);
+    assert!((tr.translation.y - cc.height / 2. - walk_height(dest.x, dest.y)).abs() < 0.3);
+    assert!(!app.world().resource::<WorldMap>().marked);
+    // P in the full map uses the pointer, without needing a manual destination.
+    press(&mut app, KeyCode::KeyM);
+    let pos = Vec2::new(640., 360.);
+    {
+        let mut p = app.world_mut().resource_mut::<MapPointer>();
+        p.at = Some(pos);
+    }
+    let dest = full_frame(
+        app.world().resource::<WorldMap>(),
+        app.world().resource::<MapPointer>().size,
+    )
+    .to_world(pos);
+    press(&mut app, KeyCode::KeyP);
+    tick(&mut app, 2);
+    assert_eq!(
+        *app.world().resource::<State<Screen>>().get(),
+        Screen::Playing
+    );
+    assert!(
+        app.world()
+            .get::<Transform>(e)
+            .unwrap()
+            .translation
+            .xz()
+            .distance(dest)
+            < 0.1
+    );
+}
+
+#[test]
+fn teleport_keeps_every_vehicle_and_its_driver_together() {
+    use earth_two_client::landfall::maps::WorldMap;
+    use earth_two_world::terrain::walk_height;
+    for start in [
+        StartAt::Bike,
+        StartAt::Trike,
+        StartAt::Buggy,
+        StartAt::Rover,
+        StartAt::Hauler,
+        StartAt::HaulerTanker,
+    ] {
+        let mut app = app_at(start);
+        action(&mut app, MenuAction::Play);
+        tick(&mut app, 90);
+        press(&mut app, KeyCode::KeyE);
+        let car = app
+            .world()
+            .resource::<Driving>()
+            .vehicle
+            .expect("entered review vehicle");
+        let name = app.world().get::<Drivable>(car).unwrap().name.clone();
+        let dest = Vec2::new(9600., -1700.);
+        {
+            let mut m = app.world_mut().resource_mut::<WorldMap>();
+            m.dest = dest;
+            m.marked = true;
+        }
+        press(&mut app, KeyCode::KeyP);
+        let p = player(&app);
+        assert!(
+            app.world()
+                .get::<Transform>(p)
+                .unwrap()
+                .translation
+                .xz()
+                .distance(dest)
+                < 5.,
+            "{name} driver"
+        );
+        assert!(
+            app.world()
+                .get::<Position>(car)
+                .unwrap()
+                .0
+                .xz()
+                .distance(dest)
+                < 0.2,
+            "{name} body"
+        );
+        tick(&mut app, 90);
+        assert_eq!(
+            app.world().resource::<Driving>().vehicle,
+            Some(car),
+            "{name} still driving"
+        );
+        let tr = app.world().get::<Transform>(car).unwrap();
+        assert!(
+            tr.translation.xz().distance(dest) < 1.,
+            "{name}: {:?}",
+            tr.translation
+        );
+        assert!(
+            (tr.translation.y - walk_height(dest.x, dest.y)).abs() < 1.5,
+            "{name} settled"
+        );
+        let camera = app
+            .world_mut()
+            .query_filtered::<&Transform, With<GameCamera>>()
+            .single(app.world())
+            .unwrap();
+        assert!(
+            camera.translation.xz().distance(dest) < 40.,
+            "{name} camera"
+        );
+    }
+}

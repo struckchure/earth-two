@@ -215,7 +215,7 @@ pub fn draw(
     }
     if matches!(
         *screen.get(),
-        Screen::Playing | Screen::Dressing | Screen::Identity
+        Screen::Playing | Screen::Dressing | Screen::Identity | Screen::Mapping
     ) && menu.admitted.is_none()
     {
         return;

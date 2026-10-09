@@ -146,6 +146,7 @@ impl Plugin for GameRenderPlugin {
                     super::wardrobe_render::draw,
                     super::identity_render::draw,
                     super::identity_render::connection,
+                    super::map_render::draw,
                     hud,
                     injury_panel,
                     crowd_panel,

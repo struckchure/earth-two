@@ -21,9 +21,15 @@ Identity opens from title/pause with the original I-1 form: create, import/expor
 unlock/lock, connect, optional email and display name. Tab/arrows select fields
 and buttons, Enter advances a field or presses a button, Escape returns, and
 Backspace edits. Ctrl/Cmd+A clears a field; Ctrl/Cmd+V pastes.
-Remaining interactions and map sounds, animation/foot placement,
-map/journal/contracts, full HUD and complete visual parity remain unfinished. Go remains
-the release default. See the [migration checkpoint](../../docs/rust-migration.md#step-7-identity-checkpoint-2026-10-09)
+M now opens/closes the full map; Escape/Backspace also close it. Drag either
+mouse button to pan, scroll to zoom at the pointer, and click to mark or clear
+a destination. The minimap turns with the camera; the compass and world marker
+show the destination and distance. P uses the Go development teleport: to the
+pointer on the map, or the marked destination in play, including your vehicle.
+Map marking/arrival sounds are connected. Journal/contracts, remaining world
+interactions, animation/foot placement, full HUD and complete visual parity
+remain unfinished. Go remains the release default.
+See the [migration checkpoint](../../docs/rust-migration.md#step-8-map-and-teleport-checkpoint-2026-10-10)
 for evidence and remaining work.
 
 Run from the repository root:
@@ -52,6 +58,7 @@ cargo run --locked -p earth-two-client --example cues_smoke -- --bike
 cargo run --locked -p earth-two-client --example particles_smoke
 cargo run --locked -p earth-two-client --example wardrobe_smoke
 cargo run --locked -p earth-two-client --example menus_smoke -- --vehicle=hauler
+cargo run --locked -p earth-two-client --example maps_smoke
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
@@ -99,7 +106,7 @@ For an automatic title capture use
 `EARTH_TWO_CAPTURE=build/rust/title.png make rust-run`; it waits for content
 and a render warmup, captures a frame and exits.
 
-Local evidence includes 305 passing headless tests, 102 client library tests
+Local evidence includes 312 passing headless tests, 105 client library tests
 with rendering/pose regressions, native macOS arm64/Metal graphical smoke, and a packed
 asset Chromium/SwiftShader WebGL2 gameplay check. CI also compiles/tests the
 Linux, Windows and both macOS architecture targets. Other runtime platforms,

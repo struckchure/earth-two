@@ -88,6 +88,7 @@ impl Menu {
             MenuAction::Identity if matches!(self.screen(), Screen::Title | Screen::Paused) => {
                 self.open(Screen::Identity)
             }
+            MenuAction::Map if self.screen() == Screen::Playing => self.open(Screen::Mapping),
             MenuAction::Focus(focus) => self.set_focus(focus),
             MenuAction::CycleRow { row, step }
                 if self.screen() == Screen::Dressing && row < ROW_COUNT =>
@@ -164,6 +165,16 @@ pub fn keys(
     mut actions: MessageWriter<MenuAction>,
 ) {
     if *screen.get() == Screen::Loading {
+        return;
+    }
+    if keys.just_pressed(KeyCode::KeyM)
+        && matches!(menu.screen(), Screen::Playing | Screen::Mapping)
+    {
+        actions.write(if menu.screen() == Screen::Playing {
+            MenuAction::Map
+        } else {
+            MenuAction::Back
+        });
         return;
     }
     let identity = menu.screen() == Screen::Identity;

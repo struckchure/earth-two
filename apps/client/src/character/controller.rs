@@ -194,9 +194,14 @@ impl CharacterPhysics<'_, '_> {
     ) -> Option<RayHit> {
         let dir = Dir3::new(direction).ok()?;
         let filter = SpatialQueryFilter::from_excluded_entities([exclude]);
-        let hit = self
-            .spatial
-            .cast_ray(origin, dir, max_distance, true, &filter)?;
+        let hit = self.spatial.cast_ray_predicate(
+            origin,
+            dir,
+            max_distance,
+            true,
+            &filter,
+            &|entity| self.body_of(entity) != exclude,
+        )?;
         Some(RayHit {
             entity: hit.entity,
             point: origin + dir * hit.distance,
@@ -222,11 +227,19 @@ impl CharacterPhysics<'_, '_> {
         let shape = capsule(radius - OVERLAP_SLACK, height - 2.0 * OVERLAP_SLACK);
         let filter = SpatialQueryFilter::from_excluded_entities([exclude]);
         let mut found = false;
-        self.spatial
-            .shape_intersections_callback(&shape, center, Quat::IDENTITY, &filter, |_| {
+        self.spatial.shape_intersections_callback(
+            &shape,
+            center,
+            Quat::IDENTITY,
+            &filter,
+            |entity| {
+                if self.body_of(entity) == exclude {
+                    return true;
+                }
                 found = true;
                 false
-            });
+            },
+        );
         found
     }
 

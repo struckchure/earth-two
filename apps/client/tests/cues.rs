@@ -234,3 +234,41 @@ fn menu_transitions_and_new_notes_sound_once() {
             .is_empty()
     );
 }
+
+#[test]
+fn map_marks_clear_and_arrival_have_the_source_cues_once() {
+    let mut memory = UiSoundState::default();
+    memory.update(Screen::Playing, 0, 0, None, "");
+    assert_eq!(
+        memory.update(Screen::Mapping, 1, 0, None, "")[0].name,
+        "ui_open"
+    );
+    assert!(
+        memory
+            .navigation(Screen::Mapping, false, Vec2::ZERO)
+            .is_empty()
+    );
+    assert_eq!(
+        memory.navigation(Screen::Mapping, true, Vec2::ONE)[0].name,
+        "ui_mark"
+    );
+    assert!(
+        memory
+            .navigation(Screen::Mapping, true, Vec2::ONE)
+            .is_empty()
+    );
+    assert_eq!(
+        memory.navigation(Screen::Mapping, false, Vec2::ONE)[0].name,
+        "ui_mark"
+    );
+    memory.navigation(Screen::Mapping, true, Vec2::ONE);
+    assert_eq!(
+        memory.navigation(Screen::Playing, false, Vec2::ONE)[0].name,
+        "ui_arrive"
+    );
+    assert!(
+        memory
+            .navigation(Screen::Playing, false, Vec2::ONE)
+            .is_empty()
+    );
+}
