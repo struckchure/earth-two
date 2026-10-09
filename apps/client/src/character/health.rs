@@ -56,32 +56,37 @@ pub fn knock_down_spin(velocity: Vec3) -> Vec3 {
 
 /// Replaces the standing controller with a finite-mass torso. Keep the
 /// current orientation and animation pose; gravity and the impact make the
-/// body fall rather than snapping it sideways. The ragdoll module adds its
-/// rig (with `velocity`) and removes the seat; this only does the physics.
+/// body fall rather than snapping it sideways. The presentation adapter
+/// initializes the particle rig from the current blended skeleton.
 pub fn knock_down(root: &mut EntityCommands, at: Transform, health: Health, velocity: Vec3) {
     let spin = knock_down_spin(velocity);
-    root.remove::<(CharacterController, ControllerState)>()
-        .insert((
-            health,
-            Downed,
-            at,
-            Intent::default(),
-            Traversal::default(),
-            RigidBody::Dynamic,
-            Collider::compound(vec![(
-                Vec3::new(0.0, RAGDOLL_OFFSET, 0.0),
-                Quat::IDENTITY,
-                Collider::capsule(RAGDOLL_RADIUS, RAGDOLL_HEIGHT - 2.0 * RAGDOLL_RADIUS),
-            )]),
-            CharacterBody,
-            Mass(70.0),
-            Friction::new(0.6),
-            LinearDamping(0.4),
-            AngularDamping(0.8),
-            SweptCcd::default(),
-            LinearVelocity(velocity),
-            AngularVelocity(spin),
-        ));
+    root.remove::<(
+        CharacterController,
+        ControllerState,
+        crate::game::seats::Seated,
+    )>()
+    .insert((
+        health,
+        Downed,
+        at,
+        Intent::default(),
+        Traversal::default(),
+        RigidBody::Dynamic,
+        Collider::compound(vec![(
+            Vec3::new(0.0, RAGDOLL_OFFSET, 0.0),
+            Quat::IDENTITY,
+            Collider::capsule(RAGDOLL_RADIUS, RAGDOLL_HEIGHT - 2.0 * RAGDOLL_RADIUS),
+        )]),
+        CharacterBody,
+        Mass(70.0),
+        Friction::new(0.6),
+        LinearDamping(0.4),
+        AngularDamping(0.8),
+        SweptCcd::default(),
+        LinearVelocity(velocity),
+        AngularVelocity(spin),
+    ))
+    .insert(super::Ragdoll::new(velocity));
 }
 
 /// Prototype recovery: restore a healthy character at safe feet.
@@ -91,6 +96,7 @@ pub fn revive(commands: &mut Commands, entity: Entity, feet: Vec3) {
         .entity(entity)
         .remove::<(
             Downed,
+            super::Ragdoll,
             RigidBody,
             Collider,
             CharacterBody,
@@ -102,7 +108,9 @@ pub fn revive(commands: &mut Commands, entity: Entity, feet: Vec3) {
             LinearVelocity,
             AngularVelocity,
         )>()
+        .remove::<(Position, Rotation, Sleeping, ControllerState)>()
         .insert((
+            crate::presentation::MotionSamples::at(center, CAPSULE_HEIGHT),
             Health::default(),
             Intent::default(),
             Traversal::default(),
@@ -115,5 +123,35 @@ pub fn revive(commands: &mut Commands, entity: Entity, feet: Vec3) {
 pub fn stop_downed(mut q: Query<&mut Intent, With<Downed>>) {
     for mut intent in &mut q {
         *intent = Intent::default();
+    }
+}
+
+/// Health changes from any source use the same knockdown path, including seats.
+#[allow(clippy::type_complexity)]
+pub fn fall_incapacitated(
+    mut commands: Commands,
+    people: Query<
+        (
+            Entity,
+            &Health,
+            &Transform,
+            Option<&CharacterController>,
+            Option<&LinearVelocity>,
+        ),
+        (With<super::Character>, Without<Downed>),
+    >,
+    physics: Res<Time<Physics>>,
+) {
+    if physics.is_paused() {
+        return;
+    }
+    for (e, health, at, controller, velocity) in &people {
+        if health.state != LifeState::Healthy {
+            let velocity = controller
+                .map(|c| c.velocity)
+                .or_else(|| velocity.map(|v| v.0))
+                .unwrap_or(Vec3::ZERO);
+            knock_down(&mut commands.entity(e), *at, *health, velocity);
+        }
     }
 }

@@ -417,6 +417,45 @@ pub fn animate_body(
     }
 }
 
+/// Freeze the last blended animation while the articulated rig supplies its
+/// pose. Recovery resets presentation state and returns ownership to clips.
+pub fn sync_downed(
+    mut bodies: Query<
+        (
+            Entity,
+            &ChildOf,
+            &mut State,
+            &mut AnimationPlayer,
+            &mut Transform,
+        ),
+        With<Body>,
+    >,
+    downed: Query<(), With<crate::character::Downed>>,
+    mut commands: Commands,
+) {
+    let _ = &mut commands;
+    for (entity, parent, mut state, mut animation, mut tr) in &mut bodies {
+        let _ = entity;
+        if downed.contains(parent.parent()) {
+            state.downed = true;
+            state.hidden = false;
+            animation.paused = true;
+            animation.manual_time = true;
+            #[cfg(feature = "viewer")]
+            commands.entity(entity).insert(Visibility::Inherited);
+        } else if state.downed {
+            *state = State {
+                skin: state.skin,
+                current: state.current,
+                ..default()
+            };
+            animation.paused = false;
+            animation.manual_time = false;
+            tr.rotation = Quat::IDENTITY;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

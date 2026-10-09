@@ -2,6 +2,7 @@
 //! loaded content live for the app's lifetime. As in Go, Main menu preserves
 //! the current world; Play resumes it instead of spawning a second session.
 pub mod camera;
+pub mod injuries;
 #[cfg(feature = "viewer")]
 mod render;
 pub mod seats;
@@ -58,6 +59,8 @@ pub enum StartAt {
     Hull,
     Buggy,
     Bike,
+    Injury,
+    Fatal,
     Traversal,
 }
 
@@ -116,6 +119,19 @@ impl Plugin for GamePlugin {
             (menu_actions, lock_controls).chain().in_set(GameSet::Menu),
         )
         .add_systems(Update, camera::steer.in_set(GameSet::Input))
+        .add_systems(
+            Update,
+            (injuries::recover, injuries::review_injury)
+                .chain()
+                .after(GameSet::Input)
+                .before(CharacterSystems::Input),
+        )
+        .add_systems(
+            Update,
+            injuries::release_downed_drivers
+                .after(injuries::recover)
+                .before(VehicleSystems::Drive),
+        )
         .add_systems(Update, (spawn_player, finish_loading).chain())
         .add_systems(
             Update,
@@ -191,7 +207,7 @@ fn spawn_player(
         return;
     }
     let feet = match *start {
-        StartAt::Arrival => ARRIVAL,
+        StartAt::Arrival | StartAt::Injury | StartAt::Fatal => ARRIVAL,
         StartAt::Hull => Vec3::new(-15.0, 0.0, 6.0),
         StartAt::Traversal => TRAVERSAL_ORIGIN + Vec3::new(1.0, 0.0, 1.95),
         StartAt::Buggy | StartAt::Bike => {

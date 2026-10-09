@@ -51,12 +51,14 @@ struct LiveRig {
     ride: RideRig,
     /// Restore authored local transforms before sampling the next animation.
     originals: Vec<Transform>,
+    last_pose: Option<Vec<BoneTransform>>,
 }
 
 /// Runtime evidence for the graphical regression (also useful when inspecting ECS).
 #[derive(Component, Default, Debug)]
 pub struct PoseFit {
     pub riding: bool,
+    pub downed: bool,
     pub contacts: bool,
     pub frames: u64,
 }
@@ -98,6 +100,7 @@ fn bind_rigs(
                 ride: RideRig::new(&bones),
                 bones,
                 originals: vec![],
+                last_pose: None,
             },
             PoseFit::default(),
         ));
@@ -117,14 +120,12 @@ fn restore(mut rigs: Query<&mut LiveRig>, mut transforms: Query<&mut Transform>)
 
 #[allow(clippy::type_complexity, clippy::too_many_arguments)]
 fn fit(
-    mut bodies: Query<
-        (&ChildOf, &State, &mut LiveRig, &mut PoseFit),
-        (With<Body>, Without<Distant>),
-    >,
-    roots: Query<(
+    mut bodies: Query<(&ChildOf, &State, &mut LiveRig, &mut PoseFit, Has<Distant>), With<Body>>,
+    mut roots: Query<(
         Option<&CharacterController>,
         Option<&Traversal>,
         Option<&Seated>,
+        Option<&mut crate::character::Ragdoll>,
     )>,
     cars: Query<&Seats, With<Drivable>>,
     ladders: Query<&Ladder>,
@@ -134,14 +135,16 @@ fn fit(
     roster: Res<Roster>,
     controls: Res<Controls>,
     clock: Res<Time>,
+    fixed: Res<Time<Fixed>>,
     physics_clock: Option<Res<Time<Physics>>>,
 ) {
-    for (parent, state, mut rig, mut result) in &mut bodies {
+    for (parent, state, mut rig, mut result, distant) in &mut bodies {
         let root = parent.parent();
-        let Ok((controller, traversal, seated)) = roots.get(root) else {
+        let Ok((controller, traversal, seated, ragdoll)) = roots.get_mut(root) else {
             continue;
         };
         result.riding = false;
+        result.downed = false;
         result.contacts = false;
         let helper = transforms.p0();
         let Ok(model) = helper.compute_global_transform(rig.scene) else {
@@ -164,7 +167,31 @@ fn fit(
             })
             .collect();
         let Some(mut pose) = sampled else { continue };
-        if let Some(seat) = seated {
+        if let Some(mut fallen) = ragdoll {
+            if fallen.rig.is_none() {
+                let Ok(at) = helper.compute_global_transform(root) else {
+                    continue;
+                };
+                fallen.rig = crate::character::ragdoll::RagdollRig::new(
+                    &rig.bones,
+                    rig.last_pose.as_deref().unwrap_or(&pose),
+                    matrix,
+                    at.compute_transform(),
+                    fallen.velocity,
+                );
+            }
+            if let Some(fallen) = &fallen.rig {
+                pose = fallen.pose(
+                    matrix,
+                    if super::paused(physics_clock.as_deref()) {
+                        1.0
+                    } else {
+                        fixed.overstep_fraction()
+                    },
+                );
+                result.downed = true;
+            }
+        } else if let Some(seat) = seated {
             if seat.anim == Anim::Ride
                 && state.current == Anim::Ride
                 && roster
@@ -194,7 +221,8 @@ fn fit(
                 );
                 result.riding = true;
             }
-        } else if controller.is_some()
+        } else if !distant
+            && controller.is_some()
             && let Some(traversal) = traversal
         {
             let Ok(root_pose) = helper.compute_global_transform(root) else {
@@ -228,7 +256,8 @@ fn fit(
                 dt,
             );
         }
-        if !result.riding && !result.contacts {
+        if !result.riding && !result.contacts && !result.downed {
+            rig.last_pose = None;
             continue;
         }
         let worlds: Vec<Mat4> = pose
@@ -263,6 +292,7 @@ fn fit(
             *write.get_mut(*e).unwrap() = local;
         }
         rig.originals = originals;
+        rig.last_pose = Some(pose);
         result.frames += 1;
     }
 }

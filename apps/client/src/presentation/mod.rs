@@ -121,7 +121,12 @@ impl Plugin for PresentationPlugin {
             )
             .add_systems(
                 Update,
-                (outfit::dress, cloth::clothe, animate::animate)
+                (
+                    outfit::dress,
+                    cloth::clothe,
+                    animate::sync_downed,
+                    animate::animate,
+                )
                     .chain()
                     .in_set(PresentationSystems::Act),
             )

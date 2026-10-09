@@ -19,6 +19,7 @@ pub mod contacts;
 pub mod controller;
 pub mod health;
 pub mod locomotion;
+pub mod ragdoll;
 pub mod traversal;
 
 use bevy::prelude::*;
@@ -30,6 +31,7 @@ pub use contacts::{
 pub use controller::{CharacterController, CharacterPhysics, ControllerState, RayHit};
 pub use health::{CharacterBody, Downed, Health, LifeState, knock_down, revive};
 pub use locomotion::{Controls, View, relative};
+pub use ragdoll::Ragdoll;
 pub use traversal::{RungSpacing, Traversal, TraversalConfig};
 
 /// The bind pose's height the models are scaled to, and the capsule that
@@ -301,7 +303,16 @@ impl Plugin for CharacterPlugin {
             .configure_sets(Update, CharacterSystems::Act.after(CharacterSystems::Input))
             .add_systems(
                 FixedUpdate,
+                ragdoll::resist_rolling.after(CharacterSystems::Move),
+            )
+            .add_systems(
+                FixedPostUpdate,
+                ragdoll::step_ragdolls.after(avian3d::prelude::PhysicsSystems::Writeback),
+            )
+            .add_systems(
+                FixedUpdate,
                 (
+                    health::fall_incapacitated,
                     controller::prepare_characters,
                     traversal::traverse,
                     locomotion::locomote,

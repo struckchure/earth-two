@@ -13,7 +13,7 @@ in its `Act` set after `face`.
 | --- | --- | --- |
 | `anim.rs` | `animate.go` (pure parts) | `Clip`, the thresholds, `pick_anim`, stairs, roll retiming, `air_speed` |
 | `player.rs` | illusion `render/animation.go` | the clip clock: loop/once, crossfade on wall time, manual time, `AnimationFinished` |
-| `animate.rs` | `animate.go` | the state machine, one body a frame |
+| `animate.rs` | `animate.go`, `health.go` | state machine, downed clip freeze and recovery |
 | `roster.rs` | `roster.go`, `skin.go` | `Model`, `Skin` (clip fallbacks), `Roster::spawn`, `wear` |
 | `presentation.rs` | `presentation.go` | `MotionSamples`: interpolation between fixed steps, feet at the capsule's bottom |
 | `family.rs` | `family.go` | the per-frame children index |
@@ -28,7 +28,7 @@ in its `Act` set after `face`.
 | `graph.rs` | raylib's `UpdateModelAnimationEx` | the clip clock on Bevy's `AnimationGraph`: two weighted nodes, Bevy's clocks paused |
 | `content.rs` | `game/game.go` | the clip table, the people, the starting outfit |
 | `ride.rs` | `ride.go` | astride lean, two-bone grip/peg reach and palm orientation |
-| `pose.rs` | `ride.go`, `contacts.go` | live Bevy joint sampling/writeback after animation, before transform propagation |
+| `pose.rs` | `ride.go`, `contacts.go`, `health.go` | live Bevy joint sampling/writeback after animation, before transform propagation |
 | `viewer.rs` | `plugin.go`, raylib | GLB loading, scenes, skin tone and hidden meshes, cloth writeback (feature `viewer`) |
 
 Schedules, as in Go: `dress`, `clothe`, `animate` in Update (Act);
@@ -47,5 +47,7 @@ skinning with a private CPU mesh; its outline shares the same posed mesh.
 
 The playable game installs `PosePlugin`: it restores the previous authored
 local transforms before animation, reads Bevy’s blended joints, applies ride
-or static-wall contact fitting, and writes local joints before propagation.
+or static-wall contact fitting, or the fixed-step articulated ragdoll pose,
+and writes local joints before propagation. A knockdown starts from the last
+corrected blended pose; recovery releases the rig and restores clip ownership.
 Garments and desktop cloth then consume that same corrected skeleton.

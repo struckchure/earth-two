@@ -6,12 +6,13 @@ its appearance, controls, movement, vehicle handling, content, account data,
 desktop and browser support, and release workflows. Performance improvements
 must be measured at equivalent quality and workload.
 
-Status: the Step 3 playable application and Step 4 pose increment open with
+Status: the Step 3 playable application and Step 4 pose/injury increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 263 passing headless tests and 85 client
+with `--foundation`. There are 270 passing headless tests and 90 client
 library tests. Clothing attachment, live riding and wall-contact poses are
-integrated; native graphical game smoke also passes. Visual and
+integrated, alongside articulated knockdowns, injury prompts and R recovery;
+native graphical game and injury smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
 A working module or green unit test is not evidence of integrated game parity.
@@ -317,6 +318,68 @@ Evidence is under `build/migration-baseline/step-4-poses/`:
 
 This is integration evidence, not accepted Go pose/handling parity. Human
 side-by-side review and the remaining Step 4 scenarios are still required.
+
+## Step 4 injury review checkpoint: 2026-10-09
+
+This increment connects the Go hybrid ragdoll and injury/recovery flow to the
+playable client. `character/ragdoll.rs` retains the finite-mass torso, 18
+head/limb particles on the shipped skeleton, bone-length and fold constraints,
+swept contacts, fixed substeps, ground-only rolling resistance, sleep and wake
+rules. The live Bevy joint adapter initializes from the current blended pose
+and shares the falling skeleton with skin, hair, garments and desktop cloth.
+
+Critical/dead actors stop accepting movement, lose their standing controller
+and vehicle seat, and show the Go injury text using its Inter font. R restores
+the same player at the Pads, offsets the camera, clears stale Avian pose and
+velocity components, resets motion samples and animation ownership, and consumes
+the key before it can also trigger a roll. Vehicle drivers are released when
+downed or no longer seated. Menus freeze the simulation and block recovery.
+The panel uses temporary Bevy layout/colors; full Go UI styling remains Step 6.
+
+Review from `silent-ibis`:
+
+```sh
+cargo run --locked -p earth-two-client -- --at=injury
+cargo run --locked -p earth-two-client -- --at=fatal
+cargo run --locked -p earth-two-client --example injury_smoke
+cargo run --locked -p earth-two-client --example injury_smoke -- --fatal
+```
+
+Browser routes are `/?at=injury` and `/?at=fatal`. Press Play, wait two seconds,
+inspect the fall, pause/resume, then press R. These opt-in diagnostics invoke
+the same knockdown as vehicle impacts at 25/50 km/h; they do not stage an actual
+collision. The existing vehicle suite exercises physical impact thresholds.
+Normal arrival and controls are unchanged.
+
+Evidence is under `build/migration-baseline/step-4-injuries/` (ignored).
+
+- `tests-final.log`: 270 headless workspace tests pass, zero ignored. The
+  first run exposed an existing sky test tied to the current UTC storm; its
+  clear-air fixture now explicitly holds clear weather, retaining the assertion.
+- `client-tests.log`: 90 default-feature client library tests pass.
+- `clippy-final.log`: workspace/all-target Clippy passes with warnings denied.
+- `native-critical-final.log`, `native-fatal.log` and corresponding fallen/
+  recovered PNGs: macOS arm64 Metal runs both conditions, fits the loaded
+  skeleton, pauses, recovers and checks cleanup with synthetic game inputs.
+- `web-build.log`: release WASM and packed-asset packaging pass.
+  Chromium/SwiftShader WebGL2 loads 3,464 scenes; real canvas Enter/R input
+  triggers the critical fall and returns to standing at the Pads.
+  `browser-fallen.png`, `browser-recovered.png` and `browser-errors.log` record
+  the result with no JavaScript errors. The fatal flow was rendered on native;
+  its browser variant still needs manual review. The software adapter is not
+  browser performance evidence. A fresh local origin at port 8088 avoids the
+  browser's cached previous candidate from port 8087.
+
+The solver regressions cover gravity/bone lengths, thin-wall and floor sweeps,
+settling at 0/5/20 degrees with initial speed 0/12 m/s, waking on new impact,
+continued airborne/45-degree motion, and pause/sleep of the particles.
+Application tests repeat critical/fatal recovery both standing and seated,
+including pause restrictions, driver release, capsule restoration, stale-state
+cleanup and no accidental roll.
+
+Residents, crowd lifecycle and measured vehicle/traversal/ragdoll parity remain
+open in Step 4. Local smoke tests do not establish matching Go trajectories or
+acceptance on the entire CI platform matrix. Go remains the release default.
 
 ## Step 2 local review checkpoint: 2026-10-09
 

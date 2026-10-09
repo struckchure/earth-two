@@ -265,3 +265,115 @@ fn integrated_keyboard_vaults_the_authored_hull_crate() {
     assert!(at.z < 0.7, "vault should cross crate: {at:?}");
     assert!(!app.world().get::<Traversal>(player).unwrap().active());
 }
+
+#[test]
+fn injuries_recover_at_the_pads_without_rolling_or_retaining_physics() {
+    use earth_two_client::character::{
+        Downed, Health, Intent, LifeState, Ragdoll, State as PoseState, Traversal,
+    };
+    use earth_two_world::terrain::ARRIVAL;
+    for state in [LifeState::Critical, LifeState::Dead] {
+        let mut app = app_at(StartAt::Buggy);
+        action(&mut app, MenuAction::Play);
+        tick(&mut app, 90);
+        let player = player(&app);
+        for seated in [false, true] {
+            // Each repetition begins at the authored vehicle and may enter it.
+            if seated {
+                let car = app
+                    .world_mut()
+                    .query::<(&Drivable, &Transform)>()
+                    .iter(app.world())
+                    .find(|(d, _)| d.name == "buggy" && d.driver.is_none())
+                    .map(|(_, t)| t.translation)
+                    .unwrap();
+                app.world_mut()
+                    .get_mut::<Transform>(player)
+                    .unwrap()
+                    .translation = car + Vec3::new(1.6, 0.9, 0.);
+                tick(&mut app, 90);
+                press(&mut app, KeyCode::KeyE);
+                assert!(app.world().get::<Seated>(player).is_some());
+            }
+            app.world_mut().entity_mut(player).insert(Health {
+                state,
+                impact_speed: 12.,
+                vehicle: None,
+            });
+            tick(&mut app, 5);
+            assert!(app.world().get::<Downed>(player).is_some());
+            assert!(app.world().get::<Ragdoll>(player).is_some());
+            assert!(app.world().get::<CharacterController>(player).is_none());
+            assert!(app.world().get::<Seated>(player).is_none());
+            assert!(!app.world().resource::<Driving>().active());
+            assert!(
+                app.world_mut()
+                    .query::<&Drivable>()
+                    .iter(app.world())
+                    .all(|d| d.driver != Some(player))
+            );
+            action(&mut app, MenuAction::Pause);
+            let before = app.world().get::<Transform>(player).unwrap().translation;
+            press(&mut app, KeyCode::KeyR);
+            tick(&mut app, 10);
+            assert!(app.world().get::<Downed>(player).is_some());
+            assert_eq!(
+                before,
+                app.world().get::<Transform>(player).unwrap().translation
+            );
+            action(&mut app, MenuAction::Resume);
+            press(&mut app, KeyCode::KeyR);
+            tick(&mut app, 5);
+            assert_eq!(
+                app.world().get::<Health>(player).unwrap().state,
+                LifeState::Healthy
+            );
+            assert!(
+                app.world().get::<Downed>(player).is_none()
+                    && app.world().get::<Ragdoll>(player).is_none()
+            );
+            assert_eq!(
+                app.world().get::<RigidBody>(player),
+                Some(&RigidBody::Kinematic)
+            );
+            assert_eq!(
+                app.world().get::<LinearVelocity>(player).unwrap().0,
+                Vec3::ZERO
+            );
+            let at = app.world().get::<Transform>(player).unwrap().translation;
+            assert!((at.x - ARRIVAL.x).abs() < 0.01 && (at.z - ARRIVAL.z).abs() < 0.01);
+            assert!(!app.world().get::<Intent>(player).unwrap().roll);
+            assert!(!app.world().get::<Traversal>(player).unwrap().active());
+            for st in app.world_mut().query::<&PoseState>().iter(app.world()) {
+                assert!(!st.downed && !st.hidden);
+            }
+        }
+    }
+}
+
+#[test]
+fn injury_text_matches_go_for_critical_and_fatal_impacts() {
+    use earth_two_client::{
+        character::{Health, LifeState},
+        game::injuries::injury_text,
+    };
+    assert_eq!(injury_text(&Health::default()), None);
+    assert_eq!(
+        injury_text(&Health {
+            state: LifeState::Critical,
+            impact_speed: 25. / 3.6,
+            vehicle: None
+        })
+        .unwrap(),
+        "Critical condition\nVehicle impact · 25 km/h\nR  Emergency recovery at the Pads"
+    );
+    assert_eq!(
+        injury_text(&Health {
+            state: LifeState::Dead,
+            impact_speed: 50. / 3.6,
+            vehicle: None
+        })
+        .unwrap(),
+        "Dead\nVehicle impact · 50 km/h\nR  Respawn at the Pads"
+    );
+}

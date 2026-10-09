@@ -632,7 +632,10 @@ fn the_plugin_runs_headless() {
     let mut app = App::new();
     app.add_plugins((MinimalPlugins, TransformPlugin))
         .add_plugins(sky::SkyPlugin)
-        .insert_resource(Clock::held(11.0));
+        .insert_resource(Clock::held(11.0))
+        // This assertion is for clear air, independent of the real UTC storm
+        // schedule (or EARTH_TWO_STORM in the developer environment).
+        .insert_resource(Weather::from_setting(Some("0")));
     app.update();
     app.update();
     let day = app.world().resource::<Daylight>();

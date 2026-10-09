@@ -74,6 +74,8 @@ fn start_at() -> StartAt {
         "hull" => StartAt::Hull,
         "buggy" => StartAt::Buggy,
         "bike" => StartAt::Bike,
+        "injury" => StartAt::Injury,
+        "fatal" => StartAt::Fatal,
         "traversal" => StartAt::Traversal,
         _ => StartAt::Arrival,
     }
@@ -124,7 +126,7 @@ impl Plugin for GameRenderPlugin {
             .add_systems(Update, menu_keys.before(GameSet::Menu))
             .add_observer(buttons)
             .add_systems(Update, pointer.before(GameSet::Input))
-            .add_systems(Update, (menus, hud).after(GameSet::Camera))
+            .add_systems(Update, (menus, hud, injury_panel).after(GameSet::Camera))
             .add_systems(
                 Update,
                 sync_lighting
@@ -432,11 +434,17 @@ fn hud(
     screen: Res<State<Screen>>,
     driving: Res<Driving>,
     prompt: Res<Prompt>,
+    health: Query<&crate::character::Health, With<crate::character::Player>>,
     mut text: Query<&mut Text, With<Hud>>,
 ) {
     for mut t in &mut text {
         t.0 = if *screen.get() != Screen::Playing {
             String::new()
+        } else if health
+            .single()
+            .is_ok_and(|h| h.state != crate::character::LifeState::Healthy)
+        {
+            "Esc: menu".into()
         } else if driving.active() {
             format!(
                 "{:.0} km/h  ·  {}  ·  gear {}\n{} {}  {}",
@@ -507,4 +515,76 @@ fn capture(
                 exit.write(AppExit::Success);
             },
         );
+}
+
+#[derive(Component)]
+struct InjuryPanel;
+fn injury_panel(
+    mut commands: Commands,
+    screen: Res<State<Screen>>,
+    players: Query<&crate::character::Health, With<crate::character::Player>>,
+    panels: Query<Entity, With<InjuryPanel>>,
+    mut previous: Local<Option<(Screen, Option<crate::character::Health>)>>,
+    mut fonts: ResMut<Assets<Font>>,
+    mut font: Local<Option<Handle<Font>>>,
+) {
+    let key = (*screen.get(), players.single().ok().copied());
+    if previous.as_ref() == Some(&key) {
+        return;
+    }
+    *previous = Some(key);
+    for e in &panels {
+        commands.entity(e).despawn();
+    }
+    if *screen.get() != Screen::Playing {
+        return;
+    }
+    let Some(text) = key.1.as_ref().and_then(super::injuries::injury_text) else {
+        return;
+    };
+    // The Go font contains the middle dot; Bevy's subset default does not.
+    let font = font
+        .get_or_insert_with(|| {
+            fonts.add(Font::from_bytes(
+                include_bytes!("../../../../game/fonts/Inter-SemiBold.ttf").to_vec(),
+            ))
+        })
+        .clone();
+    commands
+        .spawn((
+            InjuryPanel,
+            Node {
+                position_type: PositionType::Absolute,
+                width: percent(100),
+                top: percent(30),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+        ))
+        .with_children(|parent| {
+            parent
+                .spawn((
+                    Node {
+                        width: px(380),
+                        padding: UiRect::all(px(16)),
+                        flex_direction: FlexDirection::Column,
+                        row_gap: px(10),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgba(0.12, 0.075, 0.10, 0.94)),
+                ))
+                .with_children(|panel| {
+                    for (line, value) in text.lines().enumerate() {
+                        panel.spawn((
+                            Text::new(value),
+                            TextFont {
+                                font: font.clone().into(),
+                                font_size: px(if line == 0 { 24 } else { 14 }).into(),
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.89, 0.81, 0.64)),
+                        ));
+                    }
+                });
+        });
 }
