@@ -17,10 +17,12 @@ pub struct Page {
 #[derive(Resource)]
 pub struct Menu {
     pub stack: Vec<Page>,
+    pub admitted: Option<f32>,
 }
 impl Default for Menu {
     fn default() -> Self {
         Self {
+            admitted: None,
             stack: vec![Page {
                 screen: Screen::Title,
                 focus: 0,
@@ -66,13 +68,19 @@ impl Menu {
     }
     pub fn apply(&mut self, action: MenuAction, wardrobe: &Wardrobe, outfit: &mut Outfit) {
         match action {
-            MenuAction::Play if self.screen() == Screen::Title => self.stack.clear(),
+            MenuAction::Play if self.screen() == Screen::Title => {
+                self.admitted = Some(0.0);
+                self.stack.clear();
+            }
             MenuAction::Pause if self.screen() == Screen::Playing => self.open(Screen::Paused),
             MenuAction::Resume if self.screen() == Screen::Paused => self.back(),
             MenuAction::Back => self.back(),
             MenuAction::MainMenu if self.screen() == Screen::Paused => *self = Self::default(),
             MenuAction::Wardrobe if matches!(self.screen(), Screen::Title | Screen::Paused) => {
                 self.open(Screen::Dressing)
+            }
+            MenuAction::Controls if matches!(self.screen(), Screen::Title | Screen::Paused) => {
+                self.open(Screen::Controls)
             }
             MenuAction::Focus(focus) => self.set_focus(focus),
             MenuAction::CycleRow { row, step }
@@ -102,19 +110,26 @@ impl Menu {
     }
 }
 pub fn choices(screen: Screen) -> Vec<(&'static str, MenuAction)> {
-    match screen {
+    let mut items = match screen {
         Screen::Title => vec![
             ("Play", MenuAction::Play),
             ("Wardrobe", MenuAction::Wardrobe),
+            ("Controls", MenuAction::Controls),
         ],
         Screen::Paused => vec![
             ("Resume", MenuAction::Resume),
             ("Wardrobe", MenuAction::Wardrobe),
+            ("Controls", MenuAction::Controls),
             ("Main menu", MenuAction::MainMenu),
         ],
         Screen::Dressing => vec![("Done", MenuAction::Back)],
+        Screen::Controls => vec![("Back", MenuAction::Back)],
         _ => vec![],
+    };
+    if !cfg!(target_arch = "wasm32") && matches!(screen, Screen::Title | Screen::Paused) {
+        items.push(("Quit", MenuAction::Quit));
     }
+    items
 }
 pub fn keys(
     keys: Res<ButtonInput<KeyCode>>,
@@ -172,6 +187,7 @@ pub fn actions(
     mut next: ResMut<NextState<Screen>>,
     wardrobe: Res<Wardrobe>,
     mut players: Query<&mut Outfit, With<Player>>,
+    mut exit: MessageWriter<AppExit>,
 ) {
     if *screen.get() == Screen::Loading {
         actions.clear();
@@ -181,6 +197,12 @@ pub fn actions(
         return;
     };
     for action in actions.read() {
+        if matches!(action, MenuAction::Quit)
+            && !cfg!(target_arch = "wasm32")
+            && matches!(menu.screen(), Screen::Title | Screen::Paused)
+        {
+            exit.write(AppExit::Success);
+        }
         menu.apply(*action, &wardrobe, &mut outfit);
     }
     if menu.screen() != *screen.get() {

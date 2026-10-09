@@ -77,6 +77,10 @@ fn start_at() -> StartAt {
         "hull" => StartAt::Hull,
         "buggy" => StartAt::Buggy,
         "bike" => StartAt::Bike,
+        "trike" => StartAt::Trike,
+        "rover" => StartAt::Rover,
+        "hauler" => StartAt::Hauler,
+        "hauler_tanker" => StartAt::HaulerTanker,
         "crowd" => StartAt::Crowd,
         "injury" => StartAt::Injury,
         "fatal" => StartAt::Fatal,
@@ -119,14 +123,17 @@ pub(super) struct Choice {
     pub action: MenuAction,
     pub focus: usize,
 }
-use super::menu::{Menu, choices};
+use super::menu::Menu;
 
 pub struct GameRenderPlugin;
 impl Plugin for GameRenderPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<WardrobeText>()
             .init_asset_loader::<WardrobeLoader>()
-            .add_systems(Startup, (setup, super::wardrobe_render::fonts))
+            .add_systems(
+                Startup,
+                (setup, super::paper::fonts, super::paper_cursor::setup),
+            )
             .add_systems(Update, (load_wardrobe, attach_models, readiness).chain())
             .add_observer(buttons)
             .add_observer(hover)
@@ -134,7 +141,8 @@ impl Plugin for GameRenderPlugin {
             .add_systems(
                 Update,
                 (
-                    menus,
+                    super::menu_render::draw,
+                    super::paper_cursor::draw,
                     super::wardrobe_render::draw,
                     hud,
                     injury_panel,
@@ -294,11 +302,9 @@ fn pointer(
         return;
     };
     orbit.aspect = window.width() / window.height().max(1.0);
-    orbit.menu_fraction = (if *screen.get() == Screen::Dressing {
-        448. * super::wardrobe_render::scale(window.width(), window.height())
-    } else {
-        430.
-    } / window.width().max(1.0))
+    orbit.menu_fraction = (super::menu_render::panel_right(*screen.get())
+        * super::paper::scale(window.width(), window.height())
+        / window.width().max(1.0))
     .min(0.6);
     let playing = *screen.get() == Screen::Playing;
     if playing && !window.focused {
@@ -310,7 +316,7 @@ fn pointer(
     } else {
         CursorGrabMode::None
     };
-    cursor.visible = !held || cfg!(target_arch = "wasm32");
+    cursor.visible = false;
     if held
         && (!cfg!(target_arch = "wasm32")
             || buttons.any_pressed([MouseButton::Left, MouseButton::Right]))
@@ -339,93 +345,6 @@ fn hover(
     }
 }
 
-fn menus(
-    mut commands: Commands,
-    screen: Res<State<Screen>>,
-    session: Res<Session>,
-    menu: Res<Menu>,
-    roots: Query<
-        Entity,
-        (
-            With<MenuRoot>,
-            Without<super::wardrobe_render::WardrobeRoot>,
-        ),
-    >,
-    mut previous: Local<Option<(Screen, usize, Option<String>)>>,
-) {
-    let key = (*screen.get(), menu.focus(), session.error.clone());
-    if previous.as_ref() == Some(&key) {
-        return;
-    }
-    *previous = Some(key);
-    for root in &roots {
-        commands.entity(root).despawn();
-    }
-    if matches!(*screen.get(), Screen::Playing | Screen::Dressing) {
-        return;
-    }
-    commands
-        .spawn((
-            MenuRoot,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(40),
-                top: percent(18),
-                width: px(390),
-                padding: UiRect::all(px(28)),
-                flex_direction: FlexDirection::Column,
-                row_gap: px(18),
-                ..default()
-            },
-            BackgroundColor(Color::srgba(0.12, 0.075, 0.10, 0.94)),
-        ))
-        .with_children(|c| {
-            c.spawn((
-                Text::new(match screen.get() {
-                    Screen::Loading => "Loading Earth Two",
-                    Screen::Paused => "Paused",
-                    _ => "EARTH TWO",
-                }),
-                TextFont {
-                    font_size: px(36).into(),
-                    ..default()
-                },
-                TextColor(Color::srgb(0.89, 0.81, 0.64)),
-            ));
-            if let Some(error) = &session.error {
-                c.spawn((
-                    Text::new(format!("Unable to load the world\n{error}")),
-                    TextFont {
-                        font_size: px(16).into(),
-                        ..default()
-                    },
-                ));
-            }
-            for (i, (label, action)) in choices(*screen.get()).into_iter().enumerate() {
-                c.spawn((
-                    bevy::ui_widgets::Button,
-                    Choice { action, focus: i },
-                    bevy::ui_widgets::ActivateOnPress,
-                    Node {
-                        padding: UiRect::all(px(12)),
-                        ..default()
-                    },
-                    BackgroundColor(if i == menu.focus() {
-                        Color::srgb(0.36, 0.23, 0.18)
-                    } else {
-                        Color::srgb(0.18, 0.12, 0.13)
-                    }),
-                ))
-                .with_child((
-                    Text::new(label),
-                    TextFont {
-                        font_size: px(24).into(),
-                        ..default()
-                    },
-                ));
-            }
-        });
-}
 fn hud(
     screen: Res<State<Screen>>,
     driving: Res<Driving>,

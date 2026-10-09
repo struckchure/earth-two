@@ -75,6 +75,8 @@ pub struct EffectsMesh;
 #[derive(Component, Debug)]
 pub struct DustCast;
 #[derive(Component, Debug)]
+pub struct DustRoot;
+#[derive(Component, Debug)]
 pub struct DustGust(usize, usize);
 #[derive(Component, Debug)]
 pub struct DustMote(usize);
@@ -606,6 +608,7 @@ fn spawn_dust(mut commands: Commands) {
     commands
         .spawn((
             Name::new("blown dust"),
+            DustRoot,
             Node {
                 position_type: PositionType::Absolute,
                 left: px(0),
@@ -663,7 +666,7 @@ fn draw_dust(
     day: Res<Daylight>,
     windows: Query<&Window, With<PrimaryWindow>>,
     cameras: Query<&Transform, With<Camera3d>>,
-    mut root: Query<&mut Visibility, (With<GlobalZIndex>, With<Children>, Without<DustMote>)>,
+    mut root: Query<&mut Visibility, (With<DustRoot>, Without<DustMote>)>,
     mut cast: Query<&mut BackgroundColor, (With<DustCast>, Without<DustGust>, Without<DustMote>)>,
     mut gusts: Query<
         (&DustGust, &mut Node, &mut BackgroundColor),
@@ -694,7 +697,7 @@ fn draw_dust(
         (Some(eye), Some(_)) if w.storm >= 0.02 => w.storm * outdoors(eye.translation),
         _ => 0.0,
     };
-    let Some(root_visible) = root.iter_mut().find(|v| **v != Visibility::Visible) else {
+    let Ok(root_visible) = root.single_mut() else {
         return;
     };
     let mut root_visible = root_visible;
@@ -814,4 +817,38 @@ pub fn dome_pixel(paint: &SkyPaint, dir: Vec3) -> Rgba {
 #[allow(dead_code)]
 fn pixel_direction(x: usize, y: usize) -> Vec3 {
     pixel_dir(x, y, SKY_TEX_W, SKY_TEX_H)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bevy::ecs::system::RunSystemOnce;
+    #[test]
+    fn weather_changes_only_its_own_overlay_visibility() {
+        let mut world = World::new();
+        world.insert_resource(Weather::default());
+        world.insert_resource(Daylight::new(&Clock::held(11.)));
+        let menu = world
+            .spawn((Node::default(), GlobalZIndex(10), Visibility::Inherited))
+            .with_child(Node::default())
+            .id();
+        let dust = world
+            .spawn((
+                DustRoot,
+                Node::default(),
+                GlobalZIndex(-10),
+                Visibility::Inherited,
+            ))
+            .with_child(Node::default())
+            .id();
+        world.run_system_once(draw_dust).unwrap();
+        assert_eq!(world.get::<Visibility>(menu), Some(&Visibility::Inherited));
+        assert_eq!(world.get::<Visibility>(dust), Some(&Visibility::Hidden));
+        world.spawn((Camera3d::default(), Transform::from_xyz(0., 50., 0.)));
+        world.spawn((Window::default(), PrimaryWindow));
+        world.resource_mut::<Weather>().storm = 1.;
+        world.run_system_once(draw_dust).unwrap();
+        assert_eq!(world.get::<Visibility>(menu), Some(&Visibility::Inherited));
+        assert_eq!(world.get::<Visibility>(dust), Some(&Visibility::Inherited));
+    }
 }

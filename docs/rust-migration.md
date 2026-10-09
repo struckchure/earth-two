@@ -9,13 +9,15 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 302 passing headless tests and 101 client
+with `--foundation`. There are 304 passing headless tests and 102 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
 Step 5 now includes ambience, foot/body cues, vehicle sound, playable menu/HUD
 cues and gameplay particle emission. Step 6 now connects the live wardrobe
 from title/pause, its screen stack, keyboard/mouse input and outfit cues.
+The title/pause/Controls paper forms, parchment cursor and desktop Quit are
+connected; vehicle camera sweeps exclude all child chassis colliders.
 Native graphical game, injury and crowd smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
@@ -408,6 +410,66 @@ wind/buggy playback and no sound-discovery or JavaScript errors on
 Chromium/SwiftShader WebGL2. The refreshed review server uses port 8096 to
 avoid the previous origin's cached WASM. Restart native clients or use the
 fresh browser review URL to pick up this fix.
+
+## Step 6 menus and vehicle camera checkpoint: 2026-10-09
+
+The vehicle camera excluded only the root entity while Avian returned hits
+against the child chassis colliders. A reproduced buggy hit had distance
+zero, collapsing the camera arm into the vehicle. Character capsule sweeps
+now resolve each hit's rigid-body owner before accepting it, matching Go's
+whole-body exclusion. World obstacles and other bodies still shorten the arm.
+The regression casts around the actual bike, trike, buggy, rover, hauler and
+hauler_tanker chassis at 24 headings and three elevations, then checks a wall
+behind each vehicle. Chase distances, orbit handling and wall clearance are
+unchanged. Review routes now cover all six authored vehicle variants.
+
+The temporary dark title/pause panels are replaced with the A-1/P-2 paper
+forms. Controls opens the original C-1 binding card from either parent,
+returns to the same selection, and keeps physics paused. Desktop Quit sends
+Bevy's normal AppExit; browser menus omit it. Shared paper primitives render
+the original embedded Inter/Courier Prime fonts, deterministic grain, punched
+holes, rules, highlights, pen ticks and registrar seal. Play stamps ADMITTED
+and files the arrival sheet using the source timings. The parchment cursor
+ports the source pixel generator and hotspot; browser drag-to-look remains.
+Wardrobe shares these form primitives and its Done choice now uses a pen tick.
+The weather overlay now targets an explicit DustRoot: its broad GlobalZIndex
+query otherwise hid unrelated menu roots in clear weather. A regression checks
+that menus remain visible across clear/storm transitions.
+
+Identity is the next UI increment; its menu entry is not presented until its
+live panel is connected. Map/journal/contracts, remaining world interactions,
+complete HUD and master-volume UI remain open. The Controls text preserves
+Go's complete binding list, including those pending interactions. Matched
+Go/Rust visual acceptance and the remaining platform runtime matrix are still
+required; this checkpoint does not close the full Step 6 gate.
+
+Review with `cargo run --locked -p earth-two-client -- --at=hauler` (also
+`buggy`, `hauler_tanker`, `rover`, `trike`, `bike`). Press Play, E and drive;
+orbit around the chassis, then near a wall. Test Controls from title and
+pause, Escape/Backspace and its Back button, then desktop Quit. The finite
+native review is `cargo run --locked -p earth-two-client --example menus_smoke
+-- --vehicle=hauler`. Evidence is under ignored
+`build/migration-baseline/step-6-menus/`.
+
+Validation: `tests.log` records 304 passing headless workspace tests and
+`client-tests.log` records 102 client library tests. `camera-red.log` preserves
+the reproduced self-hit; `camera-green.log` checks the fix against all six
+variants and external walls. `native-<vehicle>.log` and captures verify title,
+Controls from both parents, Play, pause/resume, entry, driving and chase camera,
+and native Quit for all six variants on macOS arm64/Metal. The finite smoke
+moves its vehicle/player to open terrain before driving, isolating the camera
+check from the occupied parking bays; normal review routes do not relocate
+vehicles. Native captures hold 11:00/clear weather. These are integration
+checks, not matched visual or performance acceptance.
+
+`clippy.log` and `web-clippy.log` pass with warnings denied; `web-build.log`
+records the release WASM package. Browser captures verify the title without
+Quit, parchment cursor/hover, mouse Controls/Back, retained parent focus,
+keyboard wrapping/Play/pause, Controls from pause, the shared wardrobe form,
+and hauler entry/orbit in the authored parking bay. Chromium uses SwiftShader
+WebGL2 with real-time night lighting. `browser-errors.log` reports no JavaScript
+errors; `browser-console.log` has no shader-validation or missing-path errors.
+The local review server is `http://127.0.0.1:8097/` (use `?at=hauler`).
 
 ## Step 6 wardrobe review checkpoint: 2026-10-09
 

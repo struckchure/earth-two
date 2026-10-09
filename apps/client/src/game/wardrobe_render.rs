@@ -11,62 +11,7 @@ use crate::{
 };
 use bevy::{prelude::*, window::PrimaryWindow};
 
-pub fn scale(width: f32, height: f32) -> f32 {
-    (height / 760.).min(width / 1150.).clamp(0.7, 1.6)
-}
-const INK: Color = Color::srgb_u8(46, 48, 43);
-const MUTED: Color = Color::srgb_u8(107, 106, 94);
-const RULE: Color = Color::srgba_u8(150, 157, 143, 160);
-const PAPER: Color = Color::srgb_u8(236, 227, 207);
-const HIGHLIGHT: Color = Color::srgba_u8(255, 200, 80, 120);
-#[derive(Resource)]
-pub struct Fonts {
-    typed: Handle<Font>,
-    bold: Handle<Font>,
-    label: Handle<Font>,
-    heading: Handle<Font>,
-}
-pub fn fonts(mut commands: Commands, mut fonts: ResMut<Assets<Font>>) {
-    commands.insert_resource(Fonts {
-        typed: fonts.add(Font::from_bytes(
-            include_bytes!("../../../../game/fonts/CourierPrime-Regular.ttf").to_vec(),
-        )),
-        bold: fonts.add(Font::from_bytes(
-            include_bytes!("../../../../game/fonts/CourierPrime-Bold.ttf").to_vec(),
-        )),
-        label: fonts.add(Font::from_bytes(
-            include_bytes!("../../../../game/fonts/Inter-SemiBold.ttf").to_vec(),
-        )),
-        heading: fonts.add(Font::from_bytes(
-            include_bytes!("../../../../game/fonts/Inter-Black.ttf").to_vec(),
-        )),
-    });
-}
-fn node(x: f32, y: f32, w: f32, h: f32, sc: f32) -> Node {
-    Node {
-        position_type: PositionType::Absolute,
-        left: px(x * sc),
-        top: px(y * sc),
-        width: px(w * sc),
-        height: px(h * sc),
-        align_items: AlignItems::Center,
-        justify_content: JustifyContent::Center,
-        ..default()
-    }
-}
-fn text(value: impl Into<String>, font: &Handle<Font>, size: f32, color: Color) -> impl Bundle {
-    (
-        Text::new(value),
-        TextFont {
-            font: font.clone().into(),
-            font_size: px(size).into(),
-            ..default()
-        },
-        TextColor(color),
-        TextLayout::no_wrap(),
-        Pickable::IGNORE,
-    )
-}
+use super::paper::*;
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 pub fn draw(
     mut commands: Commands,
@@ -112,85 +57,17 @@ pub fn draw(
             Pickable::IGNORE,
         ))
         .with_children(|c| {
-            c.spawn((
-                node(44., y + 2., 420., h + 8., sc),
-                BackgroundColor(Color::srgba_u8(0, 0, 0, 90)),
-                Pickable::IGNORE,
-            ));
-            c.spawn((
-                Node {
-                    border: UiRect::all(px(sc.max(1.))),
-                    ..node(38., y - 4., 420., h + 8., sc)
-                },
-                BackgroundColor(PAPER),
-                BorderColor::all(Color::srgb_u8(204, 192, 166)),
-                Pickable::IGNORE,
-            ));
-            // paper.go's deterministic specks and fibres.
-            for i in 0..(420. * (h + 8.) / (14. * 14.)) as i32 {
-                let u = earth_two_world::terrain::lattice(i, 1, 0x9a9e);
-                let v = earth_two_world::terrain::lattice(i, 2, 0x9a9e);
-                let k = earth_two_world::terrain::lattice(i, 3, 0x9a9e);
-                let w = if k > 0.8 {
-                    2. + 5. * k
-                } else {
-                    (1. / sc).max(1.)
-                };
-                let fibre_h = (1. / sc).max(1.);
-                c.spawn((
-                    node(
-                        38. + u * (420. - w),
-                        y - 4. + v * (h + 8. - fibre_h),
-                        w,
-                        fibre_h,
-                        sc,
-                    ),
-                    BackgroundColor(Color::srgba_u8(120, 104, 78, (10. + 22. * k) as u8)),
-                    Pickable::IGNORE,
-                ));
-            }
-            for f in [0.22, 0.78] {
-                c.spawn((
-                    Node {
-                        border_radius: BorderRadius::MAX,
-                        ..node(47., y - 4. + (h + 8.) * f - 5., 10., 10., sc)
-                    },
-                    BackgroundColor(Color::srgba_u8(30, 26, 22, 200)),
-                    Pickable::IGNORE,
-                ));
-            }
-            c.spawn((
-                Node {
-                    justify_content: JustifyContent::Start,
-                    ..node(76., y + 28., 240., 16., sc)
-                },
-                Pickable::IGNORE,
-            ))
-            .with_child(text(
-                "THE EXCHANGE  •  LANDFALL",
-                &fonts.label,
-                11. * sc,
-                MUTED,
-            ));
-            let mut form = node(345., y + 26., 75., 20., sc);
-            form.border = UiRect::all(px(sc.max(1.)));
-            c.spawn((form, BorderColor::all(INK), Pickable::IGNORE))
-                .with_child(text("FORM W-1", &fonts.bold, 11. * sc, INK));
-            c.spawn((
-                Node {
-                    justify_content: JustifyContent::Start,
-                    ..node(76., y + 50., 344., 32., sc)
-                },
-                Pickable::IGNORE,
-            ))
-            .with_child(text("Wardrobe", &fonts.heading, 24. * sc, INK));
-            for dy in [87., 90.] {
-                c.spawn((
-                    node(76., y + dy, 344., 1., sc),
-                    BackgroundColor(INK),
-                    Pickable::IGNORE,
-                ));
-            }
+            sheet(c, Rect::new(38., y - 4., 458., y + h + 4.), sc);
+            header(
+                c,
+                Vec2::new(76., y + 28.),
+                344.,
+                "FORM W-1",
+                "Wardrobe",
+                24.,
+                &fonts,
+                sc,
+            );
             for i in 0..ROW_COUNT {
                 let ry = y + 104. + i as f32 * row;
                 let ay = ry + (row - box_size) / 2. - 2.;
@@ -292,39 +169,18 @@ pub fn draw(
                 ));
             }
             let by = y + 114. + ROW_COUNT as f32 * row;
-            c.spawn((
-                node(76., by, 344., 50., sc),
-                bevy::ui_widgets::Button,
-                bevy::ui_widgets::ActivateOnPress,
-                Choice {
+            choice(
+                c,
+                Rect::new(76., by, 420., by + 50.),
+                "Done",
+                menu.focus() == ROW_COUNT,
+                Some(Choice {
                     action: MenuAction::Back,
                     focus: ROW_COUNT,
-                },
-            ));
-            if menu.focus() == ROW_COUNT {
-                c.spawn((
-                    node(110., by + 10., 310., 30., sc),
-                    BackgroundColor(HIGHLIGHT),
-                    Pickable::IGNORE,
-                ));
-            }
-            let mut n = node(82., by + 16., 18., 18., sc);
-            n.border = UiRect::all(px(sc.max(1.)));
-            c.spawn((n, BorderColor::all(INK), Pickable::IGNORE))
-                .with_child(text(
-                    if menu.focus() == ROW_COUNT { "x" } else { "" },
-                    &fonts.bold,
-                    18. * sc,
-                    Color::srgb_u8(38, 58, 128),
-                ));
-            c.spawn((
-                Node {
-                    justify_content: JustifyContent::Start,
-                    ..node(116., by, 298., 50., sc)
-                },
-                Pickable::IGNORE,
-            ))
-            .with_child(text("Done", &fonts.bold, 18. * sc, INK));
+                }),
+                &fonts,
+                sc,
+            );
         });
 }
 #[derive(Component)]

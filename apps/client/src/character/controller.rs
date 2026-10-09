@@ -277,6 +277,11 @@ impl CharacterPhysics<'_, '_> {
             &config,
             &filter,
             |hit| {
+                // Avian reports child collider entities. Go excludes the whole
+                // physics body, including every shape of a compound chassis.
+                if self.body_of(hit.entity) == exclude {
+                    return true;
+                }
                 let touching = hit.distance <= 1.0e-4
                     && (hit.point2 - hit.point1).dot(hit.normal1) <= OVERLAP_SLACK;
                 if touching && hit.normal1.dot(*dir) >= -1.0e-4 {

@@ -14,10 +14,12 @@ and ducks while menus are open. Foot plants, body actions, engines/tyres,
 vehicle entry/skids/crashes and the playable menu/HUD now have sound. Footstep,
 landing, slide/roll, wheel and collision particles are connected.
 The live wardrobe opens from title/pause, with original rows, outfit rules,
-front camera, keyboard/mouse controls and clothing sounds.
+front camera, keyboard/mouse controls and clothing sounds. Title/pause and
+Controls use the original paper forms, fonts, tick marks and parchment pointer;
+Play stamps the arrival form. Desktop Quit closes the application.
 Remaining interactions and map sounds, animation/foot placement,
 full menus/accounts and complete visual parity remain unfinished. Go remains
-the release default. See the [migration checkpoint](../../docs/rust-migration.md#step-6-wardrobe-review-checkpoint-2026-10-09)
+the release default. See the [migration checkpoint](../../docs/rust-migration.md#step-6-menus-and-vehicle-camera-checkpoint-2026-10-09)
 for evidence and remaining work.
 
 Run from the repository root:
@@ -26,6 +28,7 @@ Run from the repository root:
 make rust-run       # playable Landfall preview
 cargo run --locked -p earth-two-client -- --at=buggy
 cargo run --locked -p earth-two-client -- --at=bike
+cargo run --locked -p earth-two-client -- --at=hauler
 cargo run --locked -p earth-two-client -- --at=crowd
 cargo run --locked -p earth-two-client -- --at=injury
 cargo run --locked -p earth-two-client -- --at=fatal
@@ -44,6 +47,7 @@ cargo run --locked -p earth-two-client --example cues_smoke
 cargo run --locked -p earth-two-client --example cues_smoke -- --bike
 cargo run --locked -p earth-two-client --example particles_smoke
 cargo run --locked -p earth-two-client --example wardrobe_smoke
+cargo run --locked -p earth-two-client --example menus_smoke -- --vehicle=hauler
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
@@ -56,7 +60,8 @@ row, Left/Right change it, Enter/Space advance it, and Done/Esc returns to the
 parent menu. Mouse row clicks select; arrow clicks change the item. Desktop mouse movement orbits;
 in a browser focus the canvas first and drag with either mouse button.
 
-`--at=buggy` and `--at=bike` place the player beside the authored vehicles
+`--at=buggy`, `bike`, `trike`, `rover`, `hauler` and `hauler_tanker`
+place the player beside the authored vehicles
 nearest Landfall arrival. Press E to mount, then inspect the hands and feet
 while driving and after dismounting.
 `--at=traversal` adds the authored Hull test block above the terrain for
@@ -90,7 +95,7 @@ For an automatic title capture use
 `EARTH_TWO_CAPTURE=build/rust/title.png make rust-run`; it waits for content
 and a render warmup, captures a frame and exits.
 
-Local evidence includes 302 passing headless tests, 101 client library tests
+Local evidence includes 304 passing headless tests, 102 client library tests
 with rendering/pose regressions, native macOS arm64/Metal graphical smoke, and a packed
 asset Chromium/SwiftShader WebGL2 gameplay check. CI also compiles/tests the
 Linux, Windows and both macOS architecture targets. Other runtime platforms,
@@ -129,7 +134,8 @@ assets in `build/rust-web/`. This requires Python 3.11+ and the `wasm-bindgen`
 CLI matching `Cargo.lock`; the script prints the exact install command when
 it is missing. Serve with
 `python3 -m http.server 8080 --directory build/rust-web`.
-Use `/?at=buggy`, `/?at=bike`, `/?at=crowd`, `/?at=injury`, `/?at=fatal`, `/?at=traversal`, or `/?foundation` for review routes.
+Vehicle review routes also accept `/?at=hauler`, `/?at=hauler_tanker`,
+`/?at=rover` and `/?at=trike`. Use `/?at=buggy`, `/?at=bike`, `/?at=crowd`, `/?at=injury`, `/?at=fatal`, `/?at=traversal`, or `/?foundation` for review routes.
 Browser runtime validation is separate from `make rust-check`, which only
 compiles for WASM.
 

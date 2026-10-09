@@ -1393,3 +1393,54 @@ fn lost_vehicle_returns_home_without_interpolating_through_the_world() {
         );
     }
 }
+
+// A camera cast must ignore every collider belonging to the driven body,
+// while still seeing other bodies. Exercise the authored chassis, not a box
+// approximation, including both haulers and all orbit directions.
+#[test]
+fn camera_sweeps_ignore_every_real_vehicle_chassis_but_keep_world_obstacles() {
+    for (name, spec) in real_specs() {
+        let mut g = new_rig_with(&name, &spec);
+        g.get_in();
+        let car = g.car;
+        let tr = g.get::<Transform>(car);
+        let pivot = tr.translation
+            + tr.rotation
+                * (Vec3::from(spec.seats[0].at)
+                    + Vec3::Y * (earth_two_client::character::CAPSULE_HEIGHT / 2.0 + 0.7));
+        let distance = earth_two_client::vehicle::spec::chase_distance(&spec);
+        let label = name.clone();
+        g.app.world_mut().run_system_once(move |physics: earth_two_client::character::CharacterPhysics| {
+            for pitch in [0.0_f32, 12.0, 35.0] {
+                for angle in 0..24 {
+                    let yaw = angle as f32 * std::f32::consts::TAU / 24.0;
+                    let pitch = pitch.to_radians();
+                    let offset = Vec3::new(yaw.sin()*pitch.cos(), pitch.sin(), yaw.cos()*pitch.cos()) * distance;
+                    let hit = physics.sweep_capsule_excluding(pivot, offset, 0.2, 0.4, car);
+                    assert!(hit.is_none(), "{label}: camera hit its own chassis at yaw {yaw}, pitch {pitch}: {hit:?}");
+                }
+            }
+        }).unwrap();
+        let wall = static_box(
+            g.app.world_mut(),
+            pivot + Vec3::Z * (distance * 0.75),
+            Vec3::new(30., 20., 0.5),
+        );
+        g.tick(2);
+        g.app
+            .world_mut()
+            .run_system_once(
+                move |physics: earth_two_client::character::CharacterPhysics| {
+                    let hit = physics
+                        .sweep_capsule_excluding(pivot, Vec3::Z * distance, 0.2, 0.4, car)
+                        .expect("wall must still shorten camera arm");
+                    assert_eq!(
+                        hit.entity, wall,
+                        "{name}: camera must see wall, not chassis"
+                    );
+                    assert!(hit.distance > 0.0 && hit.distance < distance);
+                },
+            )
+            .unwrap();
+    }
+}

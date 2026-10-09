@@ -72,3 +72,7 @@ required-features = ["viewer"]
 [[example]]
 name = "wardrobe_smoke"
 required-features = ["viewer"]
+
+[[example]]
+name = "menus_smoke"
+required-features = ["viewer"]

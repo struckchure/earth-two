@@ -9,6 +9,12 @@ pub mod drive_sound;
 pub mod effects;
 pub mod injuries;
 pub mod menu;
+#[cfg(feature = "viewer")]
+mod menu_render;
+#[cfg(feature = "viewer")]
+mod paper;
+#[cfg(feature = "viewer")]
+mod paper_cursor;
 pub mod people;
 #[cfg(feature = "viewer")]
 mod render;
@@ -42,6 +48,7 @@ pub enum Screen {
     Playing,
     Paused,
     Dressing,
+    Controls,
 }
 
 #[derive(Message, Debug, Clone, Copy)]
@@ -51,6 +58,8 @@ pub enum MenuAction {
     Resume,
     MainMenu,
     Wardrobe,
+    Controls,
+    Quit,
     Back,
     Focus(usize),
     CycleRow { row: usize, step: i32 },
@@ -77,6 +86,10 @@ pub enum StartAt {
     Hull,
     Buggy,
     Bike,
+    Trike,
+    Rover,
+    Hauler,
+    HaulerTanker,
     Crowd,
     Injury,
     Fatal,
@@ -253,11 +266,19 @@ fn spawn_player(
         StartAt::Arrival | StartAt::Crowd | StartAt::Injury | StartAt::Fatal => ARRIVAL,
         StartAt::Hull => Vec3::new(-15.0, 0.0, 6.0),
         StartAt::Traversal => TRAVERSAL_ORIGIN + Vec3::new(1.0, 0.0, 1.95),
-        StartAt::Buggy | StartAt::Bike => {
-            let name = if matches!(*start, StartAt::Bike) {
-                "bike"
-            } else {
-                "buggy"
+        StartAt::Buggy
+        | StartAt::Bike
+        | StartAt::Trike
+        | StartAt::Rover
+        | StartAt::Hauler
+        | StartAt::HaulerTanker => {
+            let name = match *start {
+                StartAt::Bike => "bike",
+                StartAt::Trike => "trike",
+                StartAt::Rover => "rover",
+                StartAt::Hauler => "hauler",
+                StartAt::HaulerTanker => "hauler_tanker",
+                _ => "buggy",
             };
             let Some((car, tr)) =
                 cars.iter()

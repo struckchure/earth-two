@@ -539,3 +539,43 @@ fn wardrobe_keyboard_freezes_world_updates_body_and_preserves_parent() {
     );
     assert_eq!(app.world().resource::<Session>().player, Some(p));
 }
+
+#[test]
+fn controls_navigation_preserves_parent_focus_and_pause_then_native_quit_exits() {
+    use earth_two_client::game::menu::{Menu, choices};
+    let mut app = app_at(StartAt::Buggy);
+    let p = player(&app);
+    for parent in [Screen::Title, Screen::Paused] {
+        if parent == Screen::Paused {
+            action(&mut app, MenuAction::Play);
+            tick(&mut app, 15);
+            action(&mut app, MenuAction::Pause);
+        }
+        press(&mut app, KeyCode::ArrowDown);
+        press(&mut app, KeyCode::ArrowDown);
+        press(&mut app, KeyCode::Enter);
+        assert_eq!(
+            *app.world().resource::<State<Screen>>().get(),
+            Screen::Controls
+        );
+        let at = app.world().get::<Transform>(p).unwrap().translation;
+        tick(&mut app, 30);
+        assert!(app.world().resource::<Time<Physics>>().is_paused());
+        assert_eq!(app.world().get::<Transform>(p).unwrap().translation, at);
+        // Controls has only Back: both directions wrap to it.
+        press(&mut app, KeyCode::ArrowUp);
+        assert_eq!(app.world().resource::<Menu>().focus(), 0);
+        press(&mut app, KeyCode::Space);
+        assert_eq!(*app.world().resource::<State<Screen>>().get(), parent);
+        assert_eq!(app.world().resource::<Menu>().focus(), 2);
+        press(&mut app, KeyCode::Enter);
+        press(&mut app, KeyCode::Backspace);
+        assert_eq!(*app.world().resource::<State<Screen>>().get(), parent);
+        assert_eq!(app.world().resource::<Menu>().focus(), 2);
+    }
+    assert_eq!(app.world().resource::<Session>().player, Some(p));
+    let last = choices(Screen::Paused).len() - 1;
+    action(&mut app, MenuAction::Focus(last));
+    press(&mut app, KeyCode::Enter);
+    assert!(app.should_exit().is_some());
+}
