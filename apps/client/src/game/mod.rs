@@ -4,6 +4,8 @@
 pub mod ambience;
 pub mod camera;
 pub mod crowd;
+pub mod cues;
+pub mod drive_sound;
 pub mod injuries;
 pub mod people;
 #[cfg(feature = "viewer")]
@@ -11,6 +13,7 @@ mod render;
 pub mod residents;
 pub mod seats;
 pub mod sound;
+pub mod ui_sound;
 
 use crate::{
     character::{
@@ -97,6 +100,7 @@ impl Plugin for GamePlugin {
             residents::ResidentsPlugin,
             people::PeoplePlugin,
             ambience::AmbiencePlugin,
+            cues::CuesPlugin,
         ))
         .init_state::<Screen>()
         .init_resource::<Session>()

@@ -60,3 +60,7 @@ required-features = ["viewer"]
 [[example]]
 name = "ambience_smoke"
 required-features = ["viewer"]
+
+[[example]]
+name = "cues_smoke"
+required-features = ["viewer"]

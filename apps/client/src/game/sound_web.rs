@@ -95,7 +95,7 @@ pub(super) fn install(app: &mut App) {
         .init_asset_loader::<bevy::audio::AudioLoader>()
         .init_asset::<PannedLoop>()
         .add_systems(Startup, setup)
-        .add_systems(PostUpdate, play_queued);
+        .add_systems(PostUpdate, play_queued.after(super::hits::play));
 }
 fn play_queued(
     mut commands: Commands,

@@ -92,6 +92,21 @@ fn bind_rigs(
             })
             .collect();
         let Some(bones) = bones else { continue };
+        let feet = ["foot_l", "foot_r"].map(|name| {
+            bones
+                .iter()
+                .position(|b| b.name == name)
+                .map(|i| skin.joints[i])
+        });
+        if let [Some(left), Some(right)] = feet {
+            commands
+                .entity(entity)
+                .insert(crate::game::cues::AudibleFeet([left, right]));
+        } else {
+            commands
+                .entity(entity)
+                .remove::<crate::game::cues::AudibleFeet>();
+        }
         commands.entity(entity).insert((
             LiveRig {
                 scene: scene.root,

@@ -1,6 +1,24 @@
 //! Bevy audio adapter. Decode the original clips lazily, with raylib's pan law.
 use super::pan_levels;
-use crate::game::ambience::{Ambience, NAMES};
+use crate::game::{ambience::Ambience, drive_sound::DriveSound};
+const NAMES: [&str; 14] = [
+    "wind",
+    "storm",
+    "hull_hum",
+    "dome_air",
+    "generator",
+    "fans",
+    "fountain",
+    "market",
+    "engine_bike",
+    "engine_trike",
+    "engine_buggy",
+    "engine_rover",
+    "engine_truck",
+    "tyres",
+];
+#[path = "sound_hits.rs"]
+pub mod hits;
 use bevy::{
     asset::LoadState,
     audio::{ChannelCount, SampleRate, Source, Volume},
@@ -33,6 +51,7 @@ fn decode(source: AudioSource) -> Result<Decoder, rodio::decoder::DecoderError> 
 pub struct PannedLoop {
     source: AudioSource,
     pan: Arc<AtomicU32>,
+    repeat: bool,
 }
 /// Repeat the decoder, not already-panned samples, so panning still changes
 /// after a complete lap. This also avoids caching an entire decoded loop.
@@ -42,6 +61,7 @@ pub struct PannedDecoder {
     pan: Arc<AtomicU32>,
     right: Option<f32>,
     rate: SampleRate,
+    repeat: bool,
 }
 impl Decodable for PannedLoop {
     type Decoder = PannedDecoder;
@@ -56,6 +76,7 @@ impl Decodable for PannedLoop {
             pan: self.pan.clone(),
             right: None,
             rate,
+            repeat: self.repeat,
         }
     }
 }
@@ -68,9 +89,11 @@ impl Iterator for PannedDecoder {
         let decoder = self.decoder.as_mut()?;
         let left = if let Some(sample) = decoder.next() {
             sample
-        } else {
+        } else if self.repeat {
             self.decoder = decode(self.source.clone()).ok();
             self.decoder.as_mut()?.next()?
+        } else {
+            return None;
         };
         let decoder = self.decoder.as_mut()?;
         let channels = decoder.channels().get();
@@ -118,9 +141,15 @@ impl Plugin for SoundOutputPlugin {
         app.add_audio_source::<PannedLoop>();
         #[cfg(target_arch = "wasm32")]
         web::install(app);
+        hits::install(app);
         app.init_resource::<Bank>()
             .add_systems(Startup, load)
-            .add_systems(Update, output.after(super::super::ambience::mix));
+            .add_systems(
+                Update,
+                output
+                    .after(super::super::ambience::mix)
+                    .after(super::super::drive_sound::drive_cues),
+            );
     }
 }
 fn load(mut bank: ResMut<Bank>, assets: Res<AssetServer>) {
@@ -145,6 +174,7 @@ fn output(
     files: Res<Assets<AudioSource>>,
     mut sources: ResMut<Assets<PannedLoop>>,
     ambience: Res<Ambience>,
+    driving: Option<Res<DriveSound>>,
     mut voices: Query<Option<&mut AudioSink>, With<LoopVoice>>,
     mut logging: Local<Option<bool>>,
 ) {
@@ -162,12 +192,19 @@ fn output(
                 track.source = Some(sources.add(PannedLoop {
                     source: source.clone(),
                     pan: track.pan.clone(),
+                    repeat: true,
                 }));
             } else if matches!(assets.load_state(track.file.id()), LoadState::Failed(_)) {
                 fallback(track, &assets, i);
             }
         }
-        let state = &ambience.loops[i];
+        let state = if i < 8 {
+            &ambience.loops[i]
+        } else if let Some(d) = &driving {
+            &d.loops[i - 8]
+        } else {
+            continue;
+        };
         track.pan.store(state.pan.to_bits(), Ordering::Relaxed);
         if let Some(entity) = track.entity {
             match voices.get_mut(entity) {
@@ -238,7 +275,7 @@ fn fallback(track: &mut Track, assets: &AssetServer, index: usize) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn wave() -> AudioSource {
+    pub(super) fn wave() -> AudioSource {
         let mut bytes = Vec::new();
         bytes.extend_from_slice(b"RIFF");
         bytes.extend_from_slice(&40u32.to_le_bytes());
@@ -264,6 +301,7 @@ mod tests {
         let source = PannedLoop {
             source: wave(),
             pan: pan.clone(),
+            repeat: true,
         };
         let mut decoder = source.decoder();
         assert_eq!(decoder.sample_rate().get(), 22050);
@@ -353,6 +391,7 @@ mod tests {
                 bytes: vec![0; 10].into(),
             },
             pan: Arc::new(AtomicU32::new(0)),
+            repeat: true,
         };
         assert_eq!(source.decoder().next(), None);
     }

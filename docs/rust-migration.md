@@ -9,11 +9,11 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 282 passing headless tests and 96 client
+with `--foundation`. There are 289 passing headless tests and 99 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
-The first Step 5 sound increment adds live ambience and menu ducking.
+Step 5 now includes ambience, foot/body cues, vehicle sound and playable menu/HUD cues.
 Native graphical game, injury and crowd smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
@@ -382,6 +382,70 @@ cleanup and no accidental roll.
 Residents, crowd lifecycle and measured vehicle/traversal/ragdoll parity remain
 open in Step 4. Local smoke tests do not establish matching Go trajectories or
 acceptance on the entire CI platform matrix. Go remains the release default.
+
+## Step 5 gameplay cues review checkpoint: 2026-10-09
+
+The next sound increment connects `cues.go` and `drivesound.go` to the live
+character, vehicle and current menu/HUD state. Footsteps use actual rendered
+foot joints after animation/contact fitting and transform propagation, with
+Go's plant/lift/gap thresholds, speed gain, crouch reduction and surface ray.
+Body transitions retain jump, landing, roll/slide, wall-kick, grab, punch,
+interaction, seat and tool-clank clips and gains. Soundscape surface selection
+still distinguishes sand, soil, paving, grating, rugs and rock.
+
+All five engine families and tyres use the original clips, rev/throttle/gear
+pitch formulas, surface/contact gains and fades. Entry/exit plays a door or
+cloth cue according to seat type. Skids and crashes keep their thresholds and
+cooldowns; the collision adapter resolves Avian collider owners and contact
+points. Parked vehicles are quiet; pause fades engines/tyres while ambience
+continues ducked. The current title/pause menus play page/stamp/focus cues,
+and new vehicle HUD notes play the denial sound.
+
+The one-shot bank keeps Go's bare-name/contiguous-variant and OGG/WAV lookup
+order, volume threshold, effects/UI gains, pitch jitter and stereo pan law.
+The pinned illusion audio source caps each clip variant at eight overlapping
+voices, restarting its original voice when full; Rust preserves that rule.
+Finite voices despawn after playback, and queued voices expire without an
+audio device. Their per-play source assets are released. Expected absent
+variant/extension probes produce Bevy missing-path logs before discovery ends.
+
+Evidence is under `build/migration-baseline/step-5-cues/`:
+
+- `headless.log`: 289 workspace tests pass, including seven Go-derived cue
+  regressions covering foot plants/gaits, body transitions, mix gains, engine
+  profiles and fades, gear shifts, skid/crash cooldowns and menu transitions.
+- `client-final.log`: 99 client library tests pass, including all original
+  clip families, finite stereo decoding and voice-limit/device-loss cleanup.
+- `clippy.log` and `web-clippy.log`: native all-target and WASM Clippy pass
+  with warnings denied.
+- `native-smoke.log`: the actual buggy/play/walk/jump/pause flow passes;
+  rendered footsteps, body, entry and menu cues are observed, engine and
+  one-shot sinks advance, and vehicle loops are gone after exit.
+- `native-bike.log`: the rider/cloth entry cue, distinct bike engine, skids,
+  rendered soil footsteps, landing and menu cues pass the same playback and
+  vehicle-loop cleanup check.
+
+- `web-build.log`: the packed browser release candidate builds successfully.
+- `browser-console.log`: Chromium/WebGL2 activates audio on Enter, plays the
+  stamp/door cues, advances the buggy engine past 2.63 s, then pauses and
+  recreates the engine on resume (advancing past 2.44 s). After exit,
+  arrow-key walking emits spatial sand-step variants from rendered feet.
+- `browser-errors.log`: no JavaScript errors; expected asset lookup misses
+  remain in the console. `browser-final.png` captures the player after exit.
+
+The browser check uses SwiftShader software rendering; it does not establish
+performance or perceptual audio parity.
+
+Review `/?at=buggy` or `/?at=bike`: Enter plays, E enters/exits, W drives,
+Space brakes/jumps and Escape pauses/resumes. `cues=1` enables diagnostic
+clip/gain/pitch/pan logs. Native equivalents are `--at=buggy`/`--at=bike`;
+`cargo run --locked -p earth-two-client --example cues_smoke` is the finite
+integration check (`-- --bike` selects the rider/engine variant).
+
+Particles, full map/wardrobe/bell interaction flows and their cues, master
+volume UI, paired Go/Rust listening and the remaining release-platform audio
+matrix are still pending. These tests establish trigger/playback integration,
+not full perceptual parity or acceptance of the entire Step 5 gate.
 
 ## Step 5 ambience review checkpoint: 2026-10-09
 

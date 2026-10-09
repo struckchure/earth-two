@@ -116,8 +116,7 @@ struct MenuRoot;
 struct Hud;
 #[derive(Component, Clone, Copy)]
 struct Choice(MenuAction);
-#[derive(Resource, Default)]
-struct MenuFocus(usize);
+use super::ui_sound::MenuFocus;
 
 pub struct GameRenderPlugin;
 impl Plugin for GameRenderPlugin {

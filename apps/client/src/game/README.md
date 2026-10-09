@@ -13,6 +13,10 @@ The playable application and Go game-package integration on Bevy.
 | `people.rs` | `cull_people.go`: connects `landfall/cull_people.rs` rules to live character hierarchies |
 | `sound.rs`, `sound_output.rs` | `sound.go`: camera listener, loop envelope, original audio decoding and raylib stereo pan law |
 | `sound_web.rs` | Browser CPAL stream ownership and user-gesture activation, retaining the same Bevy sinks and decoder |
+| `cues.rs` | `cues.go`: foot plants, body transitions, world/UI gains and pitch variation |
+| `drive_sound.rs` | `drivesound.go`: engine/tyre loops, entry/exit, skid and collision cues |
+| `ui_sound.rs` | `cues.go`: current title/pause focus, navigation and HUD denial cues |
+| `sound_hits.rs` | `sound.go` and illusion `audio.go`: clip variants, finite playback, eight voices per variant and cleanup |
 | `ambience.rs` | `ambience.go`: zone beds, storm/driving wind, nearest machines and menu ducking |
 | `render.rs` | Platform shell, asynchronous loading and temporary menu/HUD/review panels |
 
@@ -42,4 +46,17 @@ whole decoded loop. Finished fades despawn their voice; returning to an area
 creates one replacement. Missing/invalid audio stays silent. Native cue logs
 use `EARTH_TWO_CUES=1`; browser cue logs use `?cues=1`.
 
-Footsteps, body/vehicle/UI cues and particles are still later increments.
+Footsteps read the body's own rendered `foot_l`/`foot_r` joints after pose fitting
+and transform propagation. Memories reset when the skeleton changes and are
+removed when bodies despawn. The Go 3.5 cm plant/6 cm lift thresholds, 0.22 s
+minimum gap, gait checks and crouch gain remain unchanged. Body cues observe
+animation/grounding transitions. Vehicle loops use each handling family's Go
+pitch/idle/throttle values; pause and exit fade them to silence.
+
+One-shots discover bare names before contiguous numbered variants, preferring
+OGG then WAV. Expected missing-file probes terminate discovery; Bevy logs these
+as missing paths. Each variant permits eight overlaps; when full, slot zero is
+restarted as in illusion's `freeVoice`. Finished and unavailable-device voices
+release their entities/assets. UI sounds are integrated only for the playable
+menu/HUD; full map, wardrobe and bell interaction cues await those flows.
+Particles and paired listening/platform acceptance remain later increments.

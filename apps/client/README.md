@@ -10,10 +10,12 @@ body skeleton; bike/trike riding, static-wall pose fitting, articulated
 knockdowns and R recovery are connected. Residents now wander nearby, stream
 to/from lightweight data, and retain injuries across streaming.
 Wind, weather, interior and nearby machine ambience now follows the camera
-and ducks while menus are open. Footsteps, body/vehicle/UI sounds, remaining
-animation/foot placement, full menus/accounts and complete visual parity
+and ducks while menus are open. Foot plants, body actions, engines/tyres,
+vehicle entry/skids/crashes and the playable menu/HUD now have sound. Particles,
+remaining interactions and map/wardrobe sounds, animation/foot placement,
+full menus/accounts and complete visual parity
 remain unfinished. Go remains the
-release default. See the [migration checkpoint](../../docs/rust-migration.md#step-5-ambience-review-checkpoint-2026-10-09)
+release default. See the [migration checkpoint](../../docs/rust-migration.md#step-5-gameplay-cues-review-checkpoint-2026-10-09)
 for evidence and remaining work.
 
 Run from the repository root:
@@ -36,6 +38,8 @@ cargo run --locked -p earth-two-client --example injury_smoke
 cargo run --locked -p earth-two-client --example injury_smoke -- --fatal
 cargo run --locked -p earth-two-client --example crowd_smoke
 cargo run --locked -p earth-two-client --example ambience_smoke
+cargo run --locked -p earth-two-client --example cues_smoke
+cargo run --locked -p earth-two-client --example cues_smoke -- --bike
 cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
@@ -64,7 +68,10 @@ despawning/recreation.
 `--at=hull` (browser `?at=hull`) starts inside the Hull for audio review.
 Listen while playing, pause/resume with Esc, then walk outside. Normal play
 keeps the original ambience mix. `EARTH_TWO_CUES=1` (browser `?cues=1`) logs
-loop start and playback progress for diagnostics.
+loop start/playback progress and one-shot clip, gain, pitch and pan.
+`--at=buggy` or `--at=bike` (browser `?at=buggy`/`?at=bike`) places you
+by a vehicle: E enters/exits, W drives, Space brakes. Compare walking/running
+and jumping before entry; pause should fade engines/tyres and duck ambience.
 The `game_smoke` example uses synthetic game inputs in the native renderer
 and asserts play/drive/exit/walk/pause/title behavior before saving a capture.
 
@@ -77,7 +84,7 @@ For an automatic title capture use
 `EARTH_TWO_CAPTURE=build/rust/title.png make rust-run`; it waits for content
 and a render warmup, captures a frame and exits.
 
-Local evidence includes 282 passing headless tests, 96 client library tests
+Local evidence includes 289 passing headless tests, 99 client library tests
 with rendering/pose regressions, native macOS arm64/Metal graphical smoke, and a packed
 asset Chromium/SwiftShader WebGL2 gameplay check. CI also compiles/tests the
 Linux, Windows and both macOS architecture targets. Other runtime platforms,
