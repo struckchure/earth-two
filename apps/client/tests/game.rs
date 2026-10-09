@@ -435,3 +435,21 @@ fn residents_walk_on_landfall_and_population_editor_does_not_pause() {
         1
     );
 }
+
+#[test]
+fn hull_review_spawn_stays_on_its_streamed_ground() {
+    let mut app = app_at(StartAt::Hull);
+    let p = player(&app);
+    let start = app.world().get::<Transform>(p).unwrap().translation;
+    for (tr, pos) in app.world_mut().query_filtered::<(&Transform, &Position), With<earth_two_client::landfall::terrain::TerrainBody>>().iter(app.world()) {
+        assert_eq!(tr.translation, pos.0, "streamed terrain render/physics locations differ");
+    }
+    action(&mut app, MenuAction::Play);
+    tick(&mut app, 180);
+    let at = app.world().get::<Transform>(p).unwrap().translation;
+    assert!(
+        (at.x - start.x).abs() < 2. && (at.z - start.z).abs() < 2.,
+        "Hull spawn left {start:?} for {at:?}"
+    );
+    assert!(at.y > -1., "fell through Hull ground: {at:?}");
+}

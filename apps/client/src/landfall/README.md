@@ -31,3 +31,7 @@ sun's `RenderLayers` include `render::SHADOW_LAYER`; the character port
 installs a `PeopleCuller`. The playable game now installs this adapter in
 `game/people.rs`; it applies the existing rules to character roots, bodies and
 all loaded mesh descendants.
+
+Streamed collider slots update Avian `Position` alongside their visible
+`Transform`; this keeps collision under the player when relocating terrain,
+including during loading and pause. The Hull start regression covers this.

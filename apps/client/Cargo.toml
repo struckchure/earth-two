@@ -14,6 +14,7 @@ hex = { version = "=0.4.3", default-features = false, features = ["alloc"] }
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
+rodio = { version = "=0.22.2", default-features = false, optional = true }
 
 # The real clock in the browser, where std's SystemTime panics (sky/time.rs).
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -22,11 +23,11 @@ web-time = "=1.1.0"
 js-sys = "=0.3.106"
 wasm-bindgen = "=0.2.129"
 wasm-bindgen-futures = "=0.4.79"
-web-sys = { version = "=0.3.106", features = ["Window", "Storage", "Document", "HtmlElement", "HtmlInputElement", "HtmlAnchorElement", "Element", "File", "FileList", "Blob", "BlobPropertyBag", "Url", "Location", "UrlSearchParams", "CssStyleDeclaration", "Node"] }
+web-sys = { version = "=0.3.106", features = ["Window", "Storage", "Document", "HtmlElement", "HtmlInputElement", "HtmlAnchorElement", "Element", "File", "FileList", "Blob", "BlobPropertyBag", "Url", "Location", "UrlSearchParams", "AudioContext", "AudioContextState", "CssStyleDeclaration", "Node"] }
 
 [features]
 default = ["viewer"]
-viewer = ["bevy/3d", "bevy/ui", "bevy/jpeg", "bevy/png", "bevy/bevy_gltf", "bevy/gltf_animation"]
+viewer = ["bevy/3d", "bevy/ui", "bevy/jpeg", "bevy/png", "bevy/bevy_gltf", "bevy/gltf_animation", "bevy/bevy_audio", "bevy/wav", "bevy/vorbis", "dep:rodio"]
 
 [[example]]
 name = "sky"
@@ -54,4 +55,8 @@ required-features = ["viewer"]
 
 [[example]]
 name = "crowd_smoke"
+required-features = ["viewer"]
+
+[[example]]
+name = "ambience_smoke"
 required-features = ["viewer"]

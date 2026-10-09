@@ -11,6 +11,9 @@ The playable application and Go game-package integration on Bevy.
 | `residents.rs` | `residents.go`: resident data, nearest-character selection, wandering, health persistence and cleanup |
 | `crowd.rs` | `testing_npcs.go`: F8/F9 controls, batched local placement, outfit selection and relocation |
 | `people.rs` | `cull_people.go`: connects `landfall/cull_people.rs` rules to live character hierarchies |
+| `sound.rs`, `sound_output.rs` | `sound.go`: camera listener, loop envelope, original audio decoding and raylib stereo pan law |
+| `sound_web.rs` | Browser CPAL stream ownership and user-gesture activation, retaining the same Bevy sinks and decoder |
+| `ambience.rs` | `ambience.go`: zone beds, storm/driving wind, nearest machines and menu ducking |
 | `render.rs` | Platform shell, asynchronous loading and temporary menu/HUD/review panels |
 
 Resident updates run before character input; crowd keys run before menu keys.
@@ -30,3 +33,13 @@ cannot be mistaken for new records at the same index.
 streaming. `tests/game.rs` checks real Landfall walking and menu/input ordering.
 `examples/crowd_smoke.rs` exercises the native renderer and saves captures under
 ignored `build/migration-baseline/step-4-residents/`.
+
+Ambience follows the game camera after its update. It preserves the Go zone
+weights, source distances, 0.55 mix gain, 0.4 menu duck and exponential fades.
+Eight WAV loops share the original files; OGG is a fallback. The Bevy audio
+adapter restarts a decoder at EOF, retaining live panning without buffering a
+whole decoded loop. Finished fades despawn their voice; returning to an area
+creates one replacement. Missing/invalid audio stays silent. Native cue logs
+use `EARTH_TWO_CUES=1`; browser cue logs use `?cues=1`.
+
+Footsteps, body/vehicle/UI cues and particles are still later increments.

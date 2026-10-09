@@ -275,8 +275,8 @@
       ],
       "setup_and_inputs": "Walk on each surface; drive all families; trigger impact/action cues, pause and resume; activate browser audio.",
       "expected": "Same clips, gain/pitch, loops, timing and attenuation; no duplicate or stuck loops.",
-      "comparison": "Cue tests and audio/playthrough capture (pending)",
-      "status": "defined; acceptance pending",
+      "comparison": "Ambience mix/decoder tests, native playback/duck/zone lifecycle smoke and browser gesture activation/playback progress in step-5-ambience; full cue and paired listening captures pending",
+      "status": "ambience integrated; gameplay cues and acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/AUDIO-01"
     },
     {

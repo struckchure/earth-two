@@ -9,10 +9,11 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 277 passing headless tests and 92 client
+with `--foundation`. There are 282 passing headless tests and 96 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
+The first Step 5 sound increment adds live ambience and menu ducking.
 Native graphical game, injury and crowd smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
@@ -381,6 +382,78 @@ cleanup and no accidental roll.
 Residents, crowd lifecycle and measured vehicle/traversal/ragdoll parity remain
 open in Step 4. Local smoke tests do not establish matching Go trajectories or
 acceptance on the entire CI platform matrix. Go remains the release default.
+
+## Step 5 ambience review checkpoint: 2026-10-09
+
+This is the first audible increment of Step 5. `game/ambience.go` and the
+listener/loop portions of `sound.go` are connected to the live Rust game.
+The original eight ambience recordings play through Bevy audio: wind, storm,
+Hull hum, dome air, generators, fans, the fountain and market chatter.
+Soundscape sources still come from the original Landfall placements.
+
+The port retains zone weights shared with lighting, storm/driving-wind
+formulas, nearest-source ranges, squared smoothstep falloff, 0.55 ambience
+gain, 0.4 menu duck, 3/s exponential loop fades, pitch/pan easing, and the
+0.01/0.005 start/stop thresholds. The listener follows the camera. Menus
+leave ambience running at reduced volume; returning to play raises it again.
+
+The native backend uses Bevy AudioPlayer/AudioSink with the pinned Rodio 0.22.2,
+WAV/Vorbis codecs, and a custom Decodable adapter applying raylib 0.60.1's
+stereo pan law. It duplicates mono into stereo before panning and keeps
+stereo channels separate. It does not apply a second positional attenuation.
+The compressed/PCM file bytes are shared, and decoding restarts at EOF
+rather than caching every decoded sample. Panning remains live after wraps.
+Missing WAV files try OGG; missing or invalid clips stay silent. Faded voices
+are despawned and repeated visits create one replacement per audible loop.
+The browser keeps the same Bevy assets/sinks and Rodio mixer/decoder, while
+owning its CPAL WebAudio stream so keyboard/pointer callbacks can resume the
+actual AudioContext synchronously. Bevy's private default output does not
+expose that context. Input listeners are retained once and removed on teardown;
+there is no separate sound-unlock UI or change to the normal Play flow.
+The first browser runtime attempt queued a loop without advancing playback
+(`browser-after-click.log`); the explicit context bridge addresses that failure.
+
+Review with `cargo run --locked -p earth-two-client -- --at=hull`: listen in
+the Hull, pause/resume, then walk outside and toward machines/market stalls.
+The browser entry is `/?at=hull`. `EARTH_TWO_CUES=1` or browser `?cues=1`
+prints loop start and advancing sink positions. `ambience_smoke` is a finite
+native game/audio check for playing sinks, duck/resume, zone fades and
+recreation. The existing Rust CI matrix already includes Linux ALSA headers;
+no target or Go release default changed.
+
+Validation evidence belongs in `build/migration-baseline/step-5-ambience/`.
+
+- `headless-final.log`: 282 workspace tests pass, including Go-derived mix
+  expectations and the new Hull ground regression.
+- `client-final.log`: 96 client library tests pass, including original clip
+  decoding, live panning across loop wraps, invalid audio and voice cleanup.
+- `clippy-final.log`: workspace/all-target Clippy passes with warnings denied.
+- `native-final.log`: macOS arm64/Metal playback passes. The Hull loop reaches
+  0.549998, ducks to 0.220046 on the same voice and resumes to 0.549955;
+  going outside releases it, and returning recreates it. Sink time advances.
+
+The native check exposed a terrain migration bug, retained in the earlier
+`native-smoke.log`, `native-position.log` and `hull-ground.log` failure traces:
+terrain slots moved their visible Transform but kept Avian Position at the
+old location. Starting at the Hull fell through the missing ground and
+respawned at the Pads, where the outside mix was correctly heard. Relocation
+now updates both transforms and collision positions. The regression asserts
+alignment before Play and grounded survival after three seconds; the native
+check also crosses zones and returns without falling through. No sound
+thresholds or gameplay physics tolerances were loosened.
+
+The final browser package builds successfully (`web-gesture-build.log`), and
+WASM Clippy passes with warnings denied (`web-clippy.log`). On Chromium/WebGL2,
+Enter resumes the actual AudioContext; Hull, dome, fan and market sink positions
+then advance past 2.45 seconds (`browser-gesture-console.log`). The final browser
+error check reports no errors (`browser-gesture-errors.log`), and
+`browser-final.png` shows the playable character still at the Hull. This verifies
+browser activation and playback progress, not paired listening or performance
+parity; the automation browser uses software rendering.
+
+Footsteps, body/vehicle/UI cues, particles, paired listening comparisons,
+master-volume UI and the remaining platform audio matrix are still open.
+This checkpoint does not mark the full visual/audio parity gate accepted.
 
 ## Step 4 resident review checkpoint: 2026-10-09
 

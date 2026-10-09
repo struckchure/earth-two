@@ -24,8 +24,11 @@ use bevy::{
 
 pub fn run() {
     let mut app = App::new();
+    let plugins = DefaultPlugins.build();
+    #[cfg(target_arch = "wasm32")]
+    let plugins = plugins.disable::<bevy::audio::AudioPlugin>();
     app.add_plugins(
-        DefaultPlugins
+        plugins
             .set(AssetPlugin {
                 file_path: asset_root(),
                 ..default()

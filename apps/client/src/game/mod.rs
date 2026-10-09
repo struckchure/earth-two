@@ -1,6 +1,7 @@
 //! Application wiring from game/game.go and menu.go. Subsystem plugins and
 //! loaded content live for the app's lifetime. As in Go, Main menu preserves
 //! the current world; Play resumes it instead of spawning a second session.
+pub mod ambience;
 pub mod camera;
 pub mod crowd;
 pub mod injuries;
@@ -9,6 +10,7 @@ pub mod people;
 mod render;
 pub mod residents;
 pub mod seats;
+pub mod sound;
 
 use crate::{
     character::{
@@ -94,6 +96,7 @@ impl Plugin for GamePlugin {
             crate::identity::IdentityPlugin,
             residents::ResidentsPlugin,
             people::PeoplePlugin,
+            ambience::AmbiencePlugin,
         ))
         .init_state::<Screen>()
         .init_resource::<Session>()

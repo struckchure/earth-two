@@ -391,9 +391,13 @@ pub fn stream_terrain(
             if let Ok(mut tr) = transforms.get_mut(entity) {
                 tr.translation = Vec3::new(c.x, 0.0, c.y);
             }
-            commands
-                .entity(entity)
-                .insert(chunk_collider(want.ci, want.cj));
+            commands.entity(entity).insert((
+                chunk_collider(want.ci, want.cj),
+                // Avian's physics position owns the collider location.
+                // Updating only Transform moves the drawing, not collision;
+                // paused pose restoration can also undo that visual move.
+                avian3d::prelude::Position(Vec3::new(c.x, 0.0, c.y)),
+            ));
         }
     }
     if t.pending.is_empty() {
