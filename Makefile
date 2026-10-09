@@ -12,6 +12,24 @@ DESKTOP_GOFLAGS += -ldflags=-H=windowsgui
 endif
 .DEFAULT_GOAL := run
 
+# Rust migration candidate. Existing Go run/build/release defaults stay intact.
+.PHONY: rust-check rust-test rust-run rust-smoke rust-web
+rust-check:
+	cargo check --locked -p earth-two-client --all-targets
+	cargo check --locked -p earth-two-client --target wasm32-unknown-unknown
+
+rust-test:
+	cargo test --locked --workspace --no-default-features
+
+rust-run:
+	cargo run --locked -p earth-two-client
+
+rust-smoke:
+	cargo run --locked -p earth-two-client --no-default-features -- --smoke
+
+rust-web: assets
+	$(PYTHON) tools/rust/web.py
+
 # Source fixes for native dependencies, prepared without changing the Go cache.
 NATIVE_GO = env GOWORK="$(CURDIR)/build/deps/native.work" go
 

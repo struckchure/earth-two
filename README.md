@@ -7,6 +7,12 @@ isn't a racing game.
 It's built with [illusion](https://github.com/struckchure/illusion), with Jolt
 physics, and the same code runs on the desktop and in the browser.
 
+The Rust migration starts in [`apps/client`](apps/client/README.md), using
+Bevy 0.20.0, Avian and BSN. Run `make rust-run` for its development scene
+or `make rust-smoke` for the headless physics check. Existing Go commands
+remain the playable reference. See the [migration plan](docs/rust-migration.md)
+and [workspace organization](docs/workspace.md).
+
 ## Requirements
 
 - Go 1.25 or newer.

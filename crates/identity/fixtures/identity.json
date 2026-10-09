@@ -1,0 +1,27 @@
+{
+  "seed": "9fe06aaf070352f4ffad90808e6948608629d6487d118bf9bb3f76c33f4b1c5d",
+  "public_key": "ad324ee7d94ab404463e83466df3767060528dc86afd555e04b50660684f5df1",
+  "account_id": "e2_c02e8caf260420408e0f6bcc448532f4ec688e4f9bd42f0fb13cbba37cfac94e",
+  "database": "01d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1d1",
+  "sender": "025e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e",
+  "connection": "03c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0",
+  "action": "account.set_email",
+  "payload": "fixture@example.com",
+  "sequence": 7,
+  "now_unix_micro": 1800000000000000,
+  "expires_unix_micro": 1800000060000000,
+  "proof": "ad324ee7d94ab404463e83466df3767060528dc86afd555e04b50660684f5df1070000000000000000072c2c17650600b9a24612fda07f75f36dbdb24b0a1982f0c861a6ccf4718e042f45f36e8b68db8611213f6f84b0a5d9455f4c94140f36b6b27f6470b5e09180d0b46fe891f50a",
+  "backup_passphrase": "fixture passphrase ✓ unicode 二",
+  "backup": {
+    "format": "earth-two-key",
+    "version": 1,
+    "account_id": "e2_c02e8caf260420408e0f6bcc448532f4ec688e4f9bd42f0fb13cbba37cfac94e",
+    "public_key": "rTJO59lKtARGPoNGbfN2cGBSjchq/VVeBLUGYGhPXfE=",
+    "kdf": "pbkdf2-sha256",
+    "iterations": 600000,
+    "salt": "0YpUSoPO3ixPKT7cRr3HRQ==",
+    "cipher": "aes-256-gcm",
+    "nonce": "5+l/sru3sKcaCHD9",
+    "ciphertext": "Xc4YDw4f5kSAlVWZ2msQW5Ym+fV8GABLYz96fpoWnvTRq/WUgoaOfJqZmHrq5DCS"
+  }
+}

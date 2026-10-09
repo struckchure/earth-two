@@ -1,0 +1,17 @@
+{
+  "account_id": "e2_c02e8caf260420408e0f6bcc448532f4ec688e4f9bd42f0fb13cbba37cfac94e",
+  "proof": "ad324ee7d94ab404463e83466df3767060528dc86afd555e04b50660684f5df1070000000000000000072c2c17650600b9a24612fda07f75f36dbdb24b0a1982f0c861a6ccf4718e042f45f36e8b68db8611213f6f84b0a5d9455f4c94140f36b6b27f6470b5e09180d0b46fe891f50a",
+  "backup_passphrase": "fixture passphrase ✓ unicode 二",
+  "backup": {
+    "account_id": "e2_c02e8caf260420408e0f6bcc448532f4ec688e4f9bd42f0fb13cbba37cfac94e",
+    "cipher": "aes-256-gcm",
+    "ciphertext": "0PHxdiXrbB7gP6+5hpzqG3hthiQjjaSSkstrpApK0CSxi2JKHPLAbMyT3FaOC0qp",
+    "format": "earth-two-key",
+    "iterations": 600000,
+    "kdf": "pbkdf2-sha256",
+    "nonce": "KLonql4ytl+uL18K",
+    "public_key": "rTJO59lKtARGPoNGbfN2cGBSjchq/VVeBLUGYGhPXfE=",
+    "salt": "NzX2pn5lN9CkWdPJhN4ufw==",
+    "version": 1
+  }
+}

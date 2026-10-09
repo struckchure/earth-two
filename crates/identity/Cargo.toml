@@ -1,0 +1,31 @@
+[package]
+name = "earth-two-identity"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+description = "Player-owned Ed25519 accounts: keys, proofs, encrypted backups and the SpacetimeDB account session, without rendering."
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ed25519-dalek = { version = "=2.2.0", default-features = false, features = ["alloc", "zeroize"] }
+sha2 = { version = "=0.10.9", default-features = false }
+hmac = { version = "=0.12.1", default-features = false }
+pbkdf2 = { version = "=0.12.2", default-features = false, features = ["hmac"] }
+aes-gcm = { version = "=0.10.3", default-features = false, features = ["aes", "alloc"] }
+getrandom = { version = "=0.2.17", features = ["js"] }
+zeroize = { version = "=1.9.1", default-features = false }
+hex = { version = "=0.4.3", default-features = false, features = ["alloc"] }
+base64 = { version = "=0.23.1", default-features = false, features = ["alloc"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# The same in-process SpacetimeDB client role the Go SDK plays on desktop.
+spacetimedb-sdk = "=2.11.0"
+ureq = { version = "=3.4.2", default-features = false, features = ["native-tls"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# The browser keeps the existing web networking adapter (web/spacetime/bridge.ts).
+js-sys = "=0.3.106"
+wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "=0.4.79"

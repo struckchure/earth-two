@@ -27,6 +27,8 @@ Technical plans:
 | Doc | Read it for |
 | --- | --- |
 | [OTA updates](ota-updates.md) | Browser and desktop release delivery, update recovery, and implementation phases |
+| [Rust migration](rust-migration.md) | Bevy 0.20.0 and Avian migration, behavior parity, dependency gates and implementation milestones |
+| [Workspace organization](workspace.md) | Rust apps and shared code, legacy reference paths, build outputs and development commands |
 
 These docs started as the
 [World Bible](https://claude.ai/code/artifact/af36858f-ad67-46d0-8928-f4ba67765144)
