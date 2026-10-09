@@ -30,8 +30,8 @@ jobs:
         run: cargo fmt --all --check
       - name: World, physics and scene tests
         run: cargo test --locked --workspace --no-default-features
-      - name: Terrain renderer regression
-        run: cargo test --locked -p earth-two-client --lib relocated_chunks
+      - name: Rendering integration regressions
+        run: cargo test --locked -p earth-two-client --lib
       - name: Native client
         run: cargo check --locked -p earth-two-client --all-targets
       - name: Lint

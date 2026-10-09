@@ -253,7 +253,7 @@ pub(super) fn build(app: &mut App) {
             mark_cameras,
             apply_shadow_quality,
             attach_lamps,
-            adopt_materials,
+            adopt_materials.after(crate::presentation::PresentationSystems::Models),
         ),
     )
     .add_systems(PostUpdate, sync_materials.after(super::gather_spots));

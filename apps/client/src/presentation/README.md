@@ -37,3 +37,8 @@ solver after transform propagation, from the joints' transforms.
 
 `cargo run -p earth-two-client --example presentation` captures
 `build/rust/presentation.png`.
+
+Garment GLBs have no animation clips. Their joint palettes bind by name to
+the owning body’s animated joints, retaining each garment’s inverse bind
+matrices. Desktop cloth retains that live palette after replacing GPU
+skinning with a private CPU mesh; its outline shares the same posed mesh.

@@ -54,6 +54,8 @@ pub fn paused(physics: Option<&Time<Physics>>) -> bool {
 /// The sets this module's systems run in, for others to order against.
 #[derive(SystemSet, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub enum PresentationSystems {
+    /// Update: loaded model meshes and garment joint bindings, before material adoption.
+    Models,
     /// Update, in the character module's Act set: dressing, clothing and
     /// animating, after the body has turned to face its way.
     Act,

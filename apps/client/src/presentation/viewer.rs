@@ -18,7 +18,7 @@ use std::collections::{HashMap, HashSet};
 use super::bones::Skeleton;
 use super::graph::{Animated, Graphs};
 use super::mesh::{ModelMeshes, ModelStore, SkinnedMeshData};
-use super::outfit::{ModelParts, ModelPath, Slot, load_wardrobe};
+use super::outfit::{Garment, ModelParts, ModelPath, Slot, load_wardrobe};
 use super::player::{ClipLibrary, Libraries};
 use super::roster::{BODY_HEIGHT, Model, Roster, Skin};
 use super::verlet::{Cloth, simulate};
@@ -79,6 +79,14 @@ pub struct MeshEntities(pub Vec<Option<Entity>>);
 #[derive(Component, Clone, Debug, Default)]
 pub struct ClothMeshes(pub Vec<(usize, Entity, Handle<Mesh>)>);
 
+/// CPU cloth stops GPU skinning, but still needs the live joints every frame.
+#[derive(Component, Clone)]
+struct ClothSkin(SkinnedMesh);
+
+/// The body scene this garment's joint palette is bound to.
+#[derive(Component)]
+struct GarmentSkeleton(Entity);
+
 pub struct ViewerPlugin;
 
 impl Plugin for ViewerPlugin {
@@ -92,7 +100,15 @@ impl Plugin for ViewerPlugin {
             )
             .add_systems(
                 Update,
-                (index_models, spawn_scenes, wire_scenes, apply_parts).chain(),
+                (
+                    index_models,
+                    spawn_scenes,
+                    wire_scenes,
+                    bind_garments,
+                    apply_parts,
+                )
+                    .chain()
+                    .in_set(super::PresentationSystems::Models),
             )
             .add_systems(
                 PostUpdate,
@@ -355,7 +371,7 @@ fn spawn_scenes(
                 },
                 Visibility::default(),
             ))
-            .remove::<(Animated, MeshEntities, ClothMeshes)>();
+            .remove::<(Animated, MeshEntities, ClothMeshes, GarmentSkeleton)>();
     }
 }
 
@@ -365,7 +381,7 @@ fn spawn_scenes(
 fn wire_scenes(
     mut commands: Commands,
     assets: Res<AssetServer>,
-    scenes: Query<(Entity, &ModelScene), Without<Animated>>,
+    scenes: Query<(Entity, &ModelScene), Without<MeshEntities>>,
     children: Query<&Children>,
     players: Query<(), With<BevyPlayer>>,
     drawn: Query<&Mesh3d>,
@@ -389,10 +405,75 @@ fn wire_scenes(
                 meshes[i] = Some(d);
             }
         }
-        let Some(animated) = animated else { continue };
+        if meshes.iter().any(Option::is_none) {
+            continue; // Wait for the complete scene, including animation-free garments.
+        }
+        commands.entity(e).insert(MeshEntities(meshes));
+        if let Some(animated) = animated {
+            commands.entity(e).insert(Animated(animated));
+        }
+    }
+}
+
+/// Garment GLBs contain bind-pose skeletons, not clips. Share the body's
+/// animated joint entities by name, preserving each garment's palette order
+/// and inverse bind matrices. Separate characters keep separate skeletons.
+#[allow(clippy::type_complexity)]
+fn bind_garments(
+    mut commands: Commands,
+    garments: Query<(Entity, &ChildOf, &MeshEntities, Option<&GarmentSkeleton>), With<Garment>>,
+    bodies: Query<(&ModelScene, &MeshEntities), Without<Garment>>,
+    names: Query<&Name>,
+    mut skins: Query<&mut SkinnedMesh>,
+) {
+    for (entity, parent, meshes, attached) in &garments {
+        let Ok((body_scene, body_meshes)) = bodies.get(parent.parent()) else {
+            continue;
+        };
+        if attached.is_some_and(|a| a.0 == body_scene.root) {
+            continue;
+        }
+        let Some(body_skin) = body_meshes
+            .0
+            .iter()
+            .flatten()
+            .find_map(|e| skins.get(*e).ok())
+        else {
+            continue;
+        };
+        let joints: HashMap<String, Entity> = body_skin
+            .joints
+            .iter()
+            .filter_map(|e| {
+                names
+                    .get(*e)
+                    .ok()
+                    .map(|name| (name.as_str().to_owned(), *e))
+            })
+            .collect();
+        // Resolve the complete palette before changing any mesh; delayed
+        // scene loading must never leave a garment partially attached.
+        let remapped: Option<Vec<_>> = meshes
+            .0
+            .iter()
+            .flatten()
+            .map(|e| {
+                let skin = skins.get(*e).ok()?;
+                let mapped: Option<Vec<Entity>> = skin
+                    .joints
+                    .iter()
+                    .map(|j| joints.get(names.get(*j).ok()?.as_str()).copied())
+                    .collect();
+                Some((*e, mapped?))
+            })
+            .collect();
+        let Some(remapped) = remapped else { continue };
+        for (mesh, joints) in remapped {
+            skins.get_mut(mesh).unwrap().joints = joints;
+        }
         commands
-            .entity(e)
-            .insert((Animated(animated), MeshEntities(meshes)));
+            .entity(entity)
+            .insert(GarmentSkeleton(body_scene.root));
     }
 }
 
@@ -420,7 +501,10 @@ fn apply_parts(
         ),
         Or<(Changed<ModelParts>, Changed<MeshEntities>)>,
     >,
-    drawn: Query<&MeshMaterial3d<StandardMaterial>>,
+    drawn: Query<(
+        Option<&MeshMaterial3d<StandardMaterial>>,
+        Option<&crate::shading::SourceMaterial>,
+    )>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut toned: Local<HashMap<(Entity, usize), Handle<StandardMaterial>>>,
 ) {
@@ -434,8 +518,9 @@ fn apply_parts(
                 Visibility::Inherited
             });
             if let Some(tone) = p.texture.get(&i)
-                && let Ok(material) = drawn.get(mesh)
-                && let Some(own) = materials.get(&material.0).cloned()
+                && let Ok((material, source)) = drawn.get(mesh)
+                && let Some(handle) = material.map(|m| &m.0).or_else(|| source.map(|m| &m.0))
+                && let Some(own) = materials.get(handle).cloned()
             {
                 let handle = toned.entry((e, i)).or_insert_with(|| {
                     materials.add(StandardMaterial {
@@ -443,7 +528,9 @@ fn apply_parts(
                         ..own
                     })
                 });
-                entity.insert(MeshMaterial3d(handle.clone()));
+                entity
+                    .remove::<MeshMaterial3d<crate::shading::PaintedMaterial>>()
+                    .insert(MeshMaterial3d(handle.clone()));
             }
         }
         if outline.is_some() {
@@ -459,14 +546,24 @@ fn apply_parts(
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn simulate_cloth(
     mut commands: Commands,
-    mut garments: Query<(
-        Entity,
-        &mut Cloth,
-        &ModelScene,
-        &MeshEntities,
-        Option<&mut ClothMeshes>,
+    mut garments: Query<
+        (
+            Entity,
+            &mut Cloth,
+            &ModelScene,
+            &MeshEntities,
+            Option<&mut ClothMeshes>,
+        ),
+        With<GarmentSkeleton>,
+    >,
+    children: Query<&Children>,
+    outlines: Query<(), With<MeshMaterial3d<crate::shading::OutlineMaterial>>>,
+    skinned: Query<(
+        &Mesh3d,
+        Option<&SkinnedMesh>,
+        Option<&ClothSkin>,
+        &GlobalTransform,
     )>,
-    skinned: Query<(&Mesh3d, &SkinnedMesh, &GlobalTransform)>,
     transforms: Query<&GlobalTransform>,
     binds: Res<Assets<SkinnedMeshInverseBindposes>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -485,12 +582,10 @@ fn simulate_cloth(
         };
         // The joints from any skinned mesh of the garment: all share the
         // skeleton.
-        let Some((skin, mesh_transform)) = drawn
-            .0
-            .iter()
-            .flatten()
-            .find_map(|m| skinned.get(*m).ok().map(|(_, s, t)| (s, t)))
-        else {
+        let Some((skin, mesh_transform)) = drawn.0.iter().flatten().find_map(|m| {
+            let (_, gpu, cpu, tr) = skinned.get(*m).ok()?;
+            Some((gpu.or_else(|| cpu.map(|s| &s.0))?, tr))
+        }) else {
             continue;
         };
         let Some(ibm) = binds.get(&skin.inverse_bindposes) else {
@@ -522,16 +617,32 @@ fn simulate_cloth(
                 let Some(mesh_entity) = drawn.0.get(i).copied().flatten() else {
                     continue;
                 };
-                let Ok((mesh, _, _)) = skinned.get(mesh_entity) else {
+                let Ok((mesh, Some(skin), _, _)) = skinned.get(mesh_entity) else {
                     continue;
                 };
-                let Some(copy) = meshes.get(&mesh.0).cloned() else {
+                let Some(mut copy) = meshes.get(&mesh.0).cloned() else {
                     continue;
                 };
+                // The shader specializes from vertex attributes, not just
+                // SkinnedMesh: CPU-posed vertices must use an unskinned layout.
+                copy.remove_attribute(Mesh::ATTRIBUTE_JOINT_INDEX);
+                copy.remove_attribute(Mesh::ATTRIBUTE_JOINT_WEIGHT);
                 let handle = meshes.add(copy);
+                for child in children.iter_descendants(mesh_entity) {
+                    if outlines.contains(child) {
+                        commands
+                            .entity(child)
+                            .insert(Mesh3d(handle.clone()))
+                            .remove::<SkinnedMesh>();
+                    }
+                }
                 commands
                     .entity(mesh_entity)
-                    .insert((Mesh3d(handle.clone()), NoFrustumCulling))
+                    .insert((
+                        Mesh3d(handle.clone()),
+                        NoFrustumCulling,
+                        ClothSkin(skin.clone()),
+                    ))
                     .remove::<SkinnedMesh>();
                 own.0.push((i, mesh_entity, handle));
             }
@@ -569,5 +680,192 @@ mod tests {
     fn mesh_index_from_label() {
         assert_eq!(mesh_index("Mesh7/Primitive0"), Some(7));
         assert_eq!(mesh_index("Scene0"), None);
+    }
+    #[test]
+    fn garments_share_only_their_own_bodys_joints_in_palette_order() {
+        let mut app = App::new();
+        app.add_systems(Update, bind_garments);
+        let mut expected = Vec::new();
+        for _ in 0..2 {
+            let head = app.world_mut().spawn(Name::new("head")).id();
+            let hand = app.world_mut().spawn(Name::new("hand")).id();
+            let body_mesh = app
+                .world_mut()
+                .spawn(SkinnedMesh {
+                    inverse_bindposes: default(),
+                    joints: vec![head, hand],
+                })
+                .id();
+            let body = app
+                .world_mut()
+                .spawn((
+                    ModelScene {
+                        path: "body".into(),
+                        root: body_mesh,
+                    },
+                    MeshEntities(vec![Some(body_mesh)]),
+                ))
+                .id();
+            let old_head = app.world_mut().spawn(Name::new("head")).id();
+            let old_hand = app.world_mut().spawn(Name::new("hand")).id();
+            let mesh = app
+                .world_mut()
+                .spawn(SkinnedMesh {
+                    inverse_bindposes: default(),
+                    joints: vec![old_hand, old_head],
+                })
+                .id();
+            app.world_mut().spawn((
+                Garment {
+                    slot: Slot::Hair,
+                    skin: vec![],
+                    footwear: None,
+                },
+                ChildOf(body),
+                MeshEntities(vec![Some(mesh)]),
+            ));
+            expected.push((mesh, vec![hand, head]));
+        }
+        app.update();
+        for (mesh, expected) in expected {
+            assert_eq!(
+                app.world().get::<SkinnedMesh>(mesh).unwrap().joints,
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn cpu_cloth_keeps_following_the_skeleton_after_gpu_skinning_is_removed() {
+        use super::super::verlet::ClothMeshSpec;
+        use bevy::{asset::RenderAssetUsages, mesh::PrimitiveTopology};
+        let mut app = App::new();
+        app.add_plugins(MinimalPlugins)
+            .init_resource::<Assets<Mesh>>()
+            .init_resource::<Assets<SkinnedMeshInverseBindposes>>()
+            .init_resource::<ModelStore>()
+            .insert_resource(Controls { enabled: true })
+            .add_systems(Update, simulate_cloth);
+        let vertices = vec![Vec3::ZERO, Vec3::X, Vec3::Y];
+        app.world_mut().resource_mut::<ModelStore>().insert(
+            "cloth",
+            ModelMeshes {
+                meshes: vec![SkinnedMeshData {
+                    positions: vertices.clone(),
+                    normals: vec![Vec3::Z; 3],
+                    joints: vec![[0; 4]; 3],
+                    weights: vec![[1., 0., 0., 0.]; 3],
+                    ..default()
+                }],
+                skeleton: Skeleton {
+                    names: vec!["head".into()],
+                    parents: vec![-1],
+                    bind: vec![Transform::IDENTITY],
+                },
+            },
+        );
+        let joint = app.world_mut().spawn(GlobalTransform::IDENTITY).id();
+        let binds = app
+            .world_mut()
+            .resource_mut::<Assets<SkinnedMeshInverseBindposes>>()
+            .add(SkinnedMeshInverseBindposes::from(vec![Mat4::IDENTITY]));
+        let mesh = app.world_mut().resource_mut::<Assets<Mesh>>().add(
+            Mesh::new(
+                PrimitiveTopology::TriangleList,
+                RenderAssetUsages::MAIN_WORLD,
+            )
+            .with_inserted_attribute(
+                Mesh::ATTRIBUTE_POSITION,
+                vertices.iter().map(|v| v.to_array()).collect::<Vec<_>>(),
+            )
+            .with_inserted_attribute(
+                Mesh::ATTRIBUTE_JOINT_INDEX,
+                VertexAttributeValues::Uint16x4(vec![[0; 4]; 3]),
+            )
+            .with_inserted_attribute(Mesh::ATTRIBUTE_JOINT_WEIGHT, vec![[1., 0., 0., 0.]; 3]),
+        );
+        let mesh_entity = app
+            .world_mut()
+            .spawn((
+                Mesh3d(mesh.clone()),
+                SkinnedMesh {
+                    inverse_bindposes: binds,
+                    joints: vec![joint],
+                },
+                GlobalTransform::IDENTITY,
+            ))
+            .id();
+        let outline_skin = app.world().get::<SkinnedMesh>(mesh_entity).unwrap().clone();
+        let outline = app
+            .world_mut()
+            .spawn((
+                ChildOf(mesh_entity),
+                Mesh3d(mesh.clone()),
+                outline_skin,
+                MeshMaterial3d::<crate::shading::OutlineMaterial>(default()),
+            ))
+            .id();
+        app.world_mut().spawn((
+            Cloth {
+                meshes: [(
+                    0,
+                    ClothMeshSpec {
+                        freedom: vec![0.; 3],
+                    },
+                )]
+                .into(),
+                ..default()
+            },
+            GarmentSkeleton(joint),
+            ModelScene {
+                path: "cloth".into(),
+                root: mesh_entity,
+            },
+            MeshEntities(vec![Some(mesh_entity)]),
+        ));
+        app.update();
+        assert!(app.world().get::<SkinnedMesh>(mesh_entity).is_none());
+        let own = app.world().get::<Mesh3d>(mesh_entity).unwrap().0.clone();
+        assert_ne!(own, mesh);
+        assert_eq!(app.world().get::<Mesh3d>(outline).unwrap().0, own);
+        assert!(app.world().get::<SkinnedMesh>(outline).is_none());
+        let assets = app.world().resource::<Assets<Mesh>>();
+        assert!(
+            assets
+                .get(&own)
+                .unwrap()
+                .attribute(Mesh::ATTRIBUTE_JOINT_INDEX)
+                .is_none()
+        );
+        assert!(
+            assets
+                .get(&own)
+                .unwrap()
+                .attribute(Mesh::ATTRIBUTE_JOINT_WEIGHT)
+                .is_none()
+        );
+        assert!(
+            assets
+                .get(&mesh)
+                .unwrap()
+                .attribute(Mesh::ATTRIBUTE_JOINT_INDEX)
+                .is_some()
+        );
+        for x in [0.2, 0.4, 0.6] {
+            *app.world_mut().get_mut::<GlobalTransform>(joint).unwrap() =
+                GlobalTransform::from_translation(Vec3::X * x);
+            app.update();
+            let assets = app.world().resource::<Assets<Mesh>>();
+            let Some(VertexAttributeValues::Float32x3(positions)) = assets
+                .get(&own)
+                .unwrap()
+                .attribute(Mesh::ATTRIBUTE_POSITION)
+            else {
+                panic!("positions");
+            };
+            for (actual, rest) in positions.iter().zip(&vertices) {
+                assert!(Vec3::from(*actual).distance(*rest + Vec3::X * x) < 1e-5);
+            }
+        }
     }
 }

@@ -5,7 +5,7 @@ executable opens Landfall with a player, walking/traversal, vehicle controls,
 a following collision camera, and loading/title/play/pause states. Returning
 to the main menu preserves the current session, as in Go.
 
-This is a playable integration checkpoint. Clothing/animation attachment,
+This is a playable integration checkpoint. Remaining pose fitting,
 lighting and complete visual parity remain unfinished, as do sound, full
 menus/accounts, residents, injuries and other gameplay flows. Go remains the
 release default. See the [migration checkpoint](../../docs/rust-migration.md#step-3-local-review-checkpoint-2026-10-09)

@@ -247,14 +247,31 @@ Evidence lives in `build/migration-baseline/step-3-playable/` (ignored):
 - `clippy-final.log`: workspace/all-target Clippy with warnings denied passes;
   formatting and whitespace checks pass too.
 
-This is a gameplay integration checkpoint, not visual parity approval. Current
-captures visibly show clothing/skin fitting and animation attachment issues,
+This is a gameplay integration checkpoint, not visual parity approval. The original Step 3
+captures showed clothing/skin fitting and animation attachment issues,
 lighting/shadow differences, and a plain temporary menu/HUD. Full title/pause
 settings, wardrobe/account UI, sound, residents, injuries and remaining
 interactions are still covered by Steps 4–6. The Step 2 handling differences
 remain open. Native macOS arm64 and a software WebGL2 browser are local
 coverage only; Linux, Windows, macOS x64 and additional browser engines still
 need runtime validation. Stop here for review before starting Step 4.
+
+### Clothing attachment follow-up: 2026-10-09
+
+Fixed static hair/clothing during body animation. Animation-free garment
+scenes now finish mesh wiring, and their joint palettes bind by bone name
+to their own character’s animated skeleton. Desktop cloth retains those
+joints across frames; its private CPU mesh and outline both drop GPU skinning
+and use the updated vertices. Material adoption follows mesh/skin setup.
+
+Validation: 82 client library tests pass, including separate-character joint
+binding and multi-frame CPU cloth/outline regressions. Native Metal smoke
+passes walking, driving, exiting and menu transitions with cloth enabled.
+Chromium/SwiftShader WebGL2 captures show attached clothing at idle and while
+walking, with no JavaScript errors. Release WASM build and workspace/all-target
+Clippy pass. Evidence: `build/migration-baseline/clothing-fix/`.
+This fixes the reported attachment defect; remaining pose/lighting parity is
+still open. The user authorized continuing into Step 4 after this fix.
 
 ## Step 2 local review checkpoint: 2026-10-09
 
