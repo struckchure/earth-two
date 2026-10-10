@@ -9,14 +9,15 @@
   let unlocked = false;
   let x = 0, y = 0;
   const locked = () => document.pointerLockElement === canvas;
+  const touch = () => globalThis.earthTwoTouch?.active() === true;
   function updateHint() {
-    hint.hidden = !playing || locked();
+    hint.hidden = !playing || locked() || touch();
     hint.textContent = supported
       ? "Click to capture mouse · Esc to pause"
       : "Hold right-click to look around · Esc to pause";
   }
   function request() {
-    if (!playing || !supported || locked() || pending) return;
+    if (!playing || touch() || !supported || locked() || pending) return;
     pending = true;
     try {
       // Older browsers return void; newer ones also expose a Promise.
@@ -30,7 +31,7 @@
     if (locked()) {
       // A pending request may complete after a menu has opened.
       if (!playing) document.exitPointerLock();
-    } else if (playing) {
+    } else if (playing && !touch()) {
       unlocked = true;
     }
     updateHint();
@@ -46,7 +47,7 @@
     }
   });
   canvas.addEventListener("mousedown", event => {
-    if (playing && supported && !locked() && event.button === 0) {
+    if (playing && !touch() && supported && !locked() && event.button === 0) {
       request();
       // Capturing the mouse must not also activate a HUD control or attack.
       event.preventDefault();
@@ -55,7 +56,7 @@
   }, true);
   globalThis.earthTwoPointer = {
     setPlaying(value) {
-      if (playing === value) return;
+      if (playing === value) { updateHint(); return; }
       playing = value;
       x = y = 0;
       unlocked = false;

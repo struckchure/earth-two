@@ -10,15 +10,22 @@ import (
 
 // The browser shell handles the user gesture required for pointer lock.
 func holdCursor(hold bool) bool {
+	if touch := js.Global().Get("earthTwoTouch"); !touch.IsUndefined() {
+		touch.Call("setPlaying", hold)
+	}
 	pointer := js.Global().Get("earthTwoPointer")
 	if pointer.IsUndefined() {
 		return false
 	}
 	pointer.Call("setPlaying", hold)
-	return pointer.Call("locked").Bool()
+	return (hold && touchActive()) || pointer.Call("locked").Bool()
 }
 
 func cursorDelta(fallback rl.Vector2) rl.Vector2 {
+	if touchActive() {
+		delta := js.Global().Get("earthTwoTouch").Call("takeLook")
+		return rl.Vector2{X: float32(delta.Index(0).Float()), Y: float32(delta.Index(1).Float())}
+	}
 	pointer := js.Global().Get("earthTwoPointer")
 	if pointer.IsUndefined() || !pointer.Call("locked").Bool() {
 		return fallback
@@ -44,6 +51,9 @@ func setPaperCursorHidden(active bool) {
 	}
 }
 func paperCursorInside(_ rl.Vector2, _ *window.Window) bool {
+	if touchActive() {
+		return false
+	}
 	canvas := js.Global().Get("document").Call("getElementById", "canvas")
 	return !canvas.IsNull() && canvas.Call("matches", ":hover").Bool()
 }

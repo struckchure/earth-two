@@ -147,32 +147,23 @@ func menuButtons(p painter, l layout, s screen, focus int) {
 	}
 }
 
-// hud draws contextual actions and traversal hints, and driving, the speed.
-// Navigation bindings are listed in the Controls screen.
-func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illusion.Res[menu], players *illusion.Query1Where[character.Traversal, illusion.With[character.Player]],
+// hud synchronizes touch actions and draws driving status.
+// Keyboard bindings are listed in the Controls screen.
+func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illusion.Res[menu], players *touchPlayers,
 	prompt *illusion.Res[vehicle.Prompt], driving *illusion.Res[vehicle.Driving]) {
 	ww := win.Get()
 	p := newPainter(fonts.Get(), ww)
 	width, height := float32(ww.Width), float32(ww.Height)
+	mini, card := minimapRect(p), accountSummaryRect(p, width)
+	syncTouchHUD(mini.X/width, mini.Y/height, mini.Width/width, mini.Height/height, (card.Y+card.Height)/height)
+	syncTouchInteract(m.Get().screen() == playing && prompt.Get().Key == "E", prompt.Get().Text)
 
 	if m.Get().screen() != playing {
 		return
 	}
-	players.Each(func(_ ecs.Entity, s *character.Traversal) {
-		if s.Hint != "" {
-			p.text(s.Hint, rl.Vector2{X: p.px(20), Y: height - p.px(80)}, 15, semibold, colOnLight)
-		}
-	})
+	running, sliding := touchMovement(players)
+	syncTouchContext(driving.Get().Active(), running, sliding, prompt.Get().Key == "Q", driving.Get().Headlamps)
 	drawDriving(p, prompt.Get(), driving.Get(), width, height)
-	if driving.Get().Active() {
-		lamps := "Headlamps off"
-		if driving.Get().Headlamps {
-			lamps = "Headlamps on"
-		}
-		x, y := p.px(130), height-p.px(38)
-		x += p.keycap("H", rl.Vector2{X: x, Y: y}, 13) + p.px(8)
-		p.text(lamps, rl.Vector2{X: x, Y: y + p.px(4)}, 13, semibold, colText)
-	}
 }
 
 func drawFrameRate(p painter, height float32) rl.Rectangle {

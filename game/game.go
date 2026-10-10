@@ -131,6 +131,7 @@ func buildConfigured(m *menu, capture bool) *illusion.App {
 				AssetRoot: assetRoot(),
 			}),
 			physics.Plugin{},
+			touchPlugin{},
 			character.Plugin{Models: people, Wardrobe: "characters/wardrobe.json", Outline: shading.OutlinePass, DisableCloth: !simulateCloth || capture},
 			// Outlines on people only: the world is painted, not inked.
 			world.Plugin{Manifest: "world/world.json"},

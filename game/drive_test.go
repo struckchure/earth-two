@@ -18,7 +18,7 @@ import (
 )
 
 // hireBuggy is where Landfall parks the buggy for hire at the Pads.
-var hireBuggy = rl.Vector3{X: 9767.5, Z: -1788}
+var hireBuggy = rl.Vector3{X: 9761, Z: -1788}
 
 // TestDriveTheHireBuggy walks up to the buggy at the Pads, gets in, drives
 // it out across the ground and back to a stop, and gets out: Landfall's own

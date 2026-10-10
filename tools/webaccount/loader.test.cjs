@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/shell.html', 'utf8').split('<script>')[1].split('</script>')[0]
   .replace('__POINTER__', '')
+  .replace('__TOUCH__', '').replace('__CACHE__', fs.readFileSync(__dirname + '/cache.js', 'utf8'))
   .replace('__VERSIONS__', '{"game.wasm":"game-hash","raylib.data":"data-hash","raylib.wasm":"raylib-hash","account.js":"account-hash","wasm_exec.js":"runtime-hash","fs.js":"fs-hash","raylib.js":"glue-hash","jolt.js":"jolt-hash"}')
   .replace('__MODULES__', '["raylib","jolt"]')
   .replace('__SIZES__', '{"raylib.data":100,"game.wasm":8}');
@@ -23,17 +24,20 @@ function boot({httpError = false, scriptError = false} = {}) {
   const context = {
     console: {log() {}, warn() {}, error() {}},
     document: {getElementById: element, createElement: () => ({}), head: {append(script) {assert.match(script.src, /\?v=[\w-]+$/); queueMicrotask(() => scriptError ? script.onerror() : script.onload());}}},
-    setInterval: () => 1, clearInterval() {}, setTimeout,
+    setInterval: () => 1, clearInterval() {}, setTimeout, clearTimeout,
     requestAnimationFrame: callback => setTimeout(callback, 0),
     addEventListener() {}, location: {reload() {}},
-    ReadableStream, Response,
+    ReadableStream, Response, Blob,
     fetch: async url => {
+      if (url === 'raylib.data?v=data-hash') return new Response(new Uint8Array(100));
       assert.equal(url, 'game.wasm?v=game-hash');
       return new Response(new Uint8Array(8), {status: httpError ? 503 : 200, headers: {'Content-Length': '2', 'Content-Encoding': 'gzip'}});
     },
     createRaylib: async options => {
       assert.equal(options.locateFile('raylib.data'), 'raylib.data?v=data-hash');
       assert.equal(options.locateFile('raylib.wasm'), 'raylib.wasm?v=raylib-hash');
+      assert.equal(options.getPreloadedPackage().byteLength, 100);
+      assert.equal(options.getPreloadedPackage(), null);
       // Emscripten may report a compressed total. The build manifest is authoritative.
       options.setStatus('Downloading data... (50/10)');
       worldPercent = element('progress').value;

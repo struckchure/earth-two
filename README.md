@@ -310,6 +310,19 @@ Esc goes back. In play:
 | T / G | Talk / dance, until pressed again or until you do anything else |
 | Esc | Pause: Resume, Wardrobe, Controls, Main menu, Quit |
 
+On phones and tablets, the web version asks you to rotate to landscape.
+Use the left joystick to walk (push to its outer edge to run), and drag the
+world to look around. Circular Punch, Jump, Crouch, Roll and Pick up controls
+sit around the right thumb; the hand button
+appears only when you can interact, with the available action underneath.
+Crouch becomes Slide at sprinting speed; Roll appears while running. Pickup
+appears only for a valid nearby pickup prompt. In vehicles, the on-foot action
+buttons disappear and a headlamp toggle appears. Tap the top-left minimap to open the map. Journal and Pause sit below the
+money card. A first-time guide introduces touch controls. Tap menu items to
+select them; drag the map to pan and use −/+ to zoom. Movement, looking and
+actions support simultaneous touches. Connecting a mouse and clicking the
+game switches back to mouse controls.
+
 What E can use is in `game/use.go`: the seats on each kind of bench,
 stool, chair and bunk, and the spot in front of each machine (air
 scrubbers, fans, generators, pumps, valve stations, junction boxes,
@@ -1044,6 +1057,26 @@ requests. Each run uploads the builds as artifacts.
   builds bundle `build/assets` into the page at that path.
 
 ## Notes for the browser
+
+Build artifacts use SHA-256 version URLs. The Go web server serves matching
+versions with a one-year immutable cache policy; HTML and the service worker
+revalidate. On HTTPS (or localhost), a service worker also stores successful
+versioned downloads in Cache Storage and reuses them across visits. It caches
+only game artifacts, never navigation, account requests, or multiplayer traffic.
+It retains at most two versions per artifact. Storage failures fall back to
+network loading; clearing site data or browser eviction requires downloading again.
+The large world bundle and Go game binary are also stored in IndexedDB,
+including on plain HTTP LAN URLs where service workers are unavailable. The
+loader reads an exact matching version from device storage before fetching,
+waits for successful downloads to be saved, and labels saved loads separately.
+Only one complete revision of each binary is kept in IndexedDB.
+
+Deploying a new build changes only the URLs of modified files, so the next page
+load fetches those files and reuses the rest. This is file-level updating, not
+binary delta patching: changing `raylib.data` still downloads the complete asset
+bundle. The page needs the network to check the current build; this does not
+provide fully offline startup or replace the existing native OTA updater.
+
 
 - The game fills the page and renders at the screen's full resolution
   (illusion's `window.Config` with `Resizable` and `HighDPI`). 2D drawing is

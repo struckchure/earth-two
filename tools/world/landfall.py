@@ -704,10 +704,11 @@ def _pads(put):
     put("caravan_cart", w - 8, s + 4)
     # Off the pads, west: what arrivals can hire or buy to get about, a
     # rover, a buggy, a trike and a bike side by side north of the caravan,
-    # noses north.
-    put("rover", w - 12, s + 22)
-    put("buggy", w - 8.5, s + 22)
-    put("trike", w - 6, s + 22)
+    # noses north. Leave at least three metres between their outer edges
+    # so both side exits and the walking aisles stay clear.
+    put("rover", w - 22, s + 22)
+    put("buggy", w - 15, s + 22)
+    put("trike", w - 9, s + 22)
     put("bike", w - 4, s + 22)
     put("filter_case", w - 4.5, s + 4)
     # The fuel depot, north of the Pads.
@@ -820,7 +821,8 @@ def _hold(put):
     put("windsock", cx + 8, cy - 5)
     put("trike", cx - 4, cy + 7, turns=1)
     put("covered_car", cx + 10, cy + 1, turns=1)
-    put("buggy", cx - 8, cy + 6, turns=1)
+    # Leave a walking aisle between the buggy's nose and the trike.
+    put("buggy", cx - 12, cy + 6, turns=1)
     put("rebreather", cx + 1, cy - 1, 0.4)
     put("water_canister", cx - 1, cy + 1)
     put("radio", cx - .6, cy - .8)

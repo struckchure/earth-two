@@ -158,13 +158,6 @@ func viewFrom(eye transform.Transform, cam render.Camera3d, ww *window.Window) v
 // speed: square, in the bottom right.
 func drawDriving(p painter, pr *vehicle.Prompt, d *vehicle.Driving, width, height float32) {
 	y := height - p.px(84)
-	if pr.Key != "" {
-		x := p.px(20)
-		x += p.keycap(pr.Key, rl.Vector2{X: x, Y: y}, 14) + p.px(8)
-		p.text(pr.Text, rl.Vector2{X: x + 1, Y: y + p.px(4) + 1}, 15, semibold, rl.NewColor(0, 0, 0, 110))
-		p.text(pr.Text, rl.Vector2{X: x, Y: y + p.px(4)}, 15, semibold, colText)
-		y -= p.px(30)
-	}
 	if note := pr.Noting(); note != "" {
 		p.text(note, rl.Vector2{X: p.px(20) + 1, Y: y + p.px(4) + 1}, 15, semibold, rl.NewColor(0, 0, 0, 110))
 		p.text(note, rl.Vector2{X: p.px(20), Y: y + p.px(4)}, 15, semibold, colAccent)

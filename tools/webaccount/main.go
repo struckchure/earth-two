@@ -19,6 +19,15 @@ var shell []byte
 //go:embed pointer.js
 var pointer []byte
 
+//go:embed touch.js
+var touch []byte
+
+//go:embed service-worker.js
+var serviceWorker []byte
+
+//go:embed cache.js
+var cacheScript []byte
+
 func main() {
 	if len(os.Args) != 2 {
 		fail(fmt.Errorf("usage: webaccount index.html"))
@@ -30,6 +39,9 @@ func main() {
 	}
 	data, err = buildShell(data, filepath.Dir(path))
 	if err != nil {
+		fail(err)
+	}
+	if err := os.WriteFile(filepath.Join(filepath.Dir(path), "service-worker.js"), serviceWorker, 0644); err != nil {
 		fail(err)
 	}
 	if err := os.WriteFile(path, data, 0644); err != nil {
@@ -76,6 +88,8 @@ func buildShell(source []byte, dir string) ([]byte, error) {
 	}
 	result := bytes.ReplaceAll(shell, []byte("__MODULES__"), match[1])
 	result = bytes.ReplaceAll(result, []byte("__POINTER__"), pointer)
+	result = bytes.ReplaceAll(result, []byte("__TOUCH__"), touch)
+	result = bytes.ReplaceAll(result, []byte("__CACHE__"), cacheScript)
 	versionJSON, err := json.Marshal(versions)
 	if err != nil {
 		return nil, err

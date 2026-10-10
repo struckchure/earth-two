@@ -5,6 +5,8 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/sha256"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -152,5 +154,52 @@ func TestFileHandlerReleasesRoot(t *testing.T) {
 	}
 	if err := os.RemoveAll(dir); err != nil {
 		t.Fatalf("remove closed root: %v", err)
+	}
+}
+
+func TestVersionedArtifactCaching(t *testing.T) {
+	dir := t.TempDir()
+	original := []byte("first build")
+	version := fmt.Sprintf("%x", sha256.Sum256(original))
+	for _, name := range []string{"game.wasm", "index.html"} {
+		if err := os.WriteFile(filepath.Join(dir, name), original, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h, err := newFileHandler(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Close()
+	request := func(url, etag string) *httptest.ResponseRecorder {
+		r := httptest.NewRequest("GET", url, nil)
+		r.Header.Set("If-None-Match", etag)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w
+	}
+	url := "/game.wasm?v=" + version
+	first := request(url, "")
+	if first.Code != 200 || first.Header().Get("Cache-Control") != "public, max-age=31536000, immutable" || !bytes.Equal(first.Body.Bytes(), original) {
+		t.Fatalf("bad versioned response: %v", first)
+	}
+	if got := request(url, first.Header().Get("ETag")); got.Code != 304 || got.Body.Len() != 0 {
+		t.Fatal("conditional request resent the file")
+	}
+	for _, url := range []string{"/", "/game.wasm", "/index.html?v=" + version, "/missing.wasm?v=" + version} {
+		if got := request(url, ""); got.Header().Get("Cache-Control") != "no-cache" {
+			t.Fatalf("mutable or missing URL cached as immutable: %s", url)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(dir, "game.wasm"), []byte("second build"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	stale := request(url, "")
+	if stale.Code != 409 || stale.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("old URL served new build bytes")
+	}
+	updated := fmt.Sprintf("%x", sha256.Sum256([]byte("second build")))
+	if got := request("/game.wasm?v="+updated, ""); got.Code != 200 || got.Body.String() != "second build" {
+		t.Fatal("new build not available")
 	}
 }

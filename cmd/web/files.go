@@ -3,12 +3,16 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 // Serve precompressed build artifacts when the browser accepts gzip. The
@@ -28,11 +32,79 @@ func newFileHandler(dir string) (*fileHandler, error) {
 		return nil, err
 	}
 	files := http.FileServer(http.FS(root.FS()))
+	// Cache digests per file revision, not per caller-supplied URL.
+	var digestMu sync.Mutex
+	type revision struct {
+		info os.FileInfo
+		hash string
+	}
+	digests := map[string]revision{}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Revalidate so rebuilding at the same URL cannot leave stale code or
 		// assets in the browser. ServeContent provides Last-Modified and 304s.
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Vary", "Accept-Encoding")
+		name := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
+		ext := path.Ext(name)
+		version := r.URL.Query().Get("v")
+		if (r.Method == http.MethodGet || r.Method == http.MethodHead) && version != "" && (ext == ".js" || ext == ".wasm" || ext == ".data") {
+			file, err := root.Open(name)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			defer file.Close()
+			info, err := file.Stat()
+			if err != nil || !info.Mode().IsRegular() {
+				http.NotFound(w, r)
+				return
+			}
+			digestMu.Lock()
+			cached, ok := digests[name]
+			if !ok || !os.SameFile(cached.info, info) || cached.info.Size() != info.Size() || !cached.info.ModTime().Equal(info.ModTime()) {
+				hash := sha256.New()
+				_, err = io.Copy(hash, file)
+				if err == nil {
+					cached = revision{info, fmt.Sprintf("%x", hash.Sum(nil))}
+					digests[name] = cached
+				}
+			}
+			digestMu.Unlock()
+			if err != nil {
+				http.Error(w, "Could not read build artifact", http.StatusInternalServerError)
+				return
+			}
+			if version != cached.hash {
+				// Never cache the current bytes under an old deployment's hash.
+				w.Header().Set("Cache-Control", "no-store")
+				http.Error(w, "Build changed. Reload the page to get the current version.", http.StatusConflict)
+				return
+			}
+			if _, err := file.Seek(0, io.SeekStart); err != nil {
+				http.Error(w, "Could not read build artifact", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			// Weak because gzip and uncompressed responses encode the same content.
+			w.Header().Set("ETag", `W/"`+cached.hash+`"`)
+			contentType := mime.TypeByExtension(ext)
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+			w.Header().Set("Content-Type", contentType)
+			if acceptsGzip(r.Header.Get("Accept-Encoding")) {
+				if compressed, err := root.Open(name + ".gz"); err == nil {
+					defer compressed.Close()
+					if packed, err := compressed.Stat(); err == nil && packed.Mode().IsRegular() && !packed.ModTime().Before(info.ModTime()) {
+						w.Header().Set("Content-Encoding", "gzip")
+						http.ServeContent(w, r, name, info.ModTime(), compressed)
+						return
+					}
+				}
+			}
+			http.ServeContent(w, r, name, info.ModTime(), file)
+			return
+		}
 		if (r.Method == http.MethodGet || r.Method == http.MethodHead) && acceptsGzip(r.Header.Get("Accept-Encoding")) && !strings.HasSuffix(r.URL.Path, "/") {
 			name := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
 			original, err := root.Stat(name)

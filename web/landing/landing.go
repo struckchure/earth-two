@@ -51,7 +51,17 @@ func Handler(trailer string) (http.Handler, error) {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(name)))
+		ext := path.Ext(name)
+		contentType := mime.TypeByExtension(ext)
+		// Font mappings depend on the host's MIME database and may be absent
+		// on Windows. Our embedded TrueType fonts always use the same type.
+		if ext == ".ttf" {
+			contentType = "font/ttf"
+		}
+		// An empty header would suppress ServeContent's content detection.
+		if contentType != "" {
+			w.Header().Set("Content-Type", contentType)
+		}
 		w.Header().Set("Cache-Control", "public, max-age=3600")
 		if name == "styles.css" {
 			w.Header().Set("Cache-Control", "no-cache")
