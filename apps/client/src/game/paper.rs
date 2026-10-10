@@ -12,6 +12,7 @@ pub(super) const PAPER: Color = Color::srgb_u8(236, 227, 207);
 pub(super) const HIGHLIGHT: Color = Color::srgba_u8(255, 200, 80, 120);
 #[derive(Resource)]
 pub struct Fonts {
+    pub(super) regular: Handle<Font>,
     pub(super) typed: Handle<Font>,
     pub(super) bold: Handle<Font>,
     pub(super) label: Handle<Font>,
@@ -19,6 +20,9 @@ pub struct Fonts {
 }
 pub fn fonts(mut commands: Commands, mut fonts: ResMut<Assets<Font>>) {
     commands.insert_resource(Fonts {
+        regular: fonts.add(Font::from_bytes(
+            include_bytes!("../../../../game/fonts/Inter-Regular.ttf").to_vec(),
+        )),
         typed: fonts.add(Font::from_bytes(
             include_bytes!("../../../../game/fonts/CourierPrime-Regular.ttf").to_vec(),
         )),

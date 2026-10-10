@@ -655,3 +655,90 @@ fn distant_bodies_keep_lockstep() {
         expect % 1.0
     );
 }
+
+#[test]
+fn pausing_holds_body_and_garment_clip_time_blend_and_state_then_resumes() {
+    for mode in [Anim::Fix, Anim::Walk, Anim::Interact] {
+        let mut a = app();
+        a.insert_resource(Libraries {
+            by_model: HashMap::from([(
+                "m".into(),
+                ClipLibrary::keyframed([("idle".into(), 61), ("pose".into(), 121)]),
+            )]),
+        });
+        a.insert_resource(Roster {
+            skins: vec![Skin::new(
+                "m",
+                HashMap::from([
+                    (Anim::Idle, Clip::named("idle")),
+                    (mode, Clip::named("pose")),
+                ]),
+                1.,
+            )],
+        });
+        let root = a
+            .world_mut()
+            .spawn((
+                Character::default(),
+                Intent::default(),
+                CharacterController {
+                    grounded: true,
+                    ..default()
+                },
+                Traversal::default(),
+                MotionSamples::default(),
+                Transform::default(),
+            ))
+            .id();
+        let mut p = AnimationPlayer::new("m");
+        p.play("idle");
+        p.play("pose").fade_in(0.3);
+        p.seek(0.4);
+        let body = a
+            .world_mut()
+            .spawn((
+                Body,
+                State {
+                    current: mode,
+                    ..default()
+                },
+                p,
+                Transform::default(),
+                ChildOf(root),
+            ))
+            .id();
+        let garment = a
+            .world_mut()
+            .spawn((
+                Garment {
+                    slot: Slot::Top,
+                    skin: vec![],
+                    footwear: None,
+                },
+                AnimationPlayer::new("m"),
+                ChildOf(body),
+            ))
+            .id();
+        a.world_mut().resource_mut::<Controls>().enabled = false;
+        let mut before = a.world().get::<AnimationPlayer>(body).unwrap().clone();
+        before.paused = true;
+        tick(&mut a, 60);
+        assert_eq!(a.world().get::<State>(body).unwrap().current, mode);
+        assert_eq!(
+            a.world().get::<AnimationPlayer>(body).unwrap().clone(),
+            before
+        );
+        assert_eq!(
+            a.world().get::<AnimationPlayer>(garment).unwrap().clone(),
+            before
+        );
+        a.world_mut().get_mut::<Intent>(root).unwrap().hold = mode;
+        a.world_mut().resource_mut::<Controls>().enabled = true;
+        tick(&mut a, 2);
+        assert!(!a.world().get::<AnimationPlayer>(body).unwrap().paused);
+        assert_ne!(
+            a.world().get::<AnimationPlayer>(body).unwrap().clone(),
+            before
+        );
+    }
+}

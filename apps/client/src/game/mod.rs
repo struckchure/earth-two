@@ -3,10 +3,15 @@
 //! the current world; Play resumes it instead of spawning a second session.
 pub mod ambience;
 pub mod camera;
+pub mod contracts;
+#[cfg(feature = "viewer")]
+mod contracts_render;
 pub mod crowd;
 pub mod cues;
 pub mod drive_sound;
 pub mod effects;
+#[cfg(feature = "viewer")]
+mod hud_render;
 #[cfg(feature = "viewer")]
 mod identity_render;
 pub mod injuries;
@@ -25,8 +30,10 @@ pub mod people;
 mod render;
 pub mod residents;
 pub mod seats;
+pub mod settings;
 pub mod sound;
 pub mod ui_sound;
+pub mod uses;
 pub mod wardrobe;
 #[cfg(feature = "viewer")]
 mod wardrobe_render;
@@ -54,8 +61,11 @@ pub enum Screen {
     Paused,
     Dressing,
     Controls,
+    Settings,
     Identity,
     Mapping,
+    ContractOffer,
+    ContractJournal,
 }
 
 #[derive(Message, Debug, Clone, Copy)]
@@ -66,8 +76,13 @@ pub enum MenuAction {
     MainMenu,
     Wardrobe,
     Controls,
+    Settings,
     Identity,
     Map,
+    Journal,
+    AcceptContract,
+    Volume(i8),
+    Shadows,
     IdentityAct(crate::identity::IdentityAction),
     Quit,
     Back,
@@ -93,6 +108,10 @@ pub struct GameAssets {
 pub enum StartAt {
     #[default]
     Arrival,
+    Terminal,
+    Bench,
+    Machine,
+    Bell,
     Hull,
     Buggy,
     Bike,
@@ -142,6 +161,15 @@ impl Plugin for GamePlugin {
         .init_resource::<ButtonInput<KeyCode>>()
         .init_resource::<StartAt>()
         .init_resource::<crowd::TestCrowd>()
+        .init_resource::<settings::Settings>()
+        .add_message::<uses::UseSound>()
+        .add_systems(
+            Update,
+            settings::keys
+                .after(crowd::input)
+                .before(GameSet::Menu)
+                .before(crate::sky::SkySystems),
+        )
         .add_systems(Startup, crowd::review)
         .add_systems(Update, crowd::input.before(GameSet::Menu))
         .add_systems(
@@ -199,7 +227,10 @@ impl Plugin for GamePlugin {
                 .after(injuries::recover)
                 .before(VehicleSystems::Drive),
         )
-        .add_systems(Update, (spawn_player, finish_loading).chain())
+        .add_systems(
+            Update,
+            (contracts::load, uses::load, spawn_player, finish_loading).chain(),
+        )
         .add_systems(
             Update,
             seats::driving_input
@@ -208,10 +239,23 @@ impl Plugin for GamePlugin {
         )
         .add_systems(
             Update,
-            (seats::offer, seats::receive, seats::sit)
+            (seats::offer, seats::receive)
                 .chain()
                 .in_set(GameSet::Seats),
         )
+        .add_systems(
+            Update,
+            (
+                contracts::interact,
+                uses::interact,
+                seats::sit,
+                uses::sounds,
+            )
+                .chain()
+                .after(GameSet::Seats)
+                .before(CharacterSystems::Act),
+        )
+        .add_systems(Update, contracts::pointer.before(GameSet::Menu))
         .add_systems(
             Update,
             (camera::follow, respawn).chain().in_set(GameSet::Camera),
@@ -261,6 +305,7 @@ fn request_world(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_player(
     mut commands: Commands,
     terrain: Option<Res<Terrain>>,
@@ -269,12 +314,35 @@ fn spawn_player(
     mut session: ResMut<Session>,
     start: Res<StartAt>,
     cars: Query<(&vehicle::Drivable, &Transform)>,
+    jobs: Option<Res<contracts::Contracts>>,
+    uses: Option<Res<uses::Uses>>,
 ) {
     if terrain.is_none() || roster.skins.is_empty() || session.player.is_some() {
         return;
     }
     let feet = match *start {
         StartAt::Arrival | StartAt::Crowd | StartAt::Injury | StartAt::Fatal => ARRIVAL,
+        StartAt::Terminal => {
+            let Some(jobs) = jobs else {
+                return;
+            };
+            jobs.offer
+        }
+        StartAt::Bench | StartAt::Machine | StartAt::Bell => {
+            let Some(uses) = uses else {
+                return;
+            };
+            let kind = match *start {
+                StartAt::Bench => uses::Kind::Sit,
+                StartAt::Machine => uses::Kind::Repair,
+                _ => uses::Kind::Ring,
+            };
+            let Some(spot) = uses.review(kind) else {
+                session.error = Some("missing authored interaction review point".into());
+                return;
+            };
+            spot.approach()
+        }
         StartAt::Hull => Vec3::new(-15.0, 0.0, 6.0),
         StartAt::Traversal => TRAVERSAL_ORIGIN + Vec3::new(1.0, 0.0, 1.95),
         StartAt::Buggy
@@ -357,10 +425,11 @@ fn finish_loading(
 
 fn lock_controls(
     screen: Res<State<Screen>>,
+    menu: Res<menu::Menu>,
     mut controls: ResMut<character::Controls>,
     mut physics: ResMut<Time<Physics>>,
 ) {
-    controls.enabled = *screen.get() == Screen::Playing;
+    controls.enabled = *screen.get() != Screen::Loading && menu.screen() == Screen::Playing;
     set_paused(&mut physics, !controls.enabled);
 }
 fn unlock(mut controls: ResMut<character::Controls>, mut physics: ResMut<Time<Physics>>) {

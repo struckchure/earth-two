@@ -64,6 +64,7 @@ pub fn knock_down(root: &mut EntityCommands, at: Transform, health: Health, velo
         CharacterController,
         ControllerState,
         crate::game::seats::Seated,
+        crate::game::uses::FurnitureSeat,
     )>()
     .insert((
         health,

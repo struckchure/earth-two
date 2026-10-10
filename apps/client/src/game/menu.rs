@@ -14,19 +14,23 @@ use bevy::prelude::*;
 pub struct Page {
     pub screen: Screen,
     pub focus: usize,
+    pub receipt: usize,
 }
 #[derive(Resource)]
 pub struct Menu {
     pub stack: Vec<Page>,
     pub admitted: Option<f32>,
+    pub contract_stamp: Option<super::contracts::ContractStamp>,
 }
 impl Default for Menu {
     fn default() -> Self {
         Self {
             admitted: None,
+            contract_stamp: None,
             stack: vec![Page {
                 screen: Screen::Title,
                 focus: 0,
+                receipt: 0,
             }],
         }
     }
@@ -61,8 +65,12 @@ impl Menu {
             p.focus = focus % n;
         }
     }
-    fn open(&mut self, screen: Screen) {
-        self.stack.push(Page { screen, focus: 0 });
+    pub(super) fn open(&mut self, screen: Screen) {
+        self.stack.push(Page {
+            screen,
+            focus: 0,
+            receipt: 0,
+        });
     }
     fn back(&mut self) {
         if !self.stack.is_empty() && !(self.stack.len() == 1 && self.on_title()) {
@@ -87,6 +95,19 @@ impl Menu {
             }
             MenuAction::Identity if matches!(self.screen(), Screen::Title | Screen::Paused) => {
                 self.open(Screen::Identity)
+            }
+            MenuAction::Settings if matches!(self.screen(), Screen::Title | Screen::Paused) => {
+                self.open(Screen::Settings)
+            }
+            MenuAction::Journal if self.screen() == Screen::Playing => {
+                self.open(Screen::ContractJournal)
+            }
+            MenuAction::AcceptContract if self.screen() == Screen::ContractOffer => {
+                self.contract_stamp = Some(super::contracts::ContractStamp {
+                    screen: Screen::ContractOffer,
+                    age: 0.,
+                });
+                self.back();
             }
             MenuAction::Map if self.screen() == Screen::Playing => self.open(Screen::Mapping),
             MenuAction::Focus(focus) => self.set_focus(focus),
@@ -128,6 +149,7 @@ pub fn choices(screen: Screen) -> Vec<(&'static str, MenuAction)> {
             ("Wardrobe", MenuAction::Wardrobe),
             ("Controls", MenuAction::Controls),
             ("Identity", MenuAction::Identity),
+            ("Settings", MenuAction::Settings),
         ],
         Screen::Paused => vec![
             ("Resume", MenuAction::Resume),
@@ -135,6 +157,7 @@ pub fn choices(screen: Screen) -> Vec<(&'static str, MenuAction)> {
             ("Controls", MenuAction::Controls),
             ("Main menu", MenuAction::MainMenu),
             ("Identity", MenuAction::Identity),
+            ("Settings", MenuAction::Settings),
         ],
         Screen::Identity => IdentityAction::ITEMS
             .into_iter()
@@ -150,7 +173,18 @@ pub fn choices(screen: Screen) -> Vec<(&'static str, MenuAction)> {
             })
             .collect(),
         Screen::Dressing => vec![("Done", MenuAction::Back)],
+        Screen::ContractOffer => vec![
+            ("Accept contract", MenuAction::AcceptContract),
+            ("Leave it for now", MenuAction::Back),
+        ],
+        Screen::ContractJournal => vec![("Back", MenuAction::Back)],
         Screen::Controls => vec![("Back", MenuAction::Back)],
+        Screen::Settings => vec![
+            ("Volume down", MenuAction::Volume(-1)),
+            ("Volume up", MenuAction::Volume(1)),
+            ("Shadows", MenuAction::Shadows),
+            ("Back", MenuAction::Back),
+        ],
         _ => vec![],
     };
     if !cfg!(target_arch = "wasm32") && matches!(screen, Screen::Title | Screen::Paused) {
@@ -172,6 +206,16 @@ pub fn keys(
     {
         actions.write(if menu.screen() == Screen::Playing {
             MenuAction::Map
+        } else {
+            MenuAction::Back
+        });
+        return;
+    }
+    if keys.just_pressed(KeyCode::KeyJ)
+        && matches!(menu.screen(), Screen::Playing | Screen::ContractJournal)
+    {
+        actions.write(if menu.screen() == Screen::Playing {
+            MenuAction::Journal
         } else {
             MenuAction::Back
         });
@@ -235,6 +279,9 @@ pub fn actions(
     mut players: Query<&mut Outfit, With<Player>>,
     mut exit: MessageWriter<AppExit>,
     mut identity: ResMut<IdentityPanel>,
+    mut jobs: Option<ResMut<super::contracts::Contracts>>,
+    mut settings: ResMut<super::settings::Settings>,
+    mut shadows: ResMut<crate::shading::ShadowQuality>,
 ) {
     if *screen.get() == Screen::Loading {
         actions.clear();
@@ -254,6 +301,21 @@ pub fn actions(
             && menu.screen() == Screen::Identity
         {
             identity.act(*action);
+        }
+        if matches!(action, MenuAction::AcceptContract) && menu.screen() == Screen::ContractOffer {
+            let Some(jobs) = jobs.as_mut() else {
+                continue;
+            };
+            if !jobs.accept() {
+                continue;
+            }
+        }
+        if menu.screen() == Screen::Settings {
+            match action {
+                MenuAction::Volume(step) => settings.adjust_volume(*step),
+                MenuAction::Shadows => super::settings::next_shadow(&mut shadows),
+                _ => {}
+            }
         }
         menu.apply(*action, &wardrobe, &mut outfit);
     }

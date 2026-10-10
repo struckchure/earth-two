@@ -123,6 +123,13 @@ pub fn animate_body(
     let c = body.character;
     let cc = body.controller;
     let samples = body.samples;
+    // Menus pause the entire blended pose. Resetting to Idle while CPU cloth
+    // holds its last mesh separates the naked body from the garment.
+    if !f.enabled || f.paused {
+        p.paused = true;
+        return;
+    }
+    p.paused = false;
     let input = &mut *body.intent;
     // The clip clock reads st.turn as the facing system left it this frame.
     p.manual_time = false;

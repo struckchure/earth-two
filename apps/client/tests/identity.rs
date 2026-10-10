@@ -254,6 +254,8 @@ fn live_menu_routes_text_and_actions_without_leaking_input_between_screens() {
     ))
     .init_state::<Screen>()
     .init_resource::<Menu>()
+    .init_resource::<earth_two_client::game::settings::Settings>()
+    .init_resource::<earth_two_client::shading::ShadowQuality>()
     .init_resource::<Wardrobe>()
     .init_resource::<ButtonInput<KeyCode>>()
     .add_message::<MenuAction>()

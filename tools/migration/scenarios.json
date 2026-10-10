@@ -186,7 +186,7 @@
       "setup_and_inputs": "Walk/run/turn in normal desktop clothing; repeat browser skeletal clothing and distant crowd views.",
       "expected": "Desktop cloth retained; browser budget retained; no clipping, attachment lag or lost animation.",
       "comparison": "Normal-play capture, cloth tests and visual review",
-      "status": "defined; acceptance pending",
+      "status": "cloth and pause synchronization integrated; matched presentation acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/CHAR-02"
     },
     {
@@ -243,8 +243,8 @@
       ],
       "setup_and_inputs": "Orbit near walls, zoom/follow on foot and driving; use benches/machines; compete seat/contract prompts; map/P teleport.",
       "expected": "Same camera response, occlusion, prompt priority, reach and destination/vehicle handling.",
-      "comparison": "Source tests and hands-on playthrough",
-      "status": "defined; acceptance pending",
+      "comparison": "Source-derived interaction tests and native/browser world-HUD checkpoint; matched Go/Rust playthrough pending",
+      "status": "furniture/machine/bell, camera and navigation integrated; matched acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/CAM-01"
     },
     {
@@ -260,8 +260,8 @@
       ],
       "setup_and_inputs": "Review all screens with keyboard and mouse; accept/deliver the first work order; inspect rewards, journal and debt.",
       "expected": "Exact copy, choices, values, rewards and navigation; matching fonts, layout and stamps.",
-      "comparison": "Title/pause/wardrobe stack and live form evidence in step-6-wardrobe; remaining screens and delivery playthrough pending",
-      "status": "wardrobe checkpoint integrated; remaining screens and acceptance pending",
+      "comparison": "Title/pause/wardrobe/identity/map checkpoints plus contract journey, ledger, receipts, account HUD and native mouse/resize evidence in step-9-contracts; matched Go/Rust visual and platform acceptance pending",
+      "status": "menus, settings, HUD, maps and first contract/ledger integrated; matched acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/UI-01"
     },
     {
@@ -276,7 +276,7 @@
       "setup_and_inputs": "Walk on each surface; drive all families; trigger impact/action cues, pause and resume; activate browser audio.",
       "expected": "Same clips, gain/pitch, loops, timing and attenuation; no duplicate or stuck loops.",
       "comparison": "Ambience evidence in step-5-ambience; Go-derived cue tests, finite decoder/voice lifecycle tests and real character/vehicle/menu playback smoke in step-5-cues; remaining UI/interactions and paired listening captures pending",
-      "status": "ambience, gameplay and playable menu cues integrated; remaining UI/interactions and acceptance pending",
+      "status": "ambience, gameplay/UI, bell and live master volume integrated; matched acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/AUDIO-01"
     },
     {

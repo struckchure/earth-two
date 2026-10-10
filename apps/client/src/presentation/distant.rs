@@ -34,7 +34,7 @@ pub fn lockstep(
 ) {
     let t = clock.elapsed_secs();
     for (e, mut p, state) in &mut bodies {
-        if state.downed {
+        if state.downed || p.paused {
             continue;
         }
         p.seek(lockstep_time(t, e));

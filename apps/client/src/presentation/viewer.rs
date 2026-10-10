@@ -618,10 +618,13 @@ fn simulate_cloth(
     physics: Option<Res<Time<avian3d::prelude::Physics>>>,
     time: Res<Time>,
 ) {
-    if !controls.enabled || paused(physics.as_deref()) {
-        return;
-    }
-    let dt = time.delta_secs();
+    // Keep skinning/attachment current in menus (new clothes, body rotation,
+    // pose corrections), but do not advance the cloth simulation clock.
+    let dt = if !controls.enabled || paused(physics.as_deref()) {
+        0.
+    } else {
+        time.delta_secs()
+    };
     for (e, mut cloth, scene, drawn, cloth_meshes) in &mut garments {
         let Some(model) = store.get(&scene.path) else {
             continue;
@@ -928,6 +931,45 @@ mod tests {
                 assert!(Vec3::from(*actual).distance(*rest + Vec3::X * x) < 1e-5);
             }
         }
+        app.world_mut().resource_mut::<Controls>().enabled = false;
+        let spare = app
+            .world()
+            .get::<Cloth>(garment)
+            .unwrap()
+            .state
+            .as_ref()
+            .unwrap()
+            .clone()
+            .schedule(0.);
+        // A paused wardrobe/pose change still moves pinned cloth with its bones.
+        for x in [0.8, 1.0] {
+            *app.world_mut().get_mut::<GlobalTransform>(joint).unwrap() =
+                GlobalTransform::from_translation(Vec3::X * x);
+            app.update();
+            let assets = app.world().resource::<Assets<Mesh>>();
+            let Some(VertexAttributeValues::Float32x3(positions)) = assets
+                .get(&own)
+                .unwrap()
+                .attribute(Mesh::ATTRIBUTE_POSITION)
+            else {
+                panic!("positions");
+            };
+            for (actual, rest) in positions.iter().zip(&vertices) {
+                assert!(Vec3::from(*actual).distance(*rest + Vec3::X * x) < 1e-5);
+            }
+            assert_eq!(
+                app.world()
+                    .get::<Cloth>(garment)
+                    .unwrap()
+                    .state
+                    .as_ref()
+                    .unwrap()
+                    .clone()
+                    .schedule(0.),
+                spare
+            );
+        }
+        app.world_mut().resource_mut::<Controls>().enabled = true;
         let mut cloth_again = app.world().get::<Cloth>(garment).unwrap().clone();
         cloth_again.state = None;
         app.world_mut().entity_mut(garment).remove::<Cloth>();

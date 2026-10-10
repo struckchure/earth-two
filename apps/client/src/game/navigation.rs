@@ -26,7 +26,12 @@ impl Plugin for NavigationPlugin {
                 teleport.after(VehicleSystems::Drive).before(GameSet::Seats),
             );
         #[cfg(feature = "viewer")]
-        app.add_systems(Update, pointer.before(GameSet::Menu));
+        app.add_systems(
+            Update,
+            pointer
+                .before(super::contracts::pointer)
+                .before(GameSet::Menu),
+        );
     }
 }
 /// Logical window coordinates; independent of a window so the real input flow is testable headlessly.
@@ -174,7 +179,7 @@ fn input(
     pending.0 = Some(clamp(map, to));
 }
 #[cfg(feature = "viewer")]
-fn pointer(
+pub(super) fn pointer(
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut scroll: MessageReader<bevy::input::mouse::MouseWheel>,

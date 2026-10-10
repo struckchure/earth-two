@@ -165,7 +165,13 @@ pub fn receive(
 pub fn sit(
     mut commands: Commands,
     mut roots: Query<
-        (&Seated, &mut Transform, &mut Intent, &Children),
+        (
+            &Seated,
+            Option<&super::uses::FurnitureSeat>,
+            &mut Transform,
+            &mut Intent,
+            &Children,
+        ),
         (With<Player>, Without<Body>, Without<Drivable>),
     >,
     cars: Query<(&Transform, &Seats), (With<Drivable>, Without<Player>, Without<Body>)>,
@@ -177,14 +183,18 @@ pub fn sit(
     controls: Res<character::Controls>,
 ) {
     let _ = &mut commands;
-    for (seat, mut root, mut intent, children) in &mut roots {
-        let Ok((car, seats)) = cars.get(seat.vehicle) else {
-            continue;
+    for (seat, furniture, mut root, mut intent, children) in &mut roots {
+        let (position, rotation) = if let Some(chair) = furniture {
+            (chair.spot.at, Quat::from_rotation_y(chair.spot.facing))
+        } else {
+            let Ok((car, seats)) = cars.get(seat.vehicle) else {
+                continue;
+            };
+            let Some(spec) = seats.0.first() else {
+                continue;
+            };
+            vehicle::spec::seat_pose(car.translation, car.rotation, spec)
         };
-        let Some(spec) = seats.0.first() else {
-            continue;
-        };
-        let (position, rotation) = vehicle::spec::seat_pose(car.translation, car.rotation, spec);
         root.translation = position + rotation * Vec3::Y * CAPSULE_HEIGHT * 0.5;
         root.rotation = rotation;
         *intent = default();

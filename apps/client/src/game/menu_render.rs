@@ -48,6 +48,7 @@ fn panel(screen: Screen, height: f32, sc: f32) -> Rect {
     let y = ((height / sc - h) / 2.).max(24.);
     Rect::new(x, y, x + w, y + h)
 }
+#[allow(clippy::too_many_arguments)]
 fn form(
     c: &mut ChildSpawnerCommands,
     screen: Screen,
@@ -56,6 +57,8 @@ fn form(
     interactive: bool,
     f: &Fonts,
     sc: f32,
+    settings: &super::settings::Settings,
+    shadows: crate::shading::ShadowQuality,
 ) {
     let title = screen == Screen::Title;
     let padding = if title {
@@ -70,6 +73,7 @@ fn form(
     let (number, name, size) = match screen {
         Screen::Title => ("FORM A-1", "Earth Two", 40.),
         Screen::Controls => ("CARD C-1", "Controls", 24.),
+        Screen::Settings => ("CARD S-1", "Settings", 24.),
         _ => ("FORM P-2", "Paused", 24.),
     };
     let line = header(c, Vec2::new(x, y), w, number, name, size, f, sc);
@@ -127,10 +131,19 @@ fn form(
         by += 20.;
     }
     for (i, (name, action)) in choices(screen).into_iter().enumerate() {
+        let value = match action {
+            super::MenuAction::Volume(step) => format!(
+                "Volume {}   {}%",
+                if step < 0 { "−" } else { "+" },
+                (settings.volume * 100.).round() as i32
+            ),
+            super::MenuAction::Shadows => format!("Shadows: {shadows:?}"),
+            _ => name.into(),
+        };
         choice(
             c,
             Rect::new(x, by, x + w, by + 50.),
-            name,
+            &value,
             focus == i,
             interactive.then_some(Choice { action, focus: i }),
             f,
@@ -183,7 +196,20 @@ pub fn draw(
             Without<super::identity_render::IdentityRoot>,
         ),
     >,
-    mut previous: Local<Option<(Screen, usize, Vec2, Option<String>, Option<u32>, u32)>>,
+    settings: Res<super::settings::Settings>,
+    shadows: Res<crate::shading::ShadowQuality>,
+    mut previous: Local<
+        Option<(
+            Screen,
+            usize,
+            Vec2,
+            Option<String>,
+            Option<u32>,
+            u32,
+            u32,
+            crate::shading::ShadowQuality,
+        )>,
+    >,
 ) {
     let Ok(window) = window.single() else { return };
     if let Some(age) = menu.admitted.as_mut() {
@@ -205,6 +231,8 @@ pub fn draw(
         session.error.clone(),
         menu.admitted.map(f32::to_bits),
         fade.to_bits(),
+        settings.volume.to_bits(),
+        *shadows,
     );
     if previous.as_ref() == Some(&key) {
         return;
@@ -215,7 +243,12 @@ pub fn draw(
     }
     if matches!(
         *screen.get(),
-        Screen::Playing | Screen::Dressing | Screen::Identity | Screen::Mapping
+        Screen::Playing
+            | Screen::Dressing
+            | Screen::Identity
+            | Screen::Mapping
+            | Screen::ContractOffer
+            | Screen::ContractJournal
     ) && menu.admitted.is_none()
     {
         return;
@@ -254,7 +287,7 @@ pub fn draw(
                         );
                     }
                 }
-                Screen::Paused | Screen::Controls => rect(
+                Screen::Paused | Screen::Controls | Screen::Settings => rect(
                     c,
                     Rect::new(0., 0., size.x / sc, size.y / sc),
                     Color::srgba_u8(0, 0, 0, 110),
@@ -264,7 +297,7 @@ pub fn draw(
             }
             if matches!(
                 *screen.get(),
-                Screen::Title | Screen::Paused | Screen::Controls
+                Screen::Title | Screen::Paused | Screen::Controls | Screen::Settings
             ) {
                 form(
                     c,
@@ -274,6 +307,8 @@ pub fn draw(
                     true,
                     &fonts,
                     sc,
+                    &settings,
+                    *shadows,
                 );
             }
             if *screen.get() == Screen::Loading {
@@ -307,7 +342,17 @@ pub fn draw(
                 let away = k * k * (size.y / sc - r.min.y + 40.);
                 r.min.y += away;
                 r.max.y += away;
-                form(c, Screen::Title, r, 0, false, &fonts, sc);
+                form(
+                    c,
+                    Screen::Title,
+                    r,
+                    0,
+                    false,
+                    &fonts,
+                    sc,
+                    &settings,
+                    *shadows,
+                );
                 let drop = smooth(0., 0.14, age);
                 let zoom = 1. + 0.7 * (1. - drop);
                 let at = Vec2::new(r.center().x, r.min.y + r.height() * 0.4);

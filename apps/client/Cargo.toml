@@ -84,3 +84,11 @@ required-features = ["viewer"]
 [[example]]
 name = "maps_smoke"
 required-features = ["viewer"]
+
+[[example]]
+name = "contracts_smoke"
+required-features = ["viewer"]
+
+[[example]]
+name = "world_smoke"
+required-features = ["viewer"]

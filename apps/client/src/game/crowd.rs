@@ -42,11 +42,20 @@ pub fn review(start: Res<StartAt>, mut crowd: ResMut<TestCrowd>) {
     }
 }
 /// Consume the population editor's keys before menu and character input.
-pub fn input(keys: Option<ResMut<ButtonInput<KeyCode>>>, mut crowd: ResMut<TestCrowd>) {
+pub fn input(
+    keys: Option<ResMut<ButtonInput<KeyCode>>>,
+    mut crowd: ResMut<TestCrowd>,
+    menu: Option<Res<super::menu::Menu>>,
+) {
     let Some(mut keys) = keys else {
         return;
     };
-    if keys.just_pressed(KeyCode::F9) {
+    if keys.just_pressed(KeyCode::F9)
+        && (crowd.editing
+            || menu
+                .as_ref()
+                .is_none_or(|m| matches!(m.screen(), Screen::Playing | Screen::Mapping)))
+    {
         crowd.editing = true;
         crowd.digits.clear();
         crowd.shown = true;

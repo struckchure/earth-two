@@ -51,6 +51,7 @@ pub(super) fn install(app: &mut App) {
     app.init_resource::<Hits>()
         .add_message::<Cue>()
         .init_resource::<CueRandom>()
+        .init_resource::<super::MasterGain>()
         .add_systems(Startup, load_hits)
         .add_systems(Update, discover)
         .add_systems(PostUpdate, (cleanup, play).chain().after(CueSet));
@@ -90,6 +91,7 @@ pub(super) fn play(
     voices: Query<(), With<HitVoice>>,
     mut sources: ResMut<Assets<PannedLoop>>,
     mut random: ResMut<CueRandom>,
+    master: Res<super::MasterGain>,
     time: Res<Time>,
     mut logging: Local<Option<bool>>,
 ) {
@@ -128,6 +130,7 @@ pub(super) fn play(
             source: variant.source.clone(),
             pan: Arc::new(AtomicU32::new(cue.pan.to_bits())),
             repeat: false,
+            master: master.0.clone(),
         });
         if logging {
             info!(
@@ -173,6 +176,7 @@ mod tests {
             source: super::super::tests::wave(),
             pan: Arc::new(AtomicU32::new(0f32.to_bits())),
             repeat: false,
+            master: super::super::MasterGain::default().0,
         };
         assert_eq!(
             source.decoder().collect::<Vec<_>>(),
@@ -185,6 +189,7 @@ mod tests {
         app.add_plugins((MinimalPlugins, bevy::asset::AssetPlugin::default()))
             .init_asset::<PannedLoop>()
             .init_resource::<CueRandom>()
+            .init_resource::<super::MasterGain>()
             .add_message::<Cue>()
             .insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
                 Duration::from_secs_f32(0.1),

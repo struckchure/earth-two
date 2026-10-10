@@ -84,3 +84,23 @@ the wardrobe and continues the underlying title orbit clock. Tests in
 `tests/wardrobe.rs` and `tests/game.rs` cover the source rules and full keyboard
 flow; `examples/wardrobe_smoke.rs` verifies rendered outfit replacement and
 walking afterward. Full title/pause styling and other pages remain pending.
+
+The contract/journal increment connects `contracts.rs` and `contracts_render.rs`
+to `game/contracts.go`, `contracts_ui.go` and `ledger.go`. E reviews the first
+work order at the arrivals terminal; explicit acceptance enables delivery at
+the Exchange. Settlement reduces passage debt once and archives a receipt,
+without cash payment. J and the account HUD open the personal ledger. Guidance
+falls back to the current contract target without modifying manual markers.
+`--at=terminal` / `?at=terminal` starts at the authored review location;
+`examples/contracts_smoke.rs` exercises keyboard, mouse picking, delivery,
+receipts and journal resize. Remaining world-use interactions and full settings
+are still open. Records remain session-local, matching the Go source.
+
+`uses.rs` now connects Go `use.go` furniture/machine/bell spots to live E input,
+controller removal/restoration, seat timing and source-priority prompts.
+`settings.rs` connects F5/F6/F7 to the existing clock/weather/shadow resources;
+`hud_render.rs` ports clock, contextual/driving, FPS/connection and testing HUD.
+The paper Settings card changes master volume and shadow quality with normal
+keyboard/mouse navigation. The audio decoder's shared master gain updates
+already-playing loops/hits on both platforms. `world_smoke` reviews these flows,
+including the repaired pause/body/CPU-cloth synchronization and window resize.

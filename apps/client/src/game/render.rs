@@ -11,7 +11,6 @@ use crate::{
         mesh::ModelStore,
         viewer::{Content, Loading, MeshEntities},
     },
-    vehicle::{Driving, Prompt},
     world::{Lamp, LayoutRoot, PieceModel, Placed, Wheel},
 };
 use bevy::{
@@ -74,6 +73,10 @@ fn start_at() -> StartAt {
         .and_then(|p| p.get("at"))
         .unwrap_or_default();
     match value.as_str() {
+        "terminal" => StartAt::Terminal,
+        "bench" => StartAt::Bench,
+        "machine" => StartAt::Machine,
+        "bell" => StartAt::Bell,
         "hull" => StartAt::Hull,
         "buggy" => StartAt::Buggy,
         "bike" => StartAt::Bike,
@@ -116,8 +119,6 @@ impl AssetLoader for WardrobeLoader {
 struct WardrobeRequest(Handle<WardrobeText>);
 #[derive(Component)]
 pub(super) struct MenuRoot;
-#[derive(Component)]
-struct Hud;
 #[derive(Component, Clone, Copy)]
 pub(super) struct Choice {
     pub action: MenuAction,
@@ -145,11 +146,11 @@ impl Plugin for GameRenderPlugin {
                     super::paper_cursor::draw,
                     super::wardrobe_render::draw,
                     super::identity_render::draw,
-                    super::identity_render::connection,
                     super::map_render::draw,
-                    hud,
+                    super::contracts_render::draw,
+                    super::contracts_render::fit,
+                    super::hud_render::draw,
                     injury_panel,
-                    crowd_panel,
                 )
                     .after(GameSet::Camera),
             )
@@ -180,21 +181,6 @@ fn setup(mut commands: Commands, assets: Res<AssetServer>) {
             Msaa::Sample4
         },
         Transform::from_xyz(9807., 3., -1765.9),
-    ));
-    commands.spawn((
-        Hud,
-        Text::new(""),
-        TextFont {
-            font_size: px(18).into(),
-            ..default()
-        },
-        TextColor(Color::WHITE),
-        Node {
-            position_type: PositionType::Absolute,
-            left: px(20),
-            bottom: px(20),
-            ..default()
-        },
     ));
 }
 fn load_wardrobe(
@@ -352,39 +338,6 @@ fn hover(
     }
 }
 
-fn hud(
-    screen: Res<State<Screen>>,
-    driving: Res<Driving>,
-    prompt: Res<Prompt>,
-    health: Query<&crate::character::Health, With<crate::character::Player>>,
-    mut text: Query<&mut Text, With<Hud>>,
-) {
-    for mut t in &mut text {
-        t.0 = if *screen.get() != Screen::Playing {
-            String::new()
-        } else if health
-            .single()
-            .is_ok_and(|h| h.state != crate::character::LifeState::Healthy)
-        {
-            "Esc: menu".into()
-        } else if driving.active() {
-            format!(
-                "{:.0} km/h  ·  {}  ·  gear {}\n{} {}  {}",
-                driving.speed.abs() * 3.6,
-                driving.name,
-                driving.gear,
-                prompt.key,
-                prompt.text,
-                prompt.noting()
-            )
-        } else {
-            format!(
-                "WASD: walk · Shift: run · Space: jump/traverse · Ctrl: slide · C: crouch · R: roll\n{} {}   Esc: menu",
-                prompt.key, prompt.text
-            )
-        };
-    }
-}
 fn sync_lighting(
     mut commands: Commands,
     suns: Query<Entity, With<crate::sky::Sun>>,
@@ -509,60 +462,4 @@ fn injury_panel(
                     }
                 });
         });
-}
-
-#[derive(Component)]
-struct CrowdPanel;
-fn crowd_panel(
-    mut commands: Commands,
-    crowd: Res<super::crowd::TestCrowd>,
-    residents: Res<super::residents::Residents>,
-    panels: Query<Entity, With<CrowdPanel>>,
-    mut previous: Local<String>,
-) {
-    let text = if !crowd.shown {
-        String::new()
-    } else if crowd.editing {
-        format!(
-            "NPC population: {}_\nEnter: apply   Esc: cancel",
-            crowd.digits
-        )
-    } else {
-        format!(
-            "F8  NPCs: {}\nF9  Population: {} ({} placed, {} active)\nF1  Hide",
-            if crowd.enabled { "On" } else { "Off" },
-            crowd.population,
-            crowd.live,
-            residents.near
-        )
-    };
-    if *previous == text {
-        return;
-    }
-    *previous = text.clone();
-    for panel in &panels {
-        commands.entity(panel).despawn();
-    }
-    if text.is_empty() {
-        return;
-    }
-    commands.spawn((
-        CrowdPanel,
-        Node {
-            position_type: PositionType::Absolute,
-            right: px(20),
-            top: px(20),
-            padding: UiRect::all(px(12)),
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.12, 0.075, 0.10, 0.94)),
-        children![(
-            Text::new(text),
-            TextFont {
-                font_size: px(16).into(),
-                ..default()
-            },
-            TextColor(Color::srgb(0.89, 0.81, 0.64))
-        )],
-    ));
 }

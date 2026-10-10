@@ -217,51 +217,6 @@ pub(super) fn draw(
     *previous = Some(state);
 }
 
-#[derive(Component)]
-pub(super) struct Connection;
-
-pub(super) fn connection(
-    mut commands: Commands,
-    panel: Res<IdentityPanel>,
-    screen: Res<State<Screen>>,
-    fonts: Res<Fonts>,
-    mut hud: Query<(&mut Text, &mut TextColor, &mut Visibility), With<Connection>>,
-) {
-    let (label, [r, g, b, a]) = panel.connection_label();
-    let color = Color::srgba_u8(r, g, b, a);
-    let visible = if *screen.get() == Screen::Playing {
-        Visibility::Inherited
-    } else {
-        Visibility::Hidden
-    };
-    if let Ok((mut text, mut tint, mut visibility)) = hud.single_mut() {
-        text.0 = label;
-        tint.0 = color;
-        *visibility = visible;
-    } else {
-        commands.spawn((
-            Connection,
-            Text::new(label),
-            TextFont {
-                font: fonts.label.clone().into(),
-                font_size: px(13.).into(),
-                ..default()
-            },
-            TextColor(color),
-            visible,
-            Node {
-                position_type: PositionType::Absolute,
-                left: px(20.),
-                bottom: px(76.),
-                padding: UiRect::axes(px(9.), px(4.)),
-                ..default()
-            },
-            BackgroundColor(Color::srgba_u8(16, 13, 11, 150)),
-            Pickable::IGNORE,
-        ));
-    }
-}
-
 /// The centered identity form still shifts the background shot, as Go's layoutFor.
 pub(super) fn panel_fraction(size: Vec2) -> f32 {
     let sc = scale(size.x, size.y).min(size.x / 792.).min(size.y / 792.);

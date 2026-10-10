@@ -230,11 +230,11 @@ fn map(
         }
     }
 }
-fn route(p: &mut Paint, m: &WorldMap, f: MapFrame, at: Vec2, sc: f32, full: bool) {
-    if !m.marked {
+fn route(p: &mut Paint, target: Option<Vec2>, f: MapFrame, at: Vec2, sc: f32, full: bool) {
+    let Some(target) = target else {
         return;
-    }
-    let mut dest = f.to_screen(m.dest);
+    };
+    let mut dest = f.to_screen(target);
     if let Some((a, b)) = maps::clip_segment(f.to_screen(at), dest, f.screen) {
         p.line(
             a,
@@ -326,7 +326,7 @@ fn compass(
 }
 fn destination(
     p: &mut Paint,
-    m: &WorldMap,
+    target: Vec2,
     player: Vec3,
     cam: &Transform,
     size: Vec2,
@@ -334,9 +334,9 @@ fn destination(
     widths: &HashMap<String, Vec2>,
 ) {
     let point = Vec3::new(
-        m.dest.x,
-        ground_height(m.dest.x, m.dest.y).max(player.y - 1.) + 2.,
-        m.dest.y,
+        target.x,
+        ground_height(target.x, target.y).max(player.y - 1.) + 2.,
+        target.y,
     );
     let d = point - cam.translation;
     let forward = d.dot(*cam.forward());
@@ -356,7 +356,7 @@ fn destination(
         pos = maps::edge_point(screen, dir.normalize(), 40. * sc);
     }
     p.diamond(pos, 14. * sc);
-    let value = maps::distance(player.xz().distance(m.dest));
+    let value = maps::distance(player.xz().distance(target));
     let m = measure(widths, &value, 14. * sc);
     p.shadow(
         pos + Vec2::new(-m.x / 2., 14. * sc),
@@ -494,6 +494,7 @@ pub(super) fn draw(
     mut commands: Commands,
     screen: Res<State<Screen>>,
     map_data: Option<Res<WorldMap>>,
+    jobs: Option<Res<super::contracts::Contracts>>,
     session: Res<Session>,
     orbit: Res<Orbit>,
     windows: Query<&Window, With<PrimaryWindow>>,
@@ -532,6 +533,8 @@ pub(super) fn draw(
         return;
     }
     let Some(m) = map_data else { return };
+    let guidance = super::contracts::route(&m, jobs.as_deref());
+    let target = guidance.map(|g| g.0);
     let Ok(w) = windows.single() else { return };
     let Some((player, children)) = session.player.and_then(|e| transforms.get(e).ok()) else {
         return;
@@ -586,7 +589,7 @@ pub(super) fn draw(
         PANEL,
     );
     map(&mut drawing_map, &m, frame, sc, full, &drawing.widths);
-    route(&mut overlay, &m, frame, at, sc, full);
+    route(&mut overlay, target, frame, at, sc, full);
     let you = frame.to_screen(at);
     if frame.screen.contains(you) {
         overlay.you(
@@ -603,10 +606,10 @@ pub(super) fn draw(
             color: TEXT,
             heading: true,
         });
-        if m.marked {
+        if let Some((target, goal)) = guidance {
             overlay.text(
                 Vec2::new(frame.screen.x + 16. * sc, frame.screen.y + 52. * sc),
-                format!("Destination: {}", maps::distance(at.distance(m.dest))),
+                format!("{goal}: {}", maps::distance(at.distance(target))),
                 16. * sc,
                 DEST,
             );
@@ -625,15 +628,15 @@ pub(super) fn draw(
             maps::heading(forward),
             size,
             sc,
-            m.marked.then_some(m.dest - at),
+            target.map(|dest| dest - at),
             &drawing.widths,
         );
-        if m.marked
+        if let Some(target) = target
             && let Some(cam) = cam
         {
             destination(
                 &mut overlay,
-                &m,
+                target,
                 player.translation,
                 cam,
                 size,

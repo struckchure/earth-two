@@ -48,11 +48,26 @@ fn decode(source: AudioSource) -> Result<Decoder, rodio::decoder::DecoderError> 
         .build()
 }
 
+#[derive(Resource)]
+pub struct MasterGain(pub Arc<AtomicU32>);
+impl Default for MasterGain {
+    fn default() -> Self {
+        Self(Arc::new(AtomicU32::new(1f32.to_bits())))
+    }
+}
+fn master_gain(settings: Option<Res<crate::game::settings::Settings>>, gain: Res<MasterGain>) {
+    gain.0.store(
+        settings.as_ref().map_or(1., |s| s.volume).to_bits(),
+        Ordering::Relaxed,
+    );
+}
+
 #[derive(Asset, TypePath)]
 pub struct PannedLoop {
     source: AudioSource,
     pan: Arc<AtomicU32>,
     repeat: bool,
+    master: Arc<AtomicU32>,
 }
 /// Repeat the decoder, not already-panned samples, so panning still changes
 /// after a complete lap. This also avoids caching an entire decoded loop.
@@ -63,6 +78,7 @@ pub struct PannedDecoder {
     right: Option<f32>,
     rate: SampleRate,
     repeat: bool,
+    master: Arc<AtomicU32>,
 }
 impl Decodable for PannedLoop {
     type Decoder = PannedDecoder;
@@ -78,6 +94,7 @@ impl Decodable for PannedLoop {
             right: None,
             rate,
             repeat: self.repeat,
+            master: self.master.clone(),
         }
     }
 }
@@ -103,8 +120,9 @@ impl Iterator for PannedDecoder {
             decoder.next()?;
         }
         let levels = pan_levels(f32::from_bits(self.pan.load(Ordering::Relaxed)));
-        self.right = Some(right * levels[1]);
-        Some(left * levels[0])
+        let gain = f32::from_bits(self.master.load(Ordering::Relaxed));
+        self.right = Some(right * levels[1] * gain);
+        Some(left * levels[0] * gain)
     }
 }
 impl Source for PannedDecoder {
@@ -143,6 +161,8 @@ impl Plugin for SoundOutputPlugin {
         web::install(app);
         hits::install(app);
         app.init_resource::<Bank>()
+            .init_resource::<MasterGain>()
+            .add_systems(Update, master_gain.after(crate::game::GameSet::Menu))
             .add_systems(Startup, load)
             .add_systems(
                 Update,
@@ -169,6 +189,7 @@ fn load(mut bank: ResMut<Bank>, assets: Res<AssetServer>) {
 fn output(
     mut commands: Commands,
     mut bank: ResMut<Bank>,
+    master: Res<MasterGain>,
     mut sources: ResMut<Assets<PannedLoop>>,
     ambience: Res<Ambience>,
     driving: Option<Res<DriveSound>>,
@@ -189,6 +210,7 @@ fn output(
                     source,
                     pan: track.pan.clone(),
                     repeat: true,
+                    master: master.0.clone(),
                 }));
             } else {
                 warn!("sound {} is unavailable; leaving it silent", NAMES[i]);
@@ -284,12 +306,35 @@ mod tests {
         }
     }
     #[test]
+    fn master_gain_changes_active_loop_and_one_shot_without_restarting() {
+        for repeat in [false, true] {
+            let gain = MasterGain::default();
+            let source = PannedLoop {
+                source: wave(),
+                pan: Arc::new(AtomicU32::new((-1f32).to_bits())),
+                repeat,
+                master: gain.0.clone(),
+            };
+            let mut decoder = source.decoder();
+            assert_eq!(decoder.next(), Some(0.5));
+            assert_eq!(decoder.next(), Some(0.));
+            gain.0.store(0f32.to_bits(), Ordering::Relaxed);
+            assert_eq!(decoder.next(), Some(-0.));
+            assert_eq!(decoder.next(), Some(-0.));
+            if repeat {
+                gain.0.store(0.5f32.to_bits(), Ordering::Relaxed);
+                assert_eq!(decoder.next(), Some(0.25));
+            }
+        }
+    }
+    #[test]
     fn looping_decoder_keeps_live_pan_after_wrap_and_preserves_pitch_rate() {
         let pan = Arc::new(AtomicU32::new((-1f32).to_bits()));
         let source = PannedLoop {
             source: wave(),
             pan: pan.clone(),
             repeat: true,
+            master: MasterGain::default().0,
         };
         let mut decoder = source.decoder();
         assert_eq!(decoder.sample_rate().get(), 22050);
@@ -334,6 +379,7 @@ mod tests {
             .init_asset::<AudioSource>()
             .init_asset::<PannedLoop>()
             .init_resource::<Ambience>()
+            .init_resource::<MasterGain>()
             .add_systems(Update, output);
         let pan = Arc::new(AtomicU32::new(0));
         let handle = app
@@ -343,6 +389,7 @@ mod tests {
                 source: wave(),
                 pan: pan.clone(),
                 repeat: true,
+                master: MasterGain::default().0,
             });
         app.insert_resource(Bank(vec![Track {
             pending: None,
@@ -384,6 +431,7 @@ mod tests {
             },
             pan: Arc::new(AtomicU32::new(0)),
             repeat: true,
+            master: MasterGain::default().0,
         };
         assert_eq!(source.decoder().next(), None);
     }

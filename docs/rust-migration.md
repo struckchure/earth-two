@@ -9,7 +9,7 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 312 passing headless tests and 105 client
+with `--foundation`. There are 325 passing headless tests and 107 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
@@ -20,7 +20,11 @@ The title/pause/Controls paper forms, parchment cursor and desktop Quit are
 connected; vehicle camera sweeps exclude all child chassis colliders.
 Step 7 connects the live Identity form and account flows. Step 8 connects
 full-map/minimap/compass navigation, manual destinations and development
-teleporting on foot or in any of the six vehicle types.
+teleporting on foot or in any of the six vehicle types. The contract/journal
+increment connects PAD-001 acceptance and delivery, debt settlement, receipts,
+account HUD and contract navigation targets. Furniture/machine/bell interactions,
+the clock/weather and driving HUD, testing switches and a live settings form
+are now integrated. Pausing holds body animation and keeps CPU cloth attached.
 Native graphical game, injury and crowd smoke pass. Visual and
 handling parity, full gameplay/UI, and the release-platform matrix remain
 open. Go remains the release default.
@@ -413,6 +417,143 @@ wind/buggy playback and no sound-discovery or JavaScript errors on
 Chromium/SwiftShader WebGL2. The refreshed review server uses port 8096 to
 avoid the previous origin's cached WASM. Restart native clients or use the
 fresh browser review URL to pick up this fix.
+
+## World interactions and HUD/settings checkpoint: 2026-10-10
+
+`game/uses.rs` ports `game/use.go` using the actual placement manifest: all 17
+piece kinds, quarter-turn transforms and authored terrain heights. E sits on
+benches, stools, office chairs, cots and bunks; sitting down lasts 1.3 seconds,
+then E or movement starts the 1.03-second get-up transition. Standing restores
+the character controller 0.55 m in front of the seat. The player cannot fall
+through the seat or collide with it while seated. Pause freezes the transition;
+knockdown removes the furniture-seat state.
+
+E at machinery holds the existing Fixing_Kneeling clip until movement or another
+action cancels it. E at the Exchange floor bell plays the reach animation and
+one spatial bell cue (10–120 m). Sitting/getting up use the source creaks;
+machine work uses the existing clank cadence. Vehicles and contracts retain
+priority over furniture. Source horizontal reach (1.4 m), floor limits
+(-0.6 to +0.9 m), grounded/traversal/control guards and input consumption are
+preserved. This ports existing interactions; it does not invent Repair Run
+contracts or additional rewards.
+
+`hud_render.rs` replaces the temporary movement-help text and crowd panel with
+context prompts/notes, traversal hints, a speed/gear panel (R/N/coasting), lamp
+status, the UTC clock/day/weather strip, and persistent FPS/connection status.
+F1 shows Testing, including teleport, time, weather, shadows, NPC count and
+critical/dead totals. F5 cycles real clock/day/dusk/night/dawn; F6 cycles
+scheduled/clear/dusty/storm weather; F7 cycles Full/Low/Off shadows. The switches
+operate the existing renderer resources and preserve platform shadow budgets.
+The NPC editor consumes its keys and cannot open over an identity/menu form.
+
+Title and pause now include a Settings card with keyboard/mouse volume down/up
+(10% steps, bounded 0–100%) and shadow selection. This adds the outstanding
+master-volume UI around Go's existing audio setting. Values last the application
+session; no new persistence format is introduced. A shared gain in the native
+and browser audio decoder changes existing loops and one-shots immediately,
+including mute, without restarting them or multiplying volume twice.
+
+The pause review exposed a body/cloth separation: ordinary body animation could
+continue or select Idle while the CPU cloth mesh remained frozen. All paused
+body clips now retain their time and crossfade, distant poses stop advancing,
+and garments still refresh skinning/attachment with zero cloth simulation time.
+This also keeps paused wardrobe/pose changes attached. Regressions cover frozen
+body/garment playback, resume, and pinned CPU cloth following paused joint
+changes without advancing the simulation clock.
+
+Review from this worktree (browser equivalents use `/?at=bench`, `machine`, or
+`bell`):
+
+```sh
+cargo run --locked -p earth-two-client -- --at=bench
+cargo run --locked -p earth-two-client -- --at=machine
+cargo run --locked -p earth-two-client -- --at=bell
+cargo run --locked -p earth-two-client --example world_smoke
+```
+
+Evidence is retained under ignored `build/migration-baseline/step-10-world-hud/`.
+Headless workspace: 325 passing tests; graphical client library: 107 passing
+(overlapping suites). Interaction regressions cover real Landfall sitting,
+standing, work, bell, pause, settings and competing interaction priority.
+The finite native example uses application keyboard/pointer events and
+map teleporting, including pause during repair and 800×600 resize.
+Native and WASM Clippy checks and the optimized browser build pass. Native
+captures show aligned clothing during paused repair and Settings; Chromium
+review covers the final repair pose, pause, Settings and pointer volume.
+Logs and screenshots are recorded in that directory.
+
+Matched Go/Rust movement/handling, rendering/cloth/audio comparisons, live
+account/database runtime verification, release tooling, installed update and
+rollback, and the complete platform/performance matrix remain open. This is
+integrated gameplay coverage, not accepted whole-game parity. Go remains the
+release default.
+
+## Contract/journal checkpoint: 2026-10-10
+
+The first-contract journey now runs through the live application. `contracts.rs`
+ports `game/contracts.go`: the actual arrivals terminal and Registrar counter
+are located from the authored placement manifest, including rotation and terrain
+height. Missing landmarks surface as loading errors. E at the terminal opens the
+PAD-001 offer without accepting; keyboard or mouse can accept or leave it.
+The journal (J, or clicking the balance/debt card or notice badge) cannot accept
+work remotely. Menus pause controls and physics immediately, before the next
+Bevy screen transition. Vehicle interaction retains priority; seated, airborne,
+traversing and driving players cannot perform the handover.
+
+Acceptance issues the sealed filing and guides to the Exchange. Delivery still
+requires E on foot within the source 1.4 m reach, including vertical distance;
+arrival alone does nothing. Settlement archives a copy of the accepted terms,
+frees the ongoing slot and credits 150 marks to Ada's passage debt (2,000 →
+1,850). Cash is unchanged; credit is capped at the remaining debt and repeated
+input cannot accept or pay twice. Records survive title/play transitions and,
+as in Go, last only for this application run.
+
+`contracts_render.rs` ports the paper offer, FILED/SETTLED stamps and two-page
+personal ledger: account totals, debts, available notices, ongoing work and
+newest-first receipts. Four history rows scroll with bounded offsets and show
+the total credit across all receipts. The journal scales to smaller windows;
+text fitting uses actual rendered font widths. The play HUD shows balance/debt,
+the offer badge and accepted work. Full-map, minimap, compass and world guidance
+fall back to the contract target while preserving manual marker priority.
+Contract guidance never mutates the manual marker or triggers arrival/mark
+sounds; development P still uses only the manual mark or full-map pointer.
+
+Review from this worktree:
+
+```sh
+cargo run --locked -p earth-two-client -- --at=terminal
+cargo run --locked -p earth-two-client --example contracts_smoke
+```
+
+The optional terminal route starts at the authored interaction point; ordinary
+startup remains the Landfall arrival. Play, E, then Accept contract. Follow the
+Exchange route, hand over with E, and inspect the journal with J. The browser
+supports `/?at=terminal` too. The finite native example uses real application
+keyboard and pointer-event systems, plus development map teleporting between
+the two locations; it is not an OS-input or full road-driving acceptance test.
+
+Evidence is under ignored `build/migration-baseline/step-9-contracts/` (the
+number is the next local increment, not completion-plan Step 9 cutover).
+Headless regressions cover review/decline/accept/deliver, world-point access,
+control locking, vehicle priority, seated/driving guards, journal shortcuts,
+card/badge input, bounded history browsing, credit caps, immutable terms,
+idempotency, manual navigation priority and session retention. Native Metal
+captures cover the offer, filing, delivery, receipt, account HUD and 800×600
+journal, including the immediate handover frame without a blank sheet. Chromium
+keyboard/mouse checks cover terminal review, pointer acceptance, derived map
+routing, development map teleporting, explicit delivery, J and the account-card
+shortcut. The delivered ledger shows one receipt, 150 debt credit, 1,850 debt
+remaining and zero cash. Browser captures are retained beside the native ones.
+
+Validation: 319 headless workspace tests and 106 graphical client-library tests
+pass (these suites overlap); native all-target and WASM clippy pass with warnings
+denied, and the optimized browser build succeeds. Live database/account
+integration is not revalidated by this increment.
+
+World furniture/machine/bell interactions, remaining HUD/settings controls,
+matched movement/handling/visual/audio comparisons, release tooling and full
+platform/performance acceptance remain open. This is integrated gameplay
+coverage, not accepted whole-game parity; Go remains the release default.
 
 ## Step 8 map and teleport checkpoint: 2026-10-10
 
