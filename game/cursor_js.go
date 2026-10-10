@@ -8,10 +8,29 @@ import (
 	"syscall/js"
 )
 
-// holdCursor can't hold the cursor in the browser: illusion's raylib for
-// the web has no pointer lock yet. There the mouse turns the camera while a
-// button is held.
-func holdCursor(bool) bool { return false }
+// The browser shell handles the user gesture required for pointer lock.
+func holdCursor(hold bool) bool {
+	pointer := js.Global().Get("earthTwoPointer")
+	if pointer.IsUndefined() {
+		return false
+	}
+	pointer.Call("setPlaying", hold)
+	return pointer.Call("locked").Bool()
+}
+
+func cursorDelta(fallback rl.Vector2) rl.Vector2 {
+	pointer := js.Global().Get("earthTwoPointer")
+	if pointer.IsUndefined() || !pointer.Call("locked").Bool() {
+		return fallback
+	}
+	delta := pointer.Call("takeDelta")
+	return rl.Vector2{X: float32(delta.Index(0).Float()), Y: float32(delta.Index(1).Float())}
+}
+
+func cursorReleased() bool {
+	pointer := js.Global().Get("earthTwoPointer")
+	return !pointer.IsUndefined() && pointer.Call("consumeUnlock").Bool()
+}
 
 func setPaperCursorHidden(active bool) {
 	canvas := js.Global().Get("document").Call("getElementById", "canvas")

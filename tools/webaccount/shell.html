@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#22251f">
+<title>Earth Two</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #22251f; color: #ece3cf; font: 15px system-ui, sans-serif; }
+  body { display: grid; place-items: center; }
+  canvas { display: block; max-width: 100vw; max-height: 100vh; outline: none; }
+  [hidden] { display: none !important; }
+  #loading { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 28px; overflow: auto; background: radial-gradient(ellipse at 70% 90%, #74433055, transparent 65%), #22251f; }
+  .panel { width: min(100%, 480px); padding: 36px 0; }
+  .eyebrow, .meta, .steps { font: 11px ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+  .eyebrow { color: #c8ab77; display: flex; align-items: center; gap: 12px; }
+  .signal { width: 8px; height: 8px; border-radius: 50%; background: #c8ab77; box-shadow: 0 0 0 5px #c8ab7715; animation: pulse 2s ease-in-out infinite; }
+  h1 { font-size: clamp(48px, 12vw, 76px); letter-spacing: -.065em; line-height: .95; margin: 36px 0 18px; font-weight: 850; }
+  .intro { color: #b5b4a5; line-height: 1.6; margin: 0 0 46px; }
+  .meta { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 14px; letter-spacing: .04em; }
+  #status { margin: 0; font: inherit; }
+  #amount { color: #c8ab77; white-space: nowrap; }
+  progress { display: block; width: 100%; height: 6px; border: 0; border-radius: 0; background: #ffffff15; accent-color: #c8ab77; overflow: hidden; }
+  progress::-webkit-progress-bar { background: #ffffff15; }
+  progress::-webkit-progress-value { background: #c8ab77; transition: width .15s; }
+  progress::-moz-progress-bar { background: #c8ab77; }
+  progress:indeterminate { background: linear-gradient(90deg, #ffffff15 25%, #c8ab77 50%, #ffffff15 75%); background-size: 200% 100%; animation: scan 2s linear infinite; }
+  progress:indeterminate::-webkit-progress-bar { background: transparent; }
+  .steps { display: flex; justify-content: space-between; gap: 12px; padding: 18px 0; color: #777e70; letter-spacing: .04em; border-bottom: 1px solid #ffffff18; }
+  .steps .active { color: #ece3cf; }
+  #detail { font-size: 13px; line-height: 1.65; color: #b5b4a5; min-height: 44px; margin: 22px 0 0; }
+  button { margin-top: 22px; padding: 12px 22px; background: #ece3cf; color: #22251f; border: 0; cursor: pointer; font: 600 14px system-ui, sans-serif; }
+  button:focus-visible { outline: 2px solid #c8ab77; outline-offset: 5px; }
+  #pointer-hint { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); margin: 0; padding: 12px 18px; background: #22251fee; color: #ece3cf; border: 1px solid #c8ab7755; font-size: 13px; text-align: center; pointer-events: none; z-index: 5; }
+  #loading.failed .signal { background: #e69a7f; animation: none; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  @keyframes scan { to { background-position: -200% 0; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()" aria-label="Earth Two game"></canvas>
+<p id="pointer-hint" role="status" hidden></p>
+<section id="loading" aria-labelledby="title" aria-busy="true">
+  <div class="panel">
+    <div class="eyebrow"><span class="signal" aria-hidden="true"></span>Incoming transmission / Landfall</div>
+    <h1 id="title">EARTH TWO</h1>
+    <p class="intro">A new world. A fresh start.<br>Your arrival is being prepared.</p>
+    <div class="meta"><p id="status" role="status" aria-live="polite">Connecting…</p><span id="amount" aria-hidden="true">Please wait</span></div>
+    <progress id="progress" max="100" aria-labelledby="status"></progress>
+    <div class="steps" aria-hidden="true"><span id="step-download" class="active">01 / Download</span><span id="step-prepare">02 / Prepare</span><span id="step-ready">03 / Arrive</span></div>
+    <p id="detail">The first visit can take a little longer while the world downloads.</p>
+    <button id="retry" type="button" hidden>Try again</button>
+    <noscript><p>Enable JavaScript to load Earth Two.</p></noscript>
+  </div>
+</section>
+<script>
+__POINTER__
+const modules = __MODULES__;
+const sizes = __SIZES__;
+const overlay = document.getElementById("loading");
+const status = document.getElementById("status");
+const amount = document.getElementById("amount");
+const progress = document.getElementById("progress");
+const detail = document.getElementById("detail");
+const canvas = document.getElementById("canvas");
+let failed = false;
+let ready = false;
+let lastActivity = Date.now();
+const waiting = setInterval(() => {
+  if (!failed && !ready && Date.now() - lastActivity > 20000) {
+    detail.textContent = "Still loading. A slow connection or device can take a little longer. You can retry if it stays here.";
+    document.getElementById("retry").hidden = false;
+  }
+}, 5000);
+document.getElementById("retry").onclick = () => location.reload();
+function stage(label, step, hint) {
+  if (failed || ready) return;
+  lastActivity = Date.now();
+  status.textContent = label;
+  detail.textContent = hint;
+  amount.textContent = "Please wait";
+  progress.removeAttribute("value");
+  for (const name of ["download", "prepare", "ready"]) document.getElementById(`step-${name}`).classList.toggle("active", name === step);
+}
+function downloaded(bytes, total) {
+  if (failed || ready) return;
+  lastActivity = Date.now();
+  const percent = Math.min(100, Math.floor(bytes / total * 100));
+  progress.value = percent;
+  amount.textContent = `${percent}%`;
+  detail.textContent = `${(bytes / 1048576).toFixed(1)} / ${(total / 1048576).toFixed(1)} MB downloaded`;
+}
+function fail(error) {
+  if (ready || failed) return;
+  failed = true;
+  clearInterval(waiting);
+  overlay.classList.add("failed");
+  overlay.setAttribute("aria-busy", "false");
+  status.textContent = "Unable to start";
+  amount.textContent = "Interrupted";
+  progress.hidden = true;
+  detail.textContent = "The game could not finish loading. Check your connection and try again. If it continues, try a browser with WebGL 2 support.";
+  document.getElementById("retry").hidden = false;
+  console.error(error);
+}
+// Called by the game only after its first frame, including startup asset work.
+globalThis.earthTwoReady = () => {
+  if (failed || ready) return;
+  ready = true;
+  clearInterval(waiting);
+  overlay.setAttribute("aria-busy", "false");
+  overlay.hidden = true;
+  canvas.focus();
+};
+addEventListener("error", event => fail(event.error || event.message));
+addEventListener("unhandledrejection", event => fail(event.reason));
+addEventListener("keydown", () => globalThis.miniaudio?.unlock?.());
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`Could not load ${src}`));
+    document.head.append(script);
+  });
+}
+async function gameResponse() {
+  const response = await fetch("game.wasm");
+  if (!response.ok) throw new Error(`game.wasm: HTTP ${response.status}`);
+  if (!response.body) return response;
+  const reader = response.body.getReader();
+  let bytes = 0;
+  return new Response(new ReadableStream({
+    async pull(controller) {
+      try {
+        const {done, value} = await reader.read();
+        if (done) { controller.close(); return; }
+        bytes += value.byteLength;
+        downloaded(bytes, sizes["game.wasm"]);
+        controller.enqueue(value);
+      } catch (error) { controller.error(error); }
+    },
+    cancel(reason) { return reader.cancel(reason); }
+  }), {headers: {"Content-Type": "application/wasm"}});
+}
+(async () => {
+  try {
+    await Promise.all(["account.js", "wasm_exec.js", "fs.js"].map(loadScript));
+    stage("Downloading the world…", "download", "Loading the places and people of Earth Two.");
+    await Promise.all(modules.map(async name => {
+      await loadScript(`${name}.js`);
+      const create = globalThis[`create${name[0].toUpperCase()}${name.slice(1)}`];
+      globalThis[name] = await create({
+        canvas, print: console.log, printErr: console.warn, onAbort: fail,
+        setStatus(message) {
+          if (name !== "raylib") return;
+          const match = /Downloading data.*\((\d+)\/\d+\)/.exec(message);
+          if (match) downloaded(Number(match[1]), sizes["raylib.data"]);
+        }
+      });
+    }));
+    installGoFS(globalThis.raylib.FS);
+    stage("Downloading the game…", "download", "The world is downloaded. Getting the game ready next.");
+    const go = new Go();
+    const {instance} = await WebAssembly.instantiateStreaming(gameResponse(), go.importObject);
+    stage("Preparing your arrival…", "prepare", "Downloads complete. Preparing the world on your device.");
+    // Give the browser a paint before Go's synchronous startup work begins.
+    await new Promise(resolve => setTimeout(resolve, 50));
+    await go.run(instance);
+    if (!ready) throw new Error("Game exited before its first frame");
+  } catch (error) { fail(error); }
+})();
+</script>
+</body>
+</html>

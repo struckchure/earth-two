@@ -200,6 +200,7 @@ func buildConfigured(m *menu, capture bool) *illusion.App {
 		// The stamps over everything (paper.go).
 		ConfigureSets(illusion.Render, stampSet.After(render.Draw2D).Before(render.End)).
 		AddSystems(illusion.Render, illusion.Fn4(drawStamps).InSet(stampSet)).
+		AddSystems(illusion.Render, illusion.Fn0(notifyFirstFrame).After(render.End)).
 		AddSystems(illusion.Render, illusion.Chain(illusion.Fn6(hud), illusion.Fn7(drawMaps), illusion.Fn6(drawContractHUD), illusion.Fn6(drawMenus), illusion.Fn3(frameRate), illusion.Fn3(drawPaperCursor)).InSet(render.Draw2D))
 }
 

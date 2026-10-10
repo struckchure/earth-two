@@ -172,9 +172,8 @@ func (p *pointer) InitParam(w *ecs.World) {
 }
 
 // steerCamera turns the orbit in play by the mouse, follows the player
-// round, and points the player's keys the way it faces. On the desktop it
-// holds the cursor while playing, so the mouse turns it freely; in the
-// browser the mouse turns it while a button is held.
+// round, and points the player's keys the way it faces. It holds the cursor
+// while playing; dragging remains a fallback when capture is unavailable.
 func steerCamera(
 	o *illusion.Res[orbit],
 	m *illusion.Res[menu],
@@ -189,7 +188,7 @@ func steerCamera(
 	playing := m.Get().screen() == playing
 	locked := holdCursor(playing)
 	if playing && (locked || ptr.buttons.Get().AnyPressed(rl.MouseButtonLeft, rl.MouseButtonRight)) {
-		or.turn(ptr.mouse.Get().Delta)
+		or.turn(cursorDelta(ptr.mouse.Get().Delta))
 	}
 	moving, facing, found := false, float32(0), false
 	players.Each(func(root ecs.Entity, in *character.Intent) {

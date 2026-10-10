@@ -55,7 +55,7 @@ func paperCursorPixels() []byte {
 
 func drawPaperCursor(menus *illusion.Res[menu], mouse *illusion.Res[input.Mouse], win *illusion.Res[window.Window]) {
 	m, w := menus.Get(), win.Get()
-	active := m.screen() != playing || !canQuit
+	active := m.screen() != playing
 	setPaperCursorHidden(active)
 	if !active || !paperCursorInside(mouse.Get().Position, w) {
 		return

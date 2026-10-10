@@ -9,6 +9,9 @@ import "github.com/struckchure/illusion/window"
 // cursorHeld is whether holdCursor has the cursor.
 var cursorHeld bool
 
+func cursorDelta(fallback rl.Vector2) rl.Vector2 { return fallback }
+func cursorReleased() bool                       { return false }
+
 // holdCursor hides the cursor and keeps it in the window while hold is set,
 // so the mouse turns the camera freely (see steerCamera), and lets it go
 // otherwise, for the menus. It reports whether it has it, and a frame

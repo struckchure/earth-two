@@ -501,6 +501,12 @@ func menuInput(
 		return
 	}
 	mu, w, ww := m.Get(), wardrobe.Get(), win.Get()
+	// Browsers may consume Escape when releasing pointer lock, so the
+	// lock-change event also opens pause. Do not process Escape twice.
+	if cursorReleased() && mu.screen() == playing {
+		mu.open(paused)
+		return
+	}
 	if mu.identity != nil {
 		mu.identity.poll()
 	}

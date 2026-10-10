@@ -292,7 +292,7 @@ Esc goes back. In play:
 | Key | Does |
 |---|---|
 | WASD / arrows | Walk, relative to the camera |
-| Mouse | Look around (in the browser, while a button is held); moving, the camera swings round behind you |
+| Mouse | Look around; on web, click to capture the mouse if prompted. Esc releases it and pauses. Moving, the camera swings round behind you |
 | M | Open or close the map (drag to move it, scroll to zoom) |
 | J | Open or close the debt and contract journal |
 | P | Testing: teleport to the point under the pointer on the full map, or in play to the marked destination (driving, the vehicle comes too) |
