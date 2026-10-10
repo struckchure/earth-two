@@ -24,8 +24,13 @@ func main() {
 		manifest = value
 	}
 	downloads := flag.String("downloads", manifest, "HTTPS latest-installer manifest URL (empty disables refresh)")
+	publicOrigin := landing.DefaultSiteURL
+	if value, ok := os.LookupEnv("LANDING_SITE_URL"); ok {
+		publicOrigin = value
+	}
+	siteURL := flag.String("site-url", publicOrigin, "public HTTPS landing-page origin for SEO and share previews")
 	flag.Parse()
-	handler, err := landing.HandlerWithDownloads(*trailer, *downloads)
+	handler, err := landing.HandlerWithSite(*trailer, *downloads, *siteURL)
 	if err != nil {
 		log.Fatal(err)
 	}

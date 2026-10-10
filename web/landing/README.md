@@ -23,6 +23,27 @@ The server embeds `index.html`, `styles.css`, and `assets/`, so the binary can
 run outside this repository. Restart/rebuild after editing embedded files.
 `PORT` provides the default port; `-addr` overrides it.
 
+## Search and sharing metadata
+
+The public origin defaults to `https://earthtwo.world`. Override it with
+`LANDING_SITE_URL` or `-site-url` when moving domains. Use the landing
+page's domain, not the playable game's domain. This one setting supplies the
+canonical URL, Open Graph URL/image, X large-image card, and `/sitemap.xml`.
+`/robots.txt` advertises the sitemap. The share image is the existing 1600×900
+Landfall screenshot, with descriptive alt text. VideoGame microdata describes
+the game without adding JavaScript or changing the page's script policy.
+
+Use `-site-url ""` (or an explicitly empty `LANDING_SITE_URL`) for local previews
+to mark them `noindex` and omit public canonical/share URLs.
+Request Host and forwarded-host headers never override the configured origin.
+After deployment, submit `/sitemap.xml` in Google Search Console and request
+a new scrape in social sharing debuggers if an older preview is cached.
+
+Metadata follows the [Open Graph protocol](https://ogp.me/) and the
+[VideoGame schema](https://schema.org/VideoGame).
+
+## Installer links
+
 Installer links come from the public `earth-two/installers/latest.json` manifest
 published by CI after verifying the installer uploads. The server refreshes it
 on page requests at most once a minute, with a three-second request timeout.

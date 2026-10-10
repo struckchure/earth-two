@@ -28,6 +28,16 @@ func Handler(trailer string) (http.Handler, error) {
 // HandlerWithDownloads refreshes installer links from a verified release feed.
 // An empty feed URL keeps the bundled fallback links.
 func HandlerWithDownloads(trailer, downloadsURL string) (http.Handler, error) {
+	return HandlerWithSite(trailer, downloadsURL, "")
+}
+
+// HandlerWithSite uses a configured public origin for canonical and share URLs.
+// Local previews without a public origin are marked noindex.
+func HandlerWithSite(trailer, downloadsURL, siteURL string) (http.Handler, error) {
+	seo, err := newPageSEO(siteURL)
+	if err != nil {
+		return nil, err
+	}
 	downloads, err := newDownloadFeed(downloadsURL)
 	if err != nil {
 		return nil, err
@@ -50,13 +60,36 @@ func HandlerWithDownloads(trailer, downloadsURL string) (http.Handler, error) {
 		if err := page.Execute(&html, struct {
 			TrailerAvailable bool
 			Downloads        map[string]string
-		}{available, downloads.current()}); err != nil {
+			SEO              pageSEO
+		}{available, downloads.current(), seo}); err != nil {
 			http.Error(w, "Page unavailable", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
+		if seo.Canonical == "" {
+			w.Header().Set("X-Robots-Tag", "noindex, nofollow")
+		}
 		http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(html.Bytes()))
+	})
+	mux.HandleFunc("GET /robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		body := "User-agent: *\nDisallow: /\n"
+		if seo.Canonical != "" {
+			body = "User-agent: *\nAllow: /\nSitemap: " + seo.Canonical + "sitemap.xml\n"
+		}
+		http.ServeContent(w, r, "robots.txt", time.Time{}, strings.NewReader(body))
+	})
+	mux.HandleFunc("GET /sitemap.xml", func(w http.ResponseWriter, r *http.Request) {
+		if seo.Canonical == "" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		body := `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>` + template.HTMLEscapeString(seo.Canonical) + `</loc></url></urlset>`
+		http.ServeContent(w, r, "sitemap.xml", time.Time{}, strings.NewReader(body))
 	})
 	static := func(w http.ResponseWriter, r *http.Request) {
 		name := strings.TrimPrefix(r.URL.Path, "/")

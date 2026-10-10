@@ -58,7 +58,8 @@ func TestDownloadFeedRefreshAndFallback(t *testing.T) {
 	if err := page.Execute(&html, struct {
 		TrailerAvailable bool
 		Downloads        map[string]string
-	}{false, latest}); err != nil {
+		SEO              pageSEO
+	}{false, latest, pageSEO{}}); err != nil {
 		t.Fatal(err)
 	}
 	for _, link := range latest {
