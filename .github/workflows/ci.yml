@@ -234,7 +234,7 @@ jobs:
           cfn-lint infra/ota-storage.json
 
   publish-updates:
-    name: Publish OTA releases
+    name: Publish OTA releases and installers
     needs: [changes, desktop, web, release-tools]
     if: >-
       needs.changes.outputs.game == 'true' &&
@@ -270,6 +270,12 @@ jobs:
           pattern: ota-*
           merge-multiple: true
           path: build/ota-incoming
+      - name: Download tested installers
+        uses: actions/download-artifact@v8
+        if: steps.fresh.outputs.publish == 'true'
+        with:
+          pattern: installers-*
+          path: build/installer-incoming
       - name: Merge tested platform releases
         if: steps.fresh.outputs.publish == 'true'
         run: |
@@ -294,6 +300,19 @@ jobs:
           file_name: .env
           # Temporary session credentials are optional; the publisher validates required values.
           fail_on_empty: false
+      - name: Upload installers to S3 and verify downloads
+        if: steps.fresh.outputs.publish == 'true'
+        run: |
+          python tools/desktop/publish.py --root build/installer-incoming \
+            --release-id "$OTA_RELEASE_ID" --env-file .env \
+            --out build/installer-release/downloads.json --promote-latest
+      - name: Save verified installer download URLs
+        uses: actions/upload-artifact@v7
+        if: steps.fresh.outputs.publish == 'true'
+        with:
+          name: installer-downloads
+          path: build/installer-release/downloads.json
+          if-no-files-found: error
       - name: Upload S3 assets and promote manifest
         if: steps.fresh.outputs.publish == 'true'
         env:

@@ -23,6 +23,21 @@ The server embeds `index.html`, `styles.css`, and `assets/`, so the binary can
 run outside this repository. Restart/rebuild after editing embedded files.
 `PORT` provides the default port; `-addr` overrides it.
 
+Installer links come from the public `earth-two/installers/latest.json` manifest
+published by CI after verifying the installer uploads. The server refreshes it
+on page requests at most once a minute, with a three-second request timeout.
+The manifest's CDN cache lasts 60 seconds, so new links normally appear within
+two minutes. All four installers and their checksums must be present, use the
+same version, and point into the manifest origin's matching release directory.
+Invalid or unavailable manifests leave the last valid links in place; a fresh
+server uses the bundled fallback release until a valid manifest is available.
+
+`INSTALLER_MANIFEST_URL` or `-downloads` can override the manifest URL (HTTPS,
+ending in `/installers/latest.json`). Set `-downloads ""` to use only bundled
+links. The default points at the existing public download origin. Deploy this
+server update once to enable automatic link refreshes for future releases.
+No browser JavaScript, CORS change, or AWS credentials are needed by the page.
+
 The video is optional and streamed from disk with HTTP byte-range support for
 seeking. The default is the revised teaser in
 `out/trailer/v2/earth-two-trailer.mp4`. If absent, the page displays a poster and

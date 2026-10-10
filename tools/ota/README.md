@@ -43,7 +43,8 @@ its CLI subprocess and sends the configured endpoint on every S3 request.
 [infra/ota-storage.json](../../infra/ota-storage.json) defines a private, encrypted,
 versioned S3 bucket, CloudFront downloads with origin access control, CORS for
 game assets, and a publisher IAM policy limited to reading and writing objects
-under `earth-two/releases/`. The bucket is retained on stack deletion. AWS
+under `earth-two/releases/`, plus the exact mutable installer manifest key
+`earth-two/installers/latest.json`. The bucket is retained on stack deletion. AWS
 resources have not been created.
 
 Deploy using infrastructure credentials when ready:
@@ -67,6 +68,13 @@ The bucket policy requires conditional writes to prevent overwriting release key
 The tool sends that condition on every upload. An existing
 object is accepted only when its checksum, size, type and metadata match. Failed
 uploads never advance a channel. [S3 conditional writes](https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html).
+
+The desktop installer publisher also updates `earth-two/installers/latest.json`
+after checking every installer download. This key is outside the immutable
+`releases/` prefix and needs both publisher write access and public download
+access. Apply the updated storage template (or equivalent provider policy) to
+existing storage before enabling this step. The manifest uses a 60-second
+cache lifetime; changing it never overwrites an installer.
 
 The tool uploads raw browser files with correct MIME types and lets the CDN
 handle transport compression. `.gz` sidecars stay out of S3 releases; the current

@@ -19,8 +19,13 @@ func main() {
 	}
 	listen := flag.String("addr", addr, "address to listen on")
 	trailer := flag.String("trailer", "out/trailer/v2/earth-two-trailer.mp4", "optional trailer MP4 path")
+	manifest := landing.DefaultDownloadsURL
+	if value, ok := os.LookupEnv("INSTALLER_MANIFEST_URL"); ok {
+		manifest = value
+	}
+	downloads := flag.String("downloads", manifest, "HTTPS latest-installer manifest URL (empty disables refresh)")
 	flag.Parse()
-	handler, err := landing.Handler(*trailer)
+	handler, err := landing.HandlerWithDownloads(*trailer, *downloads)
 	if err != nil {
 		log.Fatal(err)
 	}

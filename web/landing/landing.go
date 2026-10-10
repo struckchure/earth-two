@@ -22,6 +22,16 @@ var files embed.FS
 // Handler embeds the page, fonts and images. The optional video stays on disk
 // so the server can stream byte ranges without embedding a large movie.
 func Handler(trailer string) (http.Handler, error) {
+	return HandlerWithDownloads(trailer, "")
+}
+
+// HandlerWithDownloads refreshes installer links from a verified release feed.
+// An empty feed URL keeps the bundled fallback links.
+func HandlerWithDownloads(trailer, downloadsURL string) (http.Handler, error) {
+	downloads, err := newDownloadFeed(downloadsURL)
+	if err != nil {
+		return nil, err
+	}
 	page, err := template.ParseFS(files, "index.html")
 	if err != nil {
 		return nil, err
@@ -34,12 +44,16 @@ func Handler(trailer string) (http.Handler, error) {
 		}
 		available = err == nil && info.Mode().IsRegular()
 	}
-	var html bytes.Buffer
-	if err := page.Execute(&html, struct{ TrailerAvailable bool }{available}); err != nil {
-		return nil, err
-	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		var html bytes.Buffer
+		if err := page.Execute(&html, struct {
+			TrailerAvailable bool
+			Downloads        map[string]string
+		}{available, downloads.current()}); err != nil {
+			http.Error(w, "Page unavailable", http.StatusInternalServerError)
+			return
+		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(html.Bytes()))

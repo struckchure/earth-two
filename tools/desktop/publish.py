@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Upload verified desktop installers to the configured S3 download origin."""
 import argparse
+import base64
 from email import message_from_string
 import json
 from pathlib import Path
@@ -58,19 +59,52 @@ def installer_files(root):
     return files
 
 
+def require_landing_installers(files):
+    """The latest pointer must never publish a partial or mixed-version set."""
+    required = {"windows-amd64-setup.exe", "macos-arm64.dmg", "macos-amd64.dmg", "linux-amd64.deb"}
+    versions = set()
+    found = set()
+    for path in files:
+        match = re.fullmatch(r"earth-two-(\d+\.\d+\.\d+)-(.+)", path.name)
+        if match and match[2] in required:
+            versions.add(match[1])
+            found.add(match[2])
+    if found != required or len(versions) != 1:
+        raise ValueError("latest installers require all four landing-page targets at one version")
+
+
+def promote_latest(bucket, prefix, manifest):
+    # This is the only mutable object; release installers stay immutable.
+    item = release.artifact(manifest.parent, manifest.name)
+    checksum = base64.b64encode(bytes.fromhex(item["sha256"])).decode()
+    key = f"{prefix}/installers/latest.json"
+    release.aws("put-object", "--bucket", bucket, "--key", key, "--body", str(manifest),
+                "--content-type", "application/json", "--cache-control", "public,max-age=60",
+                "--metadata", "sha256=" + item["sha256"], "--checksum-sha256", checksum)
+    remote = release.aws("head-object", "--bucket", bucket, "--key", key, "--checksum-mode", "ENABLED")
+    if (not remote or remote.get("ContentLength") != item["size"] or
+            remote.get("ChecksumSHA256") != checksum or remote.get("ContentType") != "application/json" or
+            remote.get("CacheControl") != "public,max-age=60" or remote.get("ContentEncoding")):
+        raise ValueError("latest installer manifest verification failed")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--release-id", required=True)
     parser.add_argument("--env-file", type=Path, default=Path(".env"))
     parser.add_argument("--out", type=Path, required=True, help="write verified download URLs as JSON")
+    parser.add_argument("--promote-latest", action="store_true", help="update the landing-page manifest after verification")
     args = parser.parse_args()
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.release_id):
         parser.error("invalid release ID")
     files = installer_files(args.root)
+    if args.promote_latest:
+        require_landing_installers(files)
     release.load_env(args.env_file)
     prefix = release.configured("OTA_S3_PREFIX").strip("/")
-    release.safe_path(prefix)
+    if not release.safe_path(prefix):
+        raise ValueError("invalid S3 prefix")
     key_base = f"{prefix}/releases/{args.release_id}/installers"
     public_base = release.url_base(release.configured("AWS_S3_PUBLIC_URL")) + "/" + key_base
     bucket = release.configured("AWS_S3_BUCKET")
@@ -90,6 +124,8 @@ def main():
         print(f"Verified {path.name}", flush=True)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps({"release_id": args.release_id, "downloads": downloads}, indent=2) + "\n")
+    if args.promote_latest:
+        promote_latest(bucket, prefix, args.out)
     print(f"Download URLs: {args.out}")
 
 

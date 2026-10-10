@@ -113,7 +113,10 @@
               "Effect": "Allow",
               "Principal": {"Service": "cloudfront.amazonaws.com"},
               "Action": "s3:GetObject",
-              "Resource": {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/releases/*"},
+              "Resource": [
+                {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/releases/*"},
+                {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/installers/latest.json"}
+              ],
               "Condition": {
                 "StringEquals": {
                   "AWS:SourceArn": {"Fn::Sub": "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}"}
@@ -138,13 +141,16 @@
     "PublisherPolicy": {
       "Type": "AWS::IAM::ManagedPolicy",
       "Properties": {
-        "Description": "Attach to the OTA CI publisher; upload and verify release objects only",
+        "Description": "Upload and verify immutable releases and the latest installer manifest",
         "PolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [{
             "Effect": "Allow",
             "Action": ["s3:PutObject", "s3:GetObject"],
-            "Resource": {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/releases/*"}
+            "Resource": [
+                {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/releases/*"},
+                {"Fn::Sub": "${ReleaseBucket.Arn}/${ReleasePrefix}/installers/latest.json"}
+              ]
           }]
         }
       }

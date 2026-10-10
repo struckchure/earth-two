@@ -39,11 +39,22 @@ CI builds Apple Silicon and Intel macOS DMGs, Windows x64 installers and ZIPs,
 and Linux x64 DEBs and archives. They appear as `installers-<platform>-<arch>`
 Actions artifacts. Set the repository variable `APP_VERSION` to a numeric
 version (default `0.1.0`). These installer artifacts are separate from OTA
-archives; the workflow retains them for download and separate publication.
+archives; the workflow retains them for download and also publishes them to S3
+when release publishing is enabled.
 
 ## Publish installer downloads
 
-Download the `installers-*` artifacts from a successful CI run, then upload them
+On qualifying `main` builds, the release job downloads the tested `installers-*`
+artifacts and runs the installer uploader before promoting the OTA release.
+It uses the existing `OTA_PUBLISH_ENABLED` gate, `ota-release` environment,
+S3 credentials, and `OTA_RELEASE_ID`. Verified public URLs are saved as the
+`installer-downloads` Actions artifact (`downloads.json`). Superseded game
+builds skip both installer and OTA publication.
+After all four landing-page installers and their checksums are verified, CI
+replaces `<OTA_S3_PREFIX>/installers/latest.json` with that manifest. The landing
+server reads it automatically; no per-release HTML edit or redeploy is needed.
+
+For a manual upload, download the `installers-*` artifacts from a successful CI run, then upload them
 using Python 3.11+, AWS CLI v2, curl, and the existing S3 publisher settings
 documented in [OTA setup](../ota/README.md):
 
@@ -58,11 +69,18 @@ The uploader checks every installer against its SHA-256 sidecar before making
 any writes. It publishes installers and checksums under
 `<OTA_S3_PREFIX>/releases/<release-id>/installers/`, verifies stored checksums
 and sizes, and checks the public URLs. Existing keys cannot be overwritten.
-It does not promote an OTA channel. Use the verified URLs from the output JSON
-in `web/landing/index.html`, and rebuild the landing server to embed the change.
+It does not promote an OTA channel. Add `--promote-latest` to a manual upload to
+update the landing-page manifest too; this requires all four supported targets
+at one version. Without that flag, the existing latest links stay unchanged.
 
-The landing page currently links version `0.1.0` from successful Actions run
-`37821694441` (source commit `7a489156de528d520e52c34f969a26f721c3c47f`).
+The latest manifest is a single mutable object cached for 60 seconds. The
+publisher needs PutObject/GetObject permission for that exact key, and the
+download origin must serve it publicly. Installer release objects remain
+immutable. The storage template includes these permissions; existing storage
+policies limited to `releases/*` need this additional key allowed.
+
+The landing page keeps the last valid links if a refresh fails; on a fresh
+server it falls back to version `0.1.0` from Actions run `37821694441`.
 
 ## macOS signing
 
