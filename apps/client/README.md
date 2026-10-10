@@ -37,6 +37,9 @@ movement stops working. The HUD includes the world clock/weather, contextual
 prompts, speed/gear, headlamps, FPS and connection status. F1 shows Testing;
 F5/F6/F7 cycle time/weather/shadows. Title/pause Settings controls master volume
 and shadows for this session. Pausing holds the body pose and keeps cloth attached.
+Desktop cloth now uses three constraint passes per 60 Hz step, with reusable
+CPU buffers. This reduces solver work while retaining per-frame attachment;
+loose fabric may settle differently from the original six-pass solver.
 Matched animation/foot placement and complete visual parity remain open.
 Go remains the release default.
 See the [migration checkpoint](../../docs/rust-migration.md#world-interactions-and-hudsettings-checkpoint-2026-10-10)
@@ -121,7 +124,7 @@ For an automatic title capture use
 `EARTH_TWO_CAPTURE=build/rust/title.png make rust-run`; it waits for content
 and a render warmup, captures a frame and exits.
 
-Local evidence includes 325 passing headless tests, 107 client library tests
+Local evidence includes 327 passing headless tests, 107 client library tests
 with rendering/pose regressions, native macOS arm64/Metal graphical smoke, and a packed
 asset Chromium/SwiftShader WebGL2 gameplay check. CI also compiles/tests the
 Linux, Windows and both macOS architecture targets. Other runtime platforms,

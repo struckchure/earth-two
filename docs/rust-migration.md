@@ -1,5 +1,15 @@
 # Rust migration with Bevy and Avian
 
+Experiment concluded on 2026-10-10 and preserved on `go-vs-rust-bevy`.
+Go remains the release default; this experiment does not establish migration
+acceptance. Matched native release medians were Go 45.4/46.8/52.5 FPS versus
+Rust 23.7/22.9/22.1 FPS (gate orbit/gate fixed/market fixed), before the final
+cloth tuning. The tuning reduced solver work but did not establish an overall
+FPS improvement. The implementation inventory, remaining gaps and measurement
+procedures below are retained as the experiment record. Raw captures and
+benchmark artifacts remain local under the ignored `build/` directory;
+measurement summaries and reproduction tools are tracked in Git.
+
 Earth Two will migrate from Go, illusion, raylib, Ark ECS and Jolt to Rust,
 Bevy **0.20.0** and Avian 3D, with BSN for scene composition. The migration must preserve the existing game:
 its appearance, controls, movement, vehicle handling, content, account data,
@@ -9,7 +19,7 @@ must be measured at equivalent quality and workload.
 Status: the Step 3 playable application and Step 4 pose/injury/resident increments open with
 Landfall, a player, walking/traversal, vehicle entry/driving/exit, and a
 loading/title/play/pause lifecycle. The foundation viewer remains available
-with `--foundation`. There are 325 passing headless tests and 107 client
+with `--foundation`. There are 327 passing headless tests and 107 client
 library tests. Clothing attachment, live riding and wall-contact poses are
 integrated, alongside articulated knockdowns, injury prompts and R recovery;
 resident streaming, crowd controls and live detail budgets are integrated.
@@ -417,6 +427,75 @@ wind/buggy playback and no sound-discovery or JavaScript errors on
 Chromium/SwiftShader WebGL2. The refreshed review server uses port 8096 to
 avoid the previous origin's cached WASM. Restart native clients or use the
 fresh browser review URL to pick up this fix.
+
+## First matched parity and bundle checkpoint: 2026-10-10
+
+Committed the contracts/world/HUD/settings and pause-cloth work as `6e9536a`.
+The first paired comparison uses frozen Go `c561bd69` and that Rust release
+snapshot; the subsequent fixed-timestep correction and comparison tools are
+in the working tree. Evidence: `build/migration-baseline/step-11-parity/`;
+`index.html` provides selectable side-by-side screenshots and size/trace tables.
+
+Seven direct-intent controller scenarios (walk/stop, run/stop, crouch/stand,
+jump, running jump, roll and slide) ran three times per engine on the existing
+40 m floor fixture. Both engines repeat exactly locally. The comparison found
+one-tick roll/slide exits: Go's integer `time.Second / 60` is 16,666,666 ns,
+whereas Bevy's `from_hz(60)` rounds to 16,666,667 ns. `EarthPhysicsPlugin` now
+uses the Go duration. Repeated traces then agree on grounded states, traversal
+modes and 47-tick jump airtime; maximum horizontal difference is below 0.000001 m.
+The Rust capsule still rests about 0.02 m higher. This is an open contact-offset
+finding, not an accepted tolerance. Input cadence, slopes, stairs, obstacles,
+ladders and camera-collision routes remain to be paired.
+
+Three native Go/Rust capture pairs use identical view JSON, 11:00 clear weather,
+default outfits and 2560×1440 output: South gate orbit, South gate fixed camera,
+and Hull Market fixed camera. Exterior framing is close; the fixed interior
+view exposes a large lighting/shadow mismatch (Rust is much brighter). Outlines,
+shadows, HUD layout and moving cloth/animation need further comparison. Idle
+phases are not synchronized; screenshot FPS counters are not benchmarks. The
+Rust tour is an observer, not a replacement gameplay path, and rejects unsupported
+Go View fields. Browser visual pairs remain pending.
+
+Release artifact sizes (MiB, measured before the small fixed-timestep fix):
+
+| Payload | Go | Rust |
+| --- | ---: | ---: |
+| Web code/shell, raw | 18.28 | 114.13 |
+| Web code/shell, equal gzip-9 | 3.69 | 18.94 |
+| Complete web payload, raw | 205.44 | 301.28 |
+| Complete web payload, equal gzip-9 | 118.38 | 133.76 |
+| macOS arm64 executable | 29.24 | 117.88 |
+| Native executable + packed assets, raw | 216.39 | 305.03 |
+
+Packed asset paths, lengths and SHA-256 hashes match exactly (187.15 MiB raw).
+The normalized full web estimate is about 13% larger in Rust. Go compresses its
+single asset data bundle; Rust assets are measured file by file with the same
+Python gzip-9 settings. Excludes duplicate sidecars and `.d.ts`; includes the
+account bridge. This is the complete asset corpus, not actual first-load network
+traffic. Go's existing shipping gzip files total 121.83 MiB with uncompressed
+shell files included. Rust currently emits no gzip sidecars, and retains a
+43.83 MiB WASM `name` section. Neither optimization has been applied here.
+Native totals exclude installer metadata; both binaries reference only OS
+libraries/frameworks. Rust's native asset-root discovery still defaults to the
+source tree unless `EARTH_TWO_ASSET_ROOT` is provided, so payload sizes do not
+establish installed-app readiness.
+
+Reproduce with fresh output directories:
+
+```sh
+python3 tools/migration/movement.py build/migration-baseline/step-1-go-reference-v2 --out build/migration-baseline/<new-run>/movement
+cargo run --locked -p earth-two-client --example parity_tour -- tools/migration/presentation-views.json build/migration-baseline/<new-run>/rust-views
+cargo build --locked --release -p earth-two-client
+python3 tools/migration/bundle_size.py build/migration-baseline/step-1-go-reference-v2 --out build/migration-baseline/<new-run>/bundle-size.json
+```
+
+Validation after the timestep change: 327 headless tests, 107 graphical client
+library tests, eight Python evidence-tool tests, native/WASM Clippy and formatting
+pass. One headless test is the opt-in trace observer; its actual data-producing
+runs are recorded separately (three per engine before and after the fix).
+Next priorities: investigate interior shadow/light coverage and contact padding,
+then pair movement/cloth/camera routes on native and browser; optimize release
+symbols/compression and repeat the measurements. Full acceptance remains open.
 
 ## World interactions and HUD/settings checkpoint: 2026-10-10
 
@@ -1661,3 +1740,81 @@ Set the allowed regression band from baseline run-to-run variation before
 comparison. A faster average does not excuse new stutters, changed handling,
 missing effects or reduced detail. No performance gains are claimed until
 the matched measurements exist.
+
+The first native matched frame-pacing probe is available at
+`tools/migration/performance.py`. Build and run it from the repository root:
+
+```sh
+cargo build --release -p earth-two-client --example parity_tour
+python3 tools/migration/performance.py build/performance/m4-perf-01 --runs 3
+```
+
+Choose a new output name for each measurement set. The script builds the
+frozen Go reference in optimized mode, then runs both native tours in
+alternating order at 1280×720 logical / 2560×1440 physical,
+VSync and 4× MSAA, at the same three views, hour and weather; the optional
+test crowd is disabled in both clients (its default population is 25). Each
+view settles for 90 frames and records 60
+frame intervals. Raw Rust samples, per-run logs, captures and `run.json` are
+kept together. This is end-to-end display-paced frame cadence, including CPU
+and GPU waits; it is not an isolated GPU timer or a language-only benchmark.
+
+The initial M4 release run (2026-10-10, Go reference `c561bd6`, Rust
+checkpoint `6e9536a`) measured Go at 45–53 FPS and Rust at 22–25 FPS across
+the three views. Median mean-frame-time was 19–22 ms for Go and 42–45 ms for
+Rust; median p95 was 26–32 ms and 58–63 ms respectively. Treat this as a
+regression signal for profiling, not a final performance verdict: it covers
+only three scenes, and the two clients use different rendering engines. The
+measurement does show that Cargo release mode alone does not close the gap.
+
+The first Rust tuning pass halves cloth constraint iterations from six to
+three while retaining the 60 Hz step, two-step catch-up cap, body collisions
+and per-frame pose attachment (including pause). It reuses bone, collider and
+mesh attribute buffers, avoids cloning posed positions for normal updates,
+and rebuilds the family index only when parent relationships change. The
+cloth budget is a quality tradeoff: loose fabric can settle differently.
+Rendering resolution, shadows and MSAA are unchanged. Future Go/Rust reports
+must record the differing solver budgets (Go six, Rust three).
+
+An initial macOS CPU sample identified cloth simulation/separation and family
+index rebuilding among application hotspots, alongside Metal buffer allocation
+activity. CPU sampling alone does not establish GPU cost. Evidence is under
+`build/performance/cloth-profile-before/`.
+
+The three-repeat alternating release comparison in
+`build/performance/cloth-tuning-ab/run.json` gave median FPS of 17.0 → 18.5
+(gate orbit), 18.3 → 17.4 (gate fixed), and 18.5 → 15.3 (market fixed).
+Variation was substantial: the old build's orbit results ranged 13.8–18.1 FPS,
+and its market results 15.2–19.4 FPS. These mixed results do **not** establish
+an overall improvement and retain a possible fixed-view regression for
+investigation. They must not be compared directly with the earlier session's
+22–25 FPS Rust baseline. Both executable hashes and raw samples are preserved.
+
+Repeat against a preserved release executable with:
+
+```sh
+python3 tools/migration/compare_rust.py path/to/parity_tour-before build/performance/rust-ab-02 --runs 3
+```
+
+To isolate the total cloth path (simulation and dynamic mesh updates versus
+ordinary skinned clothing), use the same current executable on both sides:
+
+```sh
+python3 tools/migration/compare_rust.py build/rust/release/examples/parity_tour build/performance/cloth-probe-02 --before-cloth on --after-cloth off --runs 3
+```
+
+The diagnostic switch belongs to `parity_tour`; gameplay retains cloth.
+The same-build three-repeat probe in `build/performance/cloth-on-off/run.json`
+measured median FPS with cloth on/off of 28.6/29.8 (orbit), 26.6/30.5
+(gate fixed), and 24.7/28.1 (market fixed). Median mean-frame-time differences
+were 1.4, 4.8 and 4.9 ms. These are whole-frame differences, not exclusive
+solver timings; disabling cloth also removes dynamic mesh updates. The
+fixed-view FPS ranges did not overlap, while orbit did. This suggests the
+remaining cloth path is worth profiling, particularly mesh upload/allocation,
+but does not demonstrate a gain from the tuning itself. The much faster
+cloth-on results than the preceding A/B session also show why comparisons
+must be made within a matched measurement set.
+
+The tuning passed 73 presentation unit tests and nine headless presentation
+integration tests (`--no-default-features --test presentation`), including
+pause/resume attachment coverage. The native world/HUD smoke also passed.

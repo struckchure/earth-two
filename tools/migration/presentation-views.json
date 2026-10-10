@@ -1,0 +1,5 @@
+[
+  {"name":"gate_orbit", "player":[0,0,62], "ground":true,"yaw":0,"pitch":0.2},
+  {"name":"gate_fixed", "player":[0,0,62], "ground":true,"yaw":0,"pitch":0.2,"eye":[0,2.5,66.5],"target":[0,1.5,62]},
+  {"name":"market_fixed", "player":[-16,1.2,6],"yaw":0,"pitch":0.26,"eye":[-16,2.8,10.5],"target":[-16,1.6,6]}
+]

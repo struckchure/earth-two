@@ -1,0 +1,14 @@
+{
+  "hz": 60,
+  "warmup_ticks": 17,
+  "fixture": "Existing traversal harness: 40x1x40 floor at y=-0.5; capsule radius 0.3, height 1.8; facing +Z. Each case starts fresh.",
+  "cases": [
+    {"name":"walk_stop", "phases":[{"ticks":60,"move":[0,0,1]},{"ticks":90}]},
+    {"name":"run_stop", "phases":[{"ticks":60,"move":[0,0,1],"run":true},{"ticks":90}]},
+    {"name":"crouch_stand", "phases":[{"ticks":60,"move":[0,0,1],"crouch":true},{"ticks":90}]},
+    {"name":"jump", "phases":[{"ticks":120,"jump":true}]},
+    {"name":"running_jump", "phases":[{"ticks":30,"move":[0,0,1],"run":true},{"ticks":60,"move":[0,0,1],"run":true,"jump":true},{"ticks":90}]},
+    {"name":"roll", "phases":[{"ticks":120,"roll":true}]},
+    {"name":"slide", "phases":[{"ticks":30,"move":[0,0,1],"run":true},{"ticks":60,"move":[0,0,1],"run":true,"slide":true},{"ticks":90}]}
+  ]
+}

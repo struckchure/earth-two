@@ -25,15 +25,19 @@ pub struct EarthPhysicsPlugin;
 
 impl Plugin for EarthPhysicsPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(Time::<Fixed>::from_hz(FIXED_HZ))
-            .add_plugins(PhysicsPlugins::default())
-            .insert_resource(Gravity(Vec3::new(0.0, -9.81, 0.0)))
-            .add_systems(
-                RunFixedMainLoop,
-                hold_paused_bodies
-                    .after(avian3d::interpolation::TransformEasingSystems::Ease)
-                    .in_set(bevy::app::RunFixedMainLoopSystems::AfterFixedMainLoop),
-            );
+        // Go uses integer time.Second / 60 (16,666,666 ns). Rounding
+        // to 16,666,667 ns changes f32 traversal release thresholds by a tick.
+        app.insert_resource(Time::<Fixed>::from_duration(Duration::from_nanos(
+            1_000_000_000 / 60,
+        )))
+        .add_plugins(PhysicsPlugins::default())
+        .insert_resource(Gravity(Vec3::new(0.0, -9.81, 0.0)))
+        .add_systems(
+            RunFixedMainLoop,
+            hold_paused_bodies
+                .after(avian3d::interpolation::TransformEasingSystems::Ease)
+                .in_set(bevy::app::RunFixedMainLoopSystems::AfterFixedMainLoop),
+        );
     }
 }
 

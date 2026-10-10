@@ -67,8 +67,9 @@ pub const CLOTH_STEP: f32 = 1.0 / 60.0;
 /// Steps per frame at most; a slower frame runs slow. Few, so that a machine
 /// a step is slow on isn't slowed further by owing more of them.
 pub const CLOTH_MAX_STEPS: u32 = 2;
-/// Constraint passes per step.
-pub const CLOTH_ITERATIONS: u32 = 6;
+/// Constraint passes per step. Three keeps the desktop solver affordable;
+/// pinning, freedom limits and body collision still run on every pass.
+pub const CLOTH_ITERATIONS: u32 = 3;
 /// Metres: moving further in a frame restarts the cloth.
 pub const CLOTH_TELEPORT: f32 = 1.0;
 
@@ -82,6 +83,8 @@ pub struct ClothState {
     origin: Vec3,
     /// Simulated time owed, in seconds.
     spare: f32,
+    /// Reused world-space body capsules; their count is stable for an outfit.
+    colliders: Vec<WorldCapsule>,
 }
 
 /// PosedMesh is a mesh's vertices as posed this frame, in model space.
@@ -647,8 +650,20 @@ pub fn place_colliders(
     matrix: Mat4,
     thickness: f32,
 ) -> Vec<WorldCapsule> {
-    let scale = matrix.x_axis.truncate().length();
     let mut out = Vec::with_capacity(capsules.len());
+    place_colliders_into(&mut out, capsules, bones, matrix, thickness);
+    out
+}
+
+fn place_colliders_into(
+    out: &mut Vec<WorldCapsule>,
+    capsules: &[Capsule],
+    bones: &[Mat4],
+    matrix: Mat4,
+    thickness: f32,
+) {
+    out.clear();
+    let scale = matrix.x_axis.truncate().length();
     for k in capsules {
         if k.bone_a < 0
             || k.bone_b < 0
@@ -663,7 +678,6 @@ pub fn place_colliders(
             radius: k.radius * scale + thickness,
         });
     }
-    out
 }
 
 /// ClothFrame samples the animated targets at the actual fixed-step times.
@@ -747,9 +761,9 @@ pub fn simulate(cloth: &mut Cloth, model: &ModelMeshes, bones: &[Mat4], matrix: 
     } else {
         cloth.thickness
     };
-    let colliders = place_colliders(&cloth.colliders, bones, matrix, thickness);
-
     let frame = s.schedule(dt);
+    place_colliders_into(&mut s.colliders, &cloth.colliders, bones, matrix, thickness);
+    let colliders = &s.colliders;
     let back = matrix.inverse();
 
     if s.posed.len() != meshes.len() {
@@ -801,7 +815,7 @@ pub fn simulate(cloth: &mut Cloth, model: &ModelMeshes, bones: &[Mat4], matrix: 
                 c.draw_offset.fill(Vec3::ZERO);
                 c.started = true;
             }
-            c.reach(&colliders);
+            c.reach(colliders);
             for k in 0..frame.steps {
                 let t = frame.first + k as f32 * frame.stride;
                 c.draw_prev.copy_from_slice(&c.draw_offset);
@@ -812,7 +826,7 @@ pub fn simulate(cloth: &mut Cloth, model: &ModelMeshes, bones: &[Mat4], matrix: 
                     1.0 - damping,
                     stiffness,
                     bending,
-                    &colliders,
+                    colliders,
                 );
                 for &p in &c.free {
                     let p = p as usize;
@@ -829,7 +843,7 @@ pub fn simulate(cloth: &mut Cloth, model: &ModelMeshes, bones: &[Mat4], matrix: 
             }
             for i in 0..c.free.len() {
                 let p = c.free[i] as usize;
-                c.draw_position[p] = back.transform_point3(c.draw_near(i, frame.alpha, &colliders));
+                c.draw_position[p] = back.transform_point3(c.draw_near(i, frame.alpha, colliders));
             }
             for (v, &p) in c.particle.iter().enumerate() {
                 if c.freedom[p as usize] > 0.0 {
@@ -837,8 +851,7 @@ pub fn simulate(cloth: &mut Cloth, model: &ModelMeshes, bones: &[Mat4], matrix: 
                 }
             }
             if !pm.normals.is_empty() {
-                let positions = pm.positions.clone();
-                c.deform_normals(&positions, &mut pm.normals);
+                c.deform_normals(&pm.positions, &mut pm.normals);
             }
         }
     }

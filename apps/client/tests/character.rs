@@ -1655,3 +1655,68 @@ fn ladder_geometry_leaves_climb_pose_alone() {
         );
     }
 }
+
+/// Optional paired diagnostic using the exact same JSON inputs as the frozen Go harness.
+#[test]
+fn migration_movement_trace() {
+    let Ok(out) = std::env::var("EARTH_TWO_MOVEMENT_OUT") else {
+        return;
+    };
+    let input = std::env::var("EARTH_TWO_MOVEMENT_INPUT").expect("movement inputs");
+    let config: serde_json::Value = serde_json::from_slice(&std::fs::read(input).unwrap()).unwrap();
+    for case in config["cases"].as_array().unwrap() {
+        let mut h = Harness::new(Vec3::ZERO, |_| {});
+        let mut samples = vec![];
+        for phase in case["phases"].as_array().unwrap() {
+            let direction = phase.get("move").map_or(Vec3::ZERO, |v| {
+                Vec3::new(
+                    v[0].as_f64().unwrap() as f32,
+                    v[1].as_f64().unwrap() as f32,
+                    v[2].as_f64().unwrap() as f32,
+                )
+            });
+            for tick in 0..phase["ticks"].as_u64().unwrap() {
+                *h.intent() = Intent {
+                    move_dir: direction,
+                    run: phase["run"].as_bool().unwrap_or(false),
+                    crouch: phase["crouch"].as_bool().unwrap_or(false),
+                    jump: tick == 0 && phase["jump"].as_bool().unwrap_or(false),
+                    roll: tick == 0 && phase["roll"].as_bool().unwrap_or(false),
+                    slide: tick == 0 && phase["slide"].as_bool().unwrap_or(false),
+                    ..default()
+                };
+                h.tick(1);
+                let position = h.translation().to_array();
+                let cc = *h.cc();
+                let mode = h.mode() as u8;
+                samples.push(serde_json::json!({"tick":samples.len()+1,"position":position,"velocity":cc.velocity.to_array(),"height":cc.height,"grounded":cc.grounded,"mode":mode}));
+            }
+        }
+        std::fs::write(
+            std::path::Path::new(&out).join(format!("{}.json", case["name"].as_str().unwrap())),
+            serde_json::to_vec_pretty(&samples).unwrap(),
+        )
+        .unwrap();
+    }
+}
+
+#[test]
+fn roll_and_sprint_slide_release_on_the_reference_tick() {
+    for sliding in [false, true] {
+        let mut h = Harness::new(Vec3::ZERO, |_| {});
+        if sliding {
+            h.intent().run = true;
+            h.intent().move_dir = Vec3::Z;
+            h.tick(30);
+            h.intent().slide = true;
+        } else {
+            h.intent().roll = true;
+        }
+        h.tick(43);
+        assert_eq!(h.mode(), if sliding { Anim::Slide } else { Anim::Roll });
+        assert_eq!(h.cc().height, 0.9);
+        h.tick(1);
+        assert_eq!(h.mode(), Anim::Idle);
+        assert_eq!(h.cc().height, 1.8);
+    }
+}

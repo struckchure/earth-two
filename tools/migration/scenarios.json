@@ -81,8 +81,8 @@
       ],
       "setup_and_inputs": "Walk, run, reverse direction, stop, jump and land on flat ground and slopes.",
       "expected": "Same acceleration/braking/turning and airborne control within measured bounds.",
-      "comparison": "Existing tests plus fixed-step movement trace (pending)",
-      "status": "defined; acceptance pending",
+      "comparison": "Seven paired 60 Hz floor traces, three repeats per engine in step-11-parity/movement-fixed; walking/running/braking agree horizontally below 0.000001 m; turning/terrain routes pending",
+      "status": "flat-floor movement compared; 2 cm contact offset and full acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/MOVE-01"
     },
     {
@@ -94,8 +94,8 @@
       ],
       "setup_and_inputs": "Run the Hull vault, mantle, stairs, duct slide, crouch, roll, ladder and wall-kick routes; test blocked alternatives.",
       "expected": "Identical success/rejection and input consumption; existing Go test thresholds apply.",
-      "comparison": "Existing traversal tests and route clips (pending)",
-      "status": "defined; acceptance pending",
+      "comparison": "Paired jump/roll/slide traces expose and resolve one-tick release mismatch by matching Go integer-nanosecond step; obstacle/ladder/boundary comparisons pending",
+      "status": "initial traversal traces compared; full boundary acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/MOVE-02"
     },
     {
@@ -213,8 +213,8 @@
       ],
       "setup_and_inputs": "Compare skin, clothes, world, hair, glass, interior lights and Full/Low/Off shadows at matching cameras.",
       "expected": "Same painted look, character-only outlines, transparency, color response and shadow coverage.",
-      "comparison": "Day/night captures and visual review",
-      "status": "defined; acceptance pending",
+      "comparison": "Three same-view native captures in step-11-parity; Hull Market fixed-camera lighting differs substantially, with Rust much brighter; exterior shadow/outline differences remain",
+      "status": "initial matched captures reviewed; interior lighting defect open",
       "evidence_directory": "build/migration-baseline/<run>/RENDER-01"
     },
     {
@@ -243,8 +243,8 @@
       ],
       "setup_and_inputs": "Orbit near walls, zoom/follow on foot and driving; use benches/machines; compete seat/contract prompts; map/P teleport.",
       "expected": "Same camera response, occlusion, prompt priority, reach and destination/vehicle handling.",
-      "comparison": "Source-derived interaction tests and native/browser world-HUD checkpoint; matched Go/Rust playthrough pending",
-      "status": "furniture/machine/bell, camera and navigation integrated; matched acceptance pending",
+      "comparison": "World interactions integrated; South gate orbit and fixed camera compared in step-11-parity; dynamic/obstructed camera and browser pairs pending",
+      "status": "static framing compared; full camera/interaction acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/CAM-01"
     },
     {
@@ -332,8 +332,8 @@
       ],
       "setup_and_inputs": "Build each existing CI target; stage compressed browser assets; fresh install, update from Go, failed update and rollback.",
       "expected": "Same CLI/env/HTTP/assets/OTA contracts; accounts and rollback retained; no target dropped.",
-      "comparison": "Build/test logs and installed runtime verification",
-      "status": "defined; acceptance pending",
+      "comparison": "Actual optimized native and web artifact sizes and identical asset hashes recorded in step-11-parity/bundle-size.json; gzip estimates normalized; Rust compression sidecars and installed asset discovery still pending",
+      "status": "bundle sizes measured; packaging/update/rollback acceptance pending",
       "evidence_directory": "build/migration-baseline/<run>/DELIVERY-01"
     }
   ]

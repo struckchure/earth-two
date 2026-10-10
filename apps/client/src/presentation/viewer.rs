@@ -617,6 +617,7 @@ fn simulate_cloth(
     controls: Res<Controls>,
     physics: Option<Res<Time<avian3d::prelude::Physics>>>,
     time: Res<Time>,
+    mut bones: Local<Vec<Mat4>>,
 ) {
     // Keep skinning/attachment current in menus (new clothes, body rotation,
     // pose corrections), but do not advance the cloth simulation clock.
@@ -642,15 +643,11 @@ fn simulate_cloth(
         };
         let matrix = mesh_transform.to_matrix();
         let back = matrix.inverse();
-        let bones: Vec<Mat4> = skin
-            .joints
-            .iter()
-            .zip(ibm.iter())
-            .map(|(j, ibp)| {
-                let world = transforms.get(*j).map_or(Mat4::IDENTITY, |t| t.to_matrix());
-                back * world * *ibp
-            })
-            .collect();
+        bones.clear();
+        bones.extend(skin.joints.iter().zip(ibm.iter()).map(|(j, ibp)| {
+            let world = transforms.get(*j).map_or(Mat4::IDENTITY, |t| t.to_matrix());
+            back * world * *ibp
+        }));
         if bones.len() != model.skeleton.len() {
             continue;
         }
@@ -660,7 +657,9 @@ fn simulate_cloth(
         };
         // The first time: give each simulated mesh its own copy, drawn
         // unskinned where the solver puts it.
-        let mut own = cloth_meshes.map(|c| c.clone()).unwrap_or_default();
+        let mut created = ClothMeshes::default();
+        let mut cloth_meshes = cloth_meshes;
+        let own = cloth_meshes.as_deref_mut().unwrap_or(&mut created);
         if own.0.is_empty() {
             for &i in cloth.meshes.keys() {
                 let Some(mesh_entity) = drawn.0.get(i).copied().flatten() else {
@@ -695,7 +694,6 @@ fn simulate_cloth(
                     .remove::<SkinnedMesh>();
                 own.0.push((i, mesh_entity, handle));
             }
-            commands.entity(e).insert(own.clone());
         }
         for (i, _, handle) in &own.0 {
             let Some(pm) = state.posed.get(*i) else {
@@ -704,20 +702,35 @@ fn simulate_cloth(
             let Some(mut mesh) = meshes.get_mut(handle) else {
                 continue;
             };
-            mesh.insert_attribute(
-                Mesh::ATTRIBUTE_POSITION,
-                pm.positions
-                    .iter()
-                    .map(|p| p.to_array())
-                    .collect::<Vec<_>>(),
-            );
+            write_cloth_attribute(&mut mesh, Mesh::ATTRIBUTE_POSITION, &pm.positions);
             if !pm.normals.is_empty() {
-                mesh.insert_attribute(
-                    Mesh::ATTRIBUTE_NORMAL,
-                    pm.normals.iter().map(|n| n.to_array()).collect::<Vec<_>>(),
-                );
+                write_cloth_attribute(&mut mesh, Mesh::ATTRIBUTE_NORMAL, &pm.normals);
             }
         }
+        if !created.0.is_empty() {
+            commands.entity(e).insert(created);
+        }
+    }
+}
+
+/// Reuse the mesh's CPU buffers instead of replacing two vertex arrays per
+/// garment per frame. The normal asset-change path still uploads the new pose.
+fn write_cloth_attribute(
+    mesh: &mut Mesh,
+    attribute: bevy::mesh::MeshVertexAttribute,
+    values: &[Vec3],
+) {
+    if let Some(VertexAttributeValues::Float32x3(out)) = mesh.attribute_mut(attribute.id)
+        && out.len() == values.len()
+    {
+        for (dst, src) in out.iter_mut().zip(values) {
+            *dst = src.to_array();
+        }
+    } else {
+        mesh.insert_attribute(
+            attribute,
+            values.iter().map(|v| v.to_array()).collect::<Vec<_>>(),
+        );
     }
 }
 

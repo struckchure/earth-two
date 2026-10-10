@@ -92,3 +92,7 @@ required-features = ["viewer"]
 [[example]]
 name = "world_smoke"
 required-features = ["viewer"]
+
+[[example]]
+name = "parity_tour"
+required-features = ["viewer"]
