@@ -3,9 +3,11 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -47,12 +49,26 @@ func buildShell(source []byte, dir string) ([]byte, error) {
 	// Use uncompressed sizes: fetch streams contain decoded bytes even when
 	// the server sends gzip, whose Content-Length describes compressed bytes.
 	sizes := map[string]int64{}
-	for _, name := range []string{"raylib.data", "game.wasm"} {
-		info, err := os.Stat(filepath.Join(dir, name))
+	versions := map[string]string{}
+	names := []string{"raylib.data", "game.wasm", "account.js", "wasm_exec.js", "fs.js"}
+	for _, module := range modules {
+		names = append(names, module+".js", module+".wasm")
+	}
+	for _, name := range names {
+		file, err := os.Open(filepath.Join(dir, name))
 		if err != nil {
 			return nil, err
 		}
-		sizes[name] = info.Size()
+		hash := sha256.New()
+		size, err := io.Copy(hash, file)
+		file.Close()
+		if err != nil {
+			return nil, err
+		}
+		versions[name] = fmt.Sprintf("%x", hash.Sum(nil))
+		if name == "raylib.data" || name == "game.wasm" {
+			sizes[name] = size
+		}
 	}
 	manifest, err := json.Marshal(sizes)
 	if err != nil {
@@ -60,6 +76,11 @@ func buildShell(source []byte, dir string) ([]byte, error) {
 	}
 	result := bytes.ReplaceAll(shell, []byte("__MODULES__"), match[1])
 	result = bytes.ReplaceAll(result, []byte("__POINTER__"), pointer)
+	versionJSON, err := json.Marshal(versions)
+	if err != nil {
+		return nil, err
+	}
+	result = bytes.ReplaceAll(result, []byte("__VERSIONS__"), versionJSON)
 	return bytes.ReplaceAll(result, []byte("__SIZES__"), manifest), nil
 }
 

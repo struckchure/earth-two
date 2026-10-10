@@ -32,6 +32,9 @@
   #detail { font-size: 13px; line-height: 1.65; color: #b5b4a5; min-height: 44px; margin: 22px 0 0; }
   button { margin-top: 22px; padding: 12px 22px; background: #ece3cf; color: #22251f; border: 0; cursor: pointer; font: 600 14px system-ui, sans-serif; }
   button:focus-visible { outline: 2px solid #c8ab77; outline-offset: 5px; }
+  #failure-details { margin-top: 20px; color: #b5b4a5; font-size: 12px; }
+  #failure-details summary { cursor: pointer; }
+  #failure-reason { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow: auto; }
   #pointer-hint { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); max-width: calc(100% - 32px); margin: 0; padding: 12px 18px; background: #22251fee; color: #ece3cf; border: 1px solid #c8ab7755; font-size: 13px; text-align: center; pointer-events: none; z-index: 5; }
   #loading.failed .signal { background: #e69a7f; animation: none; }
   @keyframes pulse { 50% { opacity: .35; } }
@@ -52,6 +55,7 @@
     <div class="steps" aria-hidden="true"><span id="step-download" class="active">01 / Download</span><span id="step-prepare">02 / Prepare</span><span id="step-ready">03 / Arrive</span></div>
     <p id="detail">The first visit can take a little longer while the world downloads.</p>
     <button id="retry" type="button" hidden>Try again</button>
+    <details id="failure-details" hidden><summary>Error details</summary><pre id="failure-reason"></pre></details>
     <noscript><p>Enable JavaScript to load Earth Two.</p></noscript>
   </div>
 </section>
@@ -59,6 +63,10 @@
 __POINTER__
 const modules = __MODULES__;
 const sizes = __SIZES__;
+// Content versions keep cached module glue, its data offsets, and binaries
+// in sync across deployments, even when Last-Modified timestamps coincide.
+const versions = __VERSIONS__;
+function assetURL(name) { return `${name}?v=${versions[name]}`; }
 const overlay = document.getElementById("loading");
 const status = document.getElementById("status");
 const amount = document.getElementById("amount");
@@ -101,7 +109,9 @@ function fail(error) {
   status.textContent = "Unable to start";
   amount.textContent = "Interrupted";
   progress.hidden = true;
-  detail.textContent = "The game could not finish loading. Check your connection and try again. If it continues, try a browser with WebGL 2 support.";
+  detail.textContent = "The game could not finish loading. Try again; if it keeps happening, share the error details below.";
+  document.getElementById("failure-reason").textContent = String(error?.stack || error?.message || error || "Unknown startup error");
+  document.getElementById("failure-details").hidden = false;
   document.getElementById("retry").hidden = false;
   console.error(error);
 }
@@ -120,14 +130,14 @@ addEventListener("keydown", () => globalThis.miniaudio?.unlock?.());
 function loadScript(src) {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = src;
+    script.src = assetURL(src);
     script.onload = resolve;
     script.onerror = () => reject(new Error(`Could not load ${src}`));
     document.head.append(script);
   });
 }
 async function gameResponse() {
-  const response = await fetch("game.wasm");
+  const response = await fetch(assetURL("game.wasm"));
   if (!response.ok) throw new Error(`game.wasm: HTTP ${response.status}`);
   if (!response.body) return response;
   const reader = response.body.getReader();
@@ -153,6 +163,7 @@ async function gameResponse() {
       await loadScript(`${name}.js`);
       const create = globalThis[`create${name[0].toUpperCase()}${name.slice(1)}`];
       globalThis[name] = await create({
+        locateFile: assetURL,
         canvas, print: console.log, printErr: console.warn, onAbort: fail,
         setStatus(message) {
           if (name !== "raylib") return;

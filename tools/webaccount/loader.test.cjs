@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/shell.html', 'utf8').split('<script>')[1].split('</script>')[0]
   .replace('__POINTER__', '')
+  .replace('__VERSIONS__', '{"game.wasm":"game-hash","raylib.data":"data-hash","raylib.wasm":"raylib-hash","account.js":"account-hash","wasm_exec.js":"runtime-hash","fs.js":"fs-hash","raylib.js":"glue-hash","jolt.js":"jolt-hash"}')
   .replace('__MODULES__', '["raylib","jolt"]')
   .replace('__SIZES__', '{"raylib.data":100,"game.wasm":8}');
 
@@ -21,13 +22,18 @@ function boot({httpError = false, scriptError = false} = {}) {
   let streamBytes = 0;
   const context = {
     console: {log() {}, warn() {}, error() {}},
-    document: {getElementById: element, createElement: () => ({}), head: {append(script) {queueMicrotask(() => scriptError ? script.onerror() : script.onload());}}},
+    document: {getElementById: element, createElement: () => ({}), head: {append(script) {assert.match(script.src, /\?v=[\w-]+$/); queueMicrotask(() => scriptError ? script.onerror() : script.onload());}}},
     setInterval: () => 1, clearInterval() {}, setTimeout,
     requestAnimationFrame: callback => setTimeout(callback, 0),
     addEventListener() {}, location: {reload() {}},
     ReadableStream, Response,
-    fetch: async () => new Response(new Uint8Array(8), {status: httpError ? 503 : 200, headers: {'Content-Length': '2', 'Content-Encoding': 'gzip'}}),
+    fetch: async url => {
+      assert.equal(url, 'game.wasm?v=game-hash');
+      return new Response(new Uint8Array(8), {status: httpError ? 503 : 200, headers: {'Content-Length': '2', 'Content-Encoding': 'gzip'}});
+    },
     createRaylib: async options => {
+      assert.equal(options.locateFile('raylib.data'), 'raylib.data?v=data-hash');
+      assert.equal(options.locateFile('raylib.wasm'), 'raylib.wasm?v=raylib-hash');
       // Emscripten may report a compressed total. The build manifest is authoritative.
       options.setStatus('Downloading data... (50/10)');
       worldPercent = element('progress').value;
@@ -65,6 +71,8 @@ for (const options of [{httpError: true}, {scriptError: true}]) {
     await new Promise(resolve => setTimeout(resolve, 30));
     assert.equal(page.element('status').textContent, 'Unable to start');
     assert.equal(page.element('retry').hidden, false);
+    assert.equal(page.element('failure-details').hidden, false);
+    assert.match(page.element('failure-reason').textContent, options.httpError ? /HTTP 503/ : /Could not load/);
     page.context.earthTwoReady();
     assert.equal(page.element('loading').hidden, false);
   });
