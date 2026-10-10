@@ -1,7 +1,11 @@
 {
   "$schema": "https://schema.railpack.com",
   "provider": "golang",
-  "buildAptPackages": ["git", "make", "python3", "xz-utils"],
+  "packages": {
+    "go": "1.25.3",
+    "node": "26"
+  },
+  "buildAptPackages": ["...", "git", "make", "python3", "xz-utils"],
   "steps": {
     "build": {
       "commands": [
