@@ -45,6 +45,8 @@ var makehuman = map[character.Anim]character.Clip{
 	character.Interact:      {Name: "Interact"},
 	character.Punch:         {Name: "Punching"},
 	character.PunchRight:    {Name: "Punching Mirrored"},
+	character.PistolIdle:    {Name: "Pistol_Idle_Loop"},
+	character.PistolAim:     {Name: "Pistol_Aim_Neutral"},
 	character.PickUp:        {Name: "Picking Up"},
 	character.Slide:         {Name: "Traversal_Slide"},
 	character.Roll:          {Name: "Roll"},
@@ -137,6 +139,7 @@ func buildConfigured(m *menu, capture bool) *illusion.App {
 			world.Plugin{Manifest: "world/world.json"},
 			vehicle.Plugin{},
 			injuryPlugin{},
+			combatPlugin{},
 			residentsPlugin{},
 			testPlugin{},
 			shading.Plugin{
@@ -244,7 +247,7 @@ func setup(
 	if err := spawnOnTerrain(cmd, kit.Get(), placed, world.Stores{Models: models.Get(), Meshes: m, Materials: mat, Textures: textures.Get()}); err != nil {
 		panic(err)
 	}
-	cmd.InsertResource(illusion.R(newWorldMap(kit.Get(), placed)))
+	cmd.InsertResource(illusion.R(newWorldMap(kit.Get(), append(placed, depotLayout()...))))
 	cmd.InsertResource(illusion.R(newUses(kit.Get(), placed)))
 	jobs, err := newContracts(kit.Get(), placed)
 	if err != nil {

@@ -53,7 +53,11 @@ func drawInjury(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], 
 		title, action = "Dead", "Respawn at the Pads"
 	}
 	p.text(title, rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(12)}, 24, semibold, colAccent)
-	p.text(fmt.Sprintf("Vehicle impact · %.0f km/h", health.ImpactSpeed*3.6), rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(48)}, 14, semibold, colText)
+	cause := health.Cause
+	if cause == "" {
+		cause = fmt.Sprintf("Vehicle impact · %.0f km/h", health.ImpactSpeed*3.6)
+	}
+	p.text(cause, rl.Vector2{X: r.X + p.px(16), Y: r.Y + p.px(48)}, 14, semibold, colText)
 	x := r.X + p.px(16)
 	x += p.keycap("R", rl.Vector2{X: x, Y: r.Y + p.px(76)}, 13) + p.px(8)
 	p.text(action, rl.Vector2{X: x, Y: r.Y + p.px(80)}, 14, semibold, colText)

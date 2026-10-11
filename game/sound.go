@@ -44,7 +44,7 @@ var loopNames = []string{
 var hitNames = []string{
 	"step_sand", "step_soil", "step_paving", "step_rug", "step_grating", "land_loose", "land_hard",
 	"slide", "whoosh", "cloth", "thump", "grab", "creak", "clank", "bell",
-	"door", "crash_metal", "crash_ground", "skid",
+	"door", "crash_metal", "crash_ground", "skid", "pistol", "assault", "sniper", "shotgun",
 	"ui_move", "ui_stamp", "ui_back", "ui_open", "ui_page", "ui_mark", "ui_arrive", "ui_deny",
 }
 

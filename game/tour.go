@@ -15,6 +15,7 @@ import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/struckchure/earth-two/character"
 	"github.com/struckchure/illusion"
+	"github.com/struckchure/illusion/input"
 	"github.com/struckchure/illusion/physics"
 	"github.com/struckchure/illusion/render"
 	"github.com/struckchure/illusion/transform"
@@ -46,6 +47,14 @@ type View struct {
 	Hold   string      `json:"hold,omitempty"`
 	Screen string      `json:"screen,omitempty"`
 	Stamp  string      `json:"stamp,omitempty"`
+	Move   string      `json:"move,omitempty"`
+	Run    bool        `json:"run,omitempty"`
+	Fire   bool        `json:"fire,omitempty"`
+	Crouch bool        `json:"crouch,omitempty"`
+	ADS    bool        `json:"ads,omitempty"`
+	Scope  bool        `json:"scope,omitempty"`
+	Spare  string      `json:"spare,omitempty"`
+	Weapon string      `json:"weapon,omitempty"` // "pistol": preview the equipped pose
 }
 
 // tourScreens are the screens a View can show over the game (Screen), by
@@ -85,13 +94,50 @@ func Tour(viewsFile, out string) error {
 		return err
 	}
 	at, frames := 0, 0
+
 	reportStats := os.Getenv("EARTH_TWO_TOUR_STATS") == "1"
 	var lastFrame time.Time
 	var frameTimes []float64
 	app := build(&menu{})
+	app.AddSystems(illusion.Update, illusion.Fn1(func(keys *illusion.Res[input.Keys]) {
+		if at < len(views) {
+			v := views[at]
+			for _, key := range []int{int(rl.KeyW), int(rl.KeyA), int(rl.KeyS), int(rl.KeyD), int(rl.KeyLeftShift), int(rl.KeyF)} {
+				keys.Get().Release(input.Key(key))
+			}
+			if frames < 50 {
+				keys.Get().Release(rl.KeyC)
+			}
+			if frames >= 50 {
+				for _, c := range v.Move {
+					key := map[rune]int32{'w': rl.KeyW, 'a': rl.KeyA, 's': rl.KeyS, 'd': rl.KeyD}[c]
+					if key != 0 {
+						keys.Get().Press(input.Key(key))
+					}
+				}
+				if v.Run {
+					keys.Get().Press(rl.KeyLeftShift)
+				}
+				if v.Fire {
+					keys.Get().Press(rl.KeyF)
+				}
+				if v.Crouch {
+					keys.Get().Press(rl.KeyC)
+				} else {
+					keys.Get().Release(rl.KeyC)
+				}
+			}
+		}
+		if at < len(views) && views[at].ADS {
+			keys.Get().Press(rl.KeyV)
+		} else {
+			keys.Get().Release(rl.KeyV)
+		}
+	}).Before(character.Input))
+
 	// After the camera's followed the player, and before transforms are
 	// propagated for drawing.
-	app.AddSystems(illusion.PostUpdate, illusion.Fn7(func(
+	app.AddSystems(illusion.PostUpdate, illusion.Fn8(func(
 		mu *illusion.Res[menu],
 		intents *illusion.Query1Where[character.Intent, illusion.With[character.Player]],
 		players *illusion.Query2Where[transform.Transform, physics.CharacterController, illusion.With[character.Player]],
@@ -99,11 +145,22 @@ func Tour(viewsFile, out string) error {
 		o *illusion.Res[orbit],
 		outfits *illusion.Query1Where[character.Outfit, illusion.With[character.Player]],
 		wardrobe *illusion.Res[character.Wardrobe],
+		combat *illusion.Res[combatState],
 	) {
 		if at >= len(views) {
 			return
 		}
 		v := views[at]
+		if frames == 0 && v.Weapon != "" {
+			kind := map[string]weaponKind{"pistol": pistol, "assault": assaultRifle, "sniper": sniperRifle, "shotgun": shotgun}[v.Weapon]
+			spec := weaponSpecs[kind]
+			combat.Get().Weapon = weaponState{Kind: kind, Owned: true, Equipped: true, Magazine: spec.Magazine, Reserve: spec.Magazine * 2, Mods: weaponMods{Scope: v.Scope}}
+			if v.Spare != "" {
+				spare := map[string]weaponKind{"pistol": pistol, "assault": assaultRifle, "sniper": sniperRifle, "shotgun": shotgun}[v.Spare]
+				spec := weaponSpecs[spare]
+				combat.Get().Spare = weaponState{Kind: spare, Owned: true, Magazine: spec.Magazine, Reserve: spec.Magazine * 2}
+			}
+		}
 		p := rl.Vector3{X: v.Player[0], Y: v.Player[1], Z: v.Player[2]}
 		if v.Ground {
 			p.Y = groundHeight(p.X, p.Z) + groundLevel + 1

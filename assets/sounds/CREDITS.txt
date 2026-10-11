@@ -28,3 +28,14 @@ Earth Two by tools/sounds/fetch.py.
   slide: "Boots Gravel Feet Slide 1_5" by Joao_Janz: https://freesound.org/s/504383/
   whoosh: "Short Whoosh, 13x" by Kinoton: https://freesound.org/s/427979/
   skid: "auto car or van stop brake skid gravel short" by kyles: https://freesound.org/s/637161/
+
+Firearm reports: The Free Firearm Sound Library, CC0 (public domain).
+Recorded by Ben Jaszczak, Brian Nelson, Kevin Heras and Matthew Nanney.
+https://opengameart.org/node/21826
+Prepared SFX Library archive; two near-perspective shots from each recording:
+  pistol_0/1: 1911/A_42P.wav (.45 pistol)
+  assault_0/1: AR-15/D_32P.wav (5.56 rifle)
+  sniper_0/1: Tikka/W_29P.wav (.30-06 bolt-action rifle)
+  shotgun_0/1: Nova/O_21P.wav (12-gauge pump shotgun)
+Trimmed, mono downmixed, resampled to 44.1 kHz, peak-levelled and tail-faded
+by tools/sounds/combat.py. Natural pitch and recorded reverberation retained.

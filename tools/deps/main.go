@@ -1,4 +1,4 @@
-// deps prepares private, source-patched dependencies for native Make builds.
+// deps prepares private, source-patched dependencies for native and web Make builds.
 // It never changes the shared Go module cache or the project's go.mod.
 package main
 
@@ -66,6 +66,28 @@ var patches = []patch{
 		file:   "internal/jolt/jolt.go",
 		old:    "#cgo darwin LDFLAGS: -lc++\n",
 		fixed:  "// Go uses the C++ linker on macOS, which already supplies libc++.\n",
+	},
+	{
+		module: "github.com/struckchure/illusion",
+		file:   "render/plugin.go",
+		old:    "func firstLight(q *illusion.Query2[DirectionalLight, transform.GlobalTransform])",
+		fixed: `// AddSceneSchedule registers a reusable 3D-only pass. Call after the main
+// shadow pass, inside a render target if desired. It shares loaded models,
+// lighting and shadows; it does not advance simulation or present the frame.
+func AddSceneSchedule(app *illusion.App, label illusion.ScheduleLabel) {
+ app.ConfigureSets(label,
+  Draw3D.After(Begin3D),
+  End3D.After(Draw3D),
+ )
+ app.AddSystems(label,
+  illusion.Fn6(beginCamera).InSet(Begin3D),
+  illusion.Fn6(drawMeshes).InSet(Draw3D),
+  illusion.Fn8(drawModels).InSet(Draw3D),
+  illusion.Fn1(endCamera).InSet(End3D),
+ )
+}
+
+func firstLight(q *illusion.Query2[DirectionalLight, transform.GlobalTransform])`,
 	},
 }
 

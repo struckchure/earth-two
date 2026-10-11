@@ -309,10 +309,35 @@ Esc goes back. In play:
 | W/S or Up/Down on a ladder | Climb/descend; release to hold; Space jumps off |
 | E | Interact; review the first work order at the arrivals terminal, or deliver its filing at the marked Exchange counter; beside a vehicle, get in; in one, get out (once it's slow); at a bench, stool, chair or bunk, sit down (E or move to get up); at a machine, kneel and work on it (move to stop) |
 | H | While driving, toggle the vehicle's headlamps |
-| F | Punch |
+| Left mouse / F | Punch; fire the equipped weapon (hold for automatic rifle fire) |
+| Right mouse / V | Hold to aim |
+| X | Reload the weapon |
+| Tab | Cycle weapon slot 1, slot 2, and fists |
+| Z | Drop the weapon, retaining its ammunition |
 | Q | Pick up |
 | T / G | Talk / dance, until pressed again or until you do anything else |
 | Esc | Pause: Resume, Wardrobe, Controls, Main menu, Quit |
+
+The first combat prototype is local to each session. The marked Weapons Depot stands
+about 22 metres east of the arrival point, beside the drifter market. Its
+covered counters issue pistols, assault rifles, sniper rifles, shotguns, and ammunition at no charge for now; stock
+remains available for repeat visits. Racks are decorative displays of future
+weapons. A sparring partner stands in a separate lane beside the depot.
+Approach a weapon or ammunition counter and press Q;
+on touch, the pickup button appears only in reach. The partner retaliates
+after being struck and recovers eight seconds after being downed. Fists are
+nonlethal (five hits); the pistol is lethal (three hits), with a 12-round
+magazine. R or the touch Recover button restores a downed player at the Pads.
+Inventory resets on page reload; it is not yet saved to accounts. Damage is
+restricted to the local player and this partner until server-authoritative
+combat is implemented. Death debt, shops, loot and public PvP are later phases.
+
+On touch, Punch becomes Fire when equipped, with contextual aim, reload,
+switch and drop buttons. Combat is disabled while seated or traversing.
+Reloads pause with the game and cancel on holstering, traversal or injury.
+The pistol report is an original synthesized placeholder, regenerated with
+`python3 tools/sounds/combat.py`. Visual captures can equip it with
+`"weapon": "pistol"`, `"assault"`, `"sniper"`, or `"shotgun"` in a `tools/tour` view.
 
 On phones and tablets, the web version asks you to rotate to landscape.
 Use the left joystick to walk (push to its outer edge to run), and drag the
@@ -387,7 +412,8 @@ The menus (`game/menu.go`, drawn by `game/screens.go`) stack, so Esc or
 Back returns to whichever screen opened the one in front. The HUD shows
 the frame rate in the bottom left, contextual interaction prompts, current
 work under the minimap, and a balance/debt card in the top right. Navigation
-bindings are listed in Controls.
+bindings are listed in Controls. Desktop players also see contextual key hints
+when an interaction or nearby pickup is available.
 
 The menus are paperwork (`game/paper.go`, after docs/look-and-feel.md):
 each a sheet of the Exchange's paper, punched for its file, with a form
@@ -1092,3 +1118,55 @@ provide fully offline startup or replace the existing native OTA updater.
 - Web builds use a browser version of raylib-go that covers the functions
   illusion and its examples use. A raylib function it doesn't have yet fails
   the web build with `undefined: rl.X`.
+
+Carry up to two weapons. Tab (or the touch switch button) cycles through both
+slots and fists. A third pickup replaces the selected gun and leaves it on the
+ground with its ammunition and attachments. Dropping the selected gun equips
+the remaining one.
+
+The **SCOPES** counter at the depot fits/removes a 3x scope on the selected long
+gun: use Q or the contextual touch pickup button. Aim with RMB/V or touch Aim
+to magnify. Scoped sniper ADS uses a circular magnified optical view with the surrounding world at normal zoom
+and a beveled metal housing with a fine range-marked reticle. The scoped sniper
+takes 550 ms to reach full ADS; other base aim times are 180 ms (pistol),
+270 ms (assault), 460 ms (sniper), and 300 ms (shotgun), plus 90 ms for a scope.
+Full aiming accuracy begins when the raise completes. Releasing aim lowers the
+optic over 180 ms; reloading, switching weapons and traversal cancel ADS. ADS
+limits movement to 55% of weighted walking speed and disables sprint. Pistols do not accept this scope. Scopes remain attached when
+switching or dropping a gun; inventory still resets when the session restarts.
+
+The weapon HUD uses a compact bottom-centre card that updates to the selected
+weapon when cycling. It shows magazine/reserve ammo, optic/reload status and a
+separate health bar along its bottom edge. Reload progress uses the top edge;
+health remains visible during reloads and while unarmed. Touch omits the keyboard
+hint. Both
+weapons count, including holstered weapons, ammunition, and scopes. Dry weights
+are 0.9 kg (pistol), 3.6 kg (assault), 5.2 kg (sniper), and 3.4 kg (shotgun);
+a scope adds 0.45 kg. Movement scales continuously with weight, down to a 65%
+floor. Equipped weapons stay visible during jumping, sliding, and rolling.
+
+Depot ammo refills the selected class: pistol 12/120, assault rifle 30/240,
+sniper 5/40, shotgun 8/64 (magazine/reserve limit). Assault rifles fire
+automatically; snipers have a slower shot cycle; shotguns fire eight pellets
+per shell. Armed movement uses the supplied Strafe.fbx retargeted onto both bodies and
+mirrored for left/right movement. Backward steps adapt the walk/run footfall
+cycle; diagonals blend the directional gait and lateral capture, while the torso
+stays pointed toward the aim. Rebuild these clips with
+`tools/makehuman/weapon_motion.py` then `merge_weapon_motion.py` after traversal
+generation. Strafe timing follows distance travelled without resetting on
+walk/run changes; lower-body blending softens starts, stops and reversals.
+Equipped weapons stay raised; their hip-fire stance slows walking and running
+by 25%, on top of carried weight. ADS keeps its separate
+55% walking-speed limit. Gun poses use weapon-specific grips and two-hand support.
+
+Each weapon class has two recorded firing variants from the CC0 Free Firearm
+Sound Library (1911, AR-15, Tikka and Benelli Nova), with overlapping decay for
+automatic fire. Source credits are in `assets/sounds/CREDITS.txt`; re-import an
+extracted prepared library with `python3 tools/sounds/combat.py <library-dir>`.
+
+The sniper optic renders its own narrow-FOV 3D pass at the lens's display
+resolution (up to 2048 square), preserving the normal peripheral view without
+pixel-enlarging the main scene. The extra pass runs only during scoped ADS.
+`make web` now prepares the same private renderer dependency patch as native
+builds; direct build commands should use `build/deps/native.work` or the patched
+engine's `web/go.sh` after `go run ./tools/deps`.

@@ -199,7 +199,7 @@ func (k *Kit) PlaceMerged(cmd *illusion.Commands, layout []Placement, s Stores) 
 		}
 		at := vec(p.At)
 		turn := rl.QuaternionFromAxisAngle(transform.Up, float32(p.Turns)*math.Pi/2)
-		k.placeParts(cmd, piece, at, turn)
+		k.placeParts(cmd, p.Piece, piece, at, turn)
 		cell := [2]int32{int32(math.Floor(float64(at.X / mergeCell))), int32(math.Floor(float64(at.Z / mergeCell)))}
 		origin := cellOrigin(cell)
 		place := func(v rl.Vector3) rl.Vector3 {

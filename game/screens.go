@@ -32,7 +32,11 @@ var bindings = []struct {
 	{[]string{"W / S"}, "Climb ladder (move toward to attach)"},
 	{[]string{"E"}, "Interact"},
 	{[]string{"H"}, "Vehicle headlamps on / off"},
-	{[]string{"F"}, "Punch"},
+	{[]string{"LMB", "F"}, "Punch / fire"},
+	{[]string{"RMB", "V"}, "Aim"},
+	{[]string{"X"}, "Reload"},
+	{[]string{"Tab"}, "Fists / pistol"},
+	{[]string{"Z"}, "Drop pistol"},
 	{[]string{"Q"}, "Pick up"},
 	{[]string{"T / G"}, "Talk / dance"},
 	{[]string{"Esc"}, "Menu"},
@@ -147,8 +151,7 @@ func menuButtons(p painter, l layout, s screen, focus int) {
 	}
 }
 
-// hud synchronizes touch actions and draws driving status.
-// Keyboard bindings are listed in the Controls screen.
+// hud synchronizes touch actions and draws contextual desktop hints and driving status.
 func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illusion.Res[menu], players *touchPlayers,
 	prompt *illusion.Res[vehicle.Prompt], driving *illusion.Res[vehicle.Driving]) {
 	ww := win.Get()
@@ -163,6 +166,10 @@ func hud(win *illusion.Res[window.Window], fonts *illusion.Res[uiFonts], m *illu
 	}
 	running, sliding := touchMovement(players)
 	syncTouchContext(driving.Get().Active(), running, sliding, prompt.Get().Key == "Q", driving.Get().Headlamps)
+	if !touchActive() {
+		pr := prompt.Get()
+		drawInteractionHint(p, pr.Key, pr.Text, rl.Vector2{X: p.px(20), Y: height - p.px(124)})
+	}
 	drawDriving(p, prompt.Get(), driving.Get(), width, height)
 }
 
@@ -176,7 +183,8 @@ func drawFrameRate(p painter, height float32) rl.Rectangle {
 
 func frameRateRect(p painter, height float32) rl.Rectangle {
 	width := p.measure(fmt.Sprintf("%d FPS", rl.GetFPS()), 13, semibold).X
-	return rl.Rectangle{X: p.px(20), Y: height - p.px(38), Width: width + p.px(18), Height: p.px(24)}
+	x := p.px(20)
+	return rl.Rectangle{X: x, Y: height - p.px(38), Width: width + p.px(18), Height: p.px(24)}
 }
 
 // Draw last so a menu reaching the lower edge cannot cover the counter.
@@ -270,6 +278,20 @@ func follow(
 	k := float32(1 - math.Exp(float64(-lag*t.Get().DeltaSecs())))
 	position := samples.Position(player.Translation, fixed.Get().Overstep())
 	cameras.Each(func(_ ecs.Entity, tr *transform.Transform, cam *render.Camera3d) {
+		if s == playing && o.Get().scoped {
+			// Look through the optic from eye height. Sweep the short camera
+			// offset from the player so aiming cannot place the eye through walls.
+			cp := float32(math.Cos(float64(o.Get().pitch)))
+			direction := rl.Vector3{X: -float32(math.Sin(float64(o.Get().yaw))) * cp, Y: -float32(math.Sin(float64(o.Get().pitch))), Z: -float32(math.Cos(float64(o.Get().yaw))) * cp}
+			head := clearAbove(p, position, rl.Vector3Add(position, orbitLook), e)
+			opticEye := springArm(p, head, rl.Vector3Add(head, rl.Vector3Scale(direction, .25)), e)
+			shoulderEye := rl.Vector3Add(position, sh.offset)
+			tr.Translation = springArm(p, head, rl.Vector3Lerp(shoulderEye, opticEye, o.Get().scopeBlend), e)
+			target := rl.Vector3Add(tr.Translation, rl.Vector3Scale(direction, 50))
+			aim.Get().set = false
+			tr.LookAt(target, transform.Up)
+			return
+		}
 		fovy := cam.Fovy
 		if fovy == 0 {
 			fovy = 45

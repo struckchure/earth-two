@@ -21,9 +21,37 @@ const (
 // Health is shared by players and NPCs. ImpactSpeed is the closing speed
 // at impact, before the physics solver changes either body's velocity.
 type Health struct {
+	Damage      float32 // accumulated damage; zero-value Health starts at 100 HP
+	Attacker    ecs.Entity
+	Cause       string
 	State       LifeState
 	ImpactSpeed float32
 	Vehicle     ecs.Entity
+}
+
+// Remaining returns hit points without requiring every spawn site to initialize health.
+func (h Health) Remaining() float32 {
+	if h.State != Healthy {
+		return 0
+	}
+	return max(0, 100-h.Damage)
+}
+
+// Strike applies one validated hit. Nonlethal attacks incapacitate; lethal
+// attacks can finish a critical actor. Dead actors cannot receive more damage.
+func (h *Health) Strike(amount float32, lethal bool, attacker ecs.Entity, cause string) bool {
+	if amount <= 0 || h.State == Dead {
+		return false
+	}
+	h.Damage = min(100, h.Damage+amount)
+	h.Attacker, h.Cause = attacker, cause
+	if h.Damage >= 100 || h.State == Critical {
+		h.State = Critical
+		if lethal {
+			h.State = Dead
+		}
+	}
+	return true
 }
 
 // Downed marks a fallen, finite-mass body, without a standing controller.

@@ -22,6 +22,19 @@ menu entry. Windows installers include an uninstaller registered in Settings.
 Uninstalling does not remove player identity files in the user's home directory.
 Only the built binary and packed asset graph are shipped; source files, `.env`,
 server credentials, and build reports are excluded. Asset credits are retained.
+Packaged directories and executables use mode `755`, and data files use `644`,
+so root-owned Linux installations remain readable by ordinary users even when
+the build inputs or build umask are private.
+
+If an older Linux installer fails with `permission denied` opening a file under
+`/opt/earth-two/assets`, repair that installation's read/traverse permissions:
+
+```sh
+sudo chmod -R a+rX /opt/earth-two
+earth-two
+```
+
+Run the game as your normal user. Newly rebuilt installers include the fix.
 
 To package a previously built binary without rebuilding:
 

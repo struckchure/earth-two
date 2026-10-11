@@ -130,3 +130,67 @@ func TestLookComesOutFromUnderALowCeiling(t *testing.T) {
 		}
 	})
 }
+
+func TestArmedCameraClearsCharacterAtEveryHeading(t *testing.T) {
+	for _, yaw := range []float32{0, math.Pi / 2, math.Pi, -math.Pi / 2} {
+		o := newOrbit()
+		o.yaw = yaw
+		unarmed := o.shot()
+		o.armed = true
+		hip := o.shot()
+		right := rl.Vector3CrossProduct(o.forward(), transform.Up)
+		shift := rl.Vector3Subtract(hip.look, unarmed.look)
+		if rl.Vector3DotProduct(shift, right) < .65 {
+			t.Fatalf("yaw %v: crosshair does not clear right shoulder", yaw)
+		}
+		eyeShift := rl.Vector3Subtract(hip.offset, unarmed.offset)
+		if rl.Vector3Distance(shift, eyeShift) > .0001 {
+			t.Fatal("shoulder shift changed centre aim direction")
+		}
+		o.aiming = true
+		aim := o.shot()
+		if rl.Vector3Distance(aim.offset, aim.look) >= rl.Vector3Distance(hip.offset, hip.look) {
+			t.Fatal("aim did not tighten camera distance")
+		}
+		o.armed, o.aiming = false, false
+		if rl.Vector3Distance(o.shot().look, unarmed.look) > .0001 {
+			t.Fatal("holstering did not restore normal framing")
+		}
+	}
+}
+
+func TestADSLookPreservesFractionalMotion(t *testing.T) {
+	o := orbit{aiming: true, aimSensitivity: 1.0 / 3}
+	o.look(rl.Vector2{X: .25, Y: .125}, 1.0/120)
+	wantX := -float32(.25 * mouseTurn / 3)
+	if o.yaw >= 0 || o.yaw <= wantX {
+		t.Fatal("ADS input was dropped or applied as an instant step")
+	}
+	for i := 0; i < 120; i++ {
+		o.look(rl.Vector2{}, 1.0/120)
+	}
+	if math.Abs(float64(o.yaw-wantX)) > 1e-8 || math.Abs(float64(o.pitch-.125*mouseTurn/3)) > 1e-8 {
+		t.Fatal("smoothing lost fractional motion")
+	}
+}
+func TestADSLookResponseIndependentOfFrameRate(t *testing.T) {
+	var previous float32
+	for _, fps := range []int{30, 60, 120, 240} {
+		o := orbit{aiming: true, aimSensitivity: 1.0 / 3}
+		o.lookPending = rl.Vector2{X: 1}
+		for i := 0; i < fps/10; i++ {
+			o.look(rl.Vector2{}, 1/float32(fps))
+		}
+		if previous != 0 && math.Abs(float64(o.yaw-previous)) > 1e-7 {
+			t.Fatal("ADS smoothing depends on frame rate")
+		}
+		previous = o.yaw
+	}
+}
+func TestLeavingADSClearsPendingLook(t *testing.T) {
+	o := orbit{lookPending: rl.Vector2{X: 100}}
+	o.look(rl.Vector2{X: 1}, 1.0/60)
+	if o.lookPending != (rl.Vector2{}) || math.Abs(float64(o.yaw+mouseTurn)) > 1e-8 {
+		t.Fatal("stale ADS input moved the hip-fire camera")
+	}
+}

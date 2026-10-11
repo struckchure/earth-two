@@ -67,10 +67,14 @@ const (
 	Fix
 	Talk
 	Dance
+	PistolIdle
+	PistolAim
 )
 
 // Held reports whether a is a pose held for as long as Intent.Hold asks.
-func (a Anim) Held() bool { return a == Fix || a == Talk || a == Dance }
+func (a Anim) Held() bool {
+	return a == Fix || a == Talk || a == Dance || a == PistolIdle || a == PistolAim
+}
 
 // Airborne reports whether a is a jump, or the fall after one.
 func (a Anim) Airborne() bool { return a == Jump || a == RunJump || a == Fall }
@@ -144,6 +148,10 @@ func (a Anim) String() string {
 		return "talk"
 	case Dance:
 		return "dance"
+	case PistolIdle:
+		return "pistol ready"
+	case PistolAim:
+		return "aim pistol"
 	}
 	return "unknown"
 }
@@ -197,7 +205,15 @@ type Intent struct {
 	// Hold asks for a held pose (Fix, Talk, Dance) while it stands still;
 	// Idle means none. It's kept until it's changed: moving, jumping,
 	// sliding, rolling or acting drops it (see playerInput).
-	Hold Anim
+	Hold                        Anim
+	Strafe, WeaponPose, LongGun bool
+	SupportReach                float32
+	WeaponRaise                 float32 // smooth lowered carry to firing stance
+	HipFire                     bool    // raised firing stance, slower than ordinary movement
+	ADS                         bool    // aiming down sights reduces ground movement
+	LoadKg                      float32 // carried equipment, including stowed guns and ammunition
+	WeaponPitch                 float32
+	ShotAge                     float32
 }
 
 // Body marks the child entity that draws a character.

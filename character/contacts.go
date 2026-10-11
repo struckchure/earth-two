@@ -16,6 +16,7 @@ import (
 // outside nearby static walls without turning the skeleton into a ragdoll.
 // Solve the blended pose, so transitions and clothing obey the same contacts.
 type poseAssets struct {
+	intents  illusion.Query1[Intent]
 	models   illusion.Res[asset.Assets[render.Model]]
 	anims    illusion.Res[asset.Assets[render.Animations]]
 	controls illusion.Res[Controls]
@@ -23,6 +24,7 @@ type poseAssets struct {
 }
 
 func (a *poseAssets) InitParam(w *ecs.World) {
+	a.intents.InitParam(w)
 	a.models.InitParam(w)
 	a.anims.InitParam(w)
 	a.controls.InitParam(w)
@@ -42,14 +44,19 @@ type contactPoint struct {
 	radius float32
 }
 type contactRig struct {
-	model      asset.Handle[render.Model]
-	limbs      []limbContact
-	pose       []rl.Transform
-	torso      []contactPoint
-	offset     rl.Vector3 // world-space posture clearance, released smoothly
-	position   rl.Vector3
-	positioned bool
-	planes     []contactPlane // scratch reused between limbs and frames
+	gaitPhase       float32
+	gaitPose        []rl.Transform
+	strafePose      []rl.Transform
+	weaponPose      []rl.Transform
+	weaponDirection rl.Vector3
+	model           asset.Handle[render.Model]
+	limbs           []limbContact
+	pose            []rl.Transform
+	torso           []contactPoint
+	offset          rl.Vector3 // world-space posture clearance, released smoothly
+	position        rl.Vector3
+	positioned      bool
+	planes          []contactPlane // scratch reused between limbs and frames
 }
 type contactCache struct{ rigs map[ecs.Entity]*contactRig }
 type contactPlane struct{ point, normal rl.Vector3 }
@@ -122,7 +129,7 @@ func fitPoseToWorld(
 		if !ok {
 			return
 		}
-		root, _, traversal, ok := roots.Get(parent)
+		root, controller, traversal, ok := roots.Get(parent)
 		if !ok {
 			// Not standing (seated, say): it fits nothing to the world, so it
 			// takes back the pose it last fitted, or the body would stay
@@ -144,6 +151,7 @@ func fitPoseToWorld(
 		}
 		if rig.positioned && rl.Vector3DistanceSqr(root.Translation, rig.position) > 1 {
 			rig.offset = rl.Vector3{}
+			rig.gaitPose = nil
 			for i := range rig.limbs {
 				rig.limbs[i].offset = rl.Vector3{}
 			}
@@ -158,6 +166,37 @@ func fitPoseToWorld(
 			return
 		}
 		corrected := false
+		if intent, ok := assets.intents.Get(parent); ok && (intent.WeaponPose || state.Current == Crouch || state.Current == CrouchWalk) {
+			if state.Current == Walk || state.Current == Run || state.Current == CrouchWalk {
+				rig.gaitPhase = advanceGaitPhase(rig.gaitPhase, rl.Vector3Length(horizontal(controller.Velocity)), clock.Get().DeltaSecs())
+				direction := rl.Vector3RotateByQuaternion(horizontal(controller.Velocity), rl.QuaternionInvert(rl.QuaternionMultiply(root.Rotation, body.Rotation)))
+				if rl.Vector3LengthSqr(direction) > .01 {
+					direction = rl.Vector3Normalize(direction)
+					if rig.weaponDirection == (rl.Vector3{}) {
+						rig.weaponDirection = direction
+					}
+					rig.weaponDirection = rl.Vector3Lerp(rig.weaponDirection, direction, float32(1-math.Exp(float64(-14*clock.Get().DeltaSecs()))))
+					if state.Current == CrouchWalk {
+						crouchGait(rig.pose, model.Skeleton.GetBones(), rig.weaponDirection)
+					} else {
+						weaponGait(rig.pose, model.Skeleton.GetBones(), rig.weaponDirection)
+						rig.strafePose = layerStrafeClip(rig.pose, model.Skeleton.GetBones(), &model.Model, anims, rig.gaitPhase, rig.weaponDirection.X, rig.strafePose)
+					}
+				}
+			} else {
+				rig.weaponDirection = rl.Vector3{}
+			}
+			if controller.Grounded && (!traversal.active() || traversal.Mode == Crouch) && (state.Current == Crouch || state.Current == CrouchWalk || state.Current == Walk || state.Current == Run || state.Current == PistolIdle || state.Current == PistolAim || state.Current == Idle) {
+				rig.gaitPose = smoothWeaponGait(rig.pose, rig.gaitPose, model.Skeleton.GetBones(), clock.Get().DeltaSecs())
+			} else {
+				rig.gaitPose = nil
+			}
+			rig.weaponPose = layerWeaponPose(rig.pose, model.Skeleton.GetBones(), &model.Model, anims, *intent, rig.weaponPose)
+			corrected = true
+		}
+		if !corrected {
+			rig.gaitPose = nil
+		}
 		matrix := rl.MatrixMultiply(model.Transform, rl.MatrixMultiply(body.Matrix(), root.Matrix()))
 		inverse := rl.MatrixInvert(matrix)
 		origin := rl.Vector3Transform(rl.Vector3{}, matrix)
@@ -188,7 +227,7 @@ func fitPoseToWorld(
 		if climbing {
 			rig.offset = rl.Vector3{}
 		} else {
-			corrected = fitTorso(rig, world, parent, solid, matrix, inverse, origin, scale, clock.Get().DeltaSecs())
+			corrected = fitTorso(rig, world, parent, solid, matrix, inverse, origin, scale, clock.Get().DeltaSecs()) || corrected
 		}
 		for i := range rig.limbs {
 			limb := &rig.limbs[i]

@@ -28,6 +28,9 @@ def read(path):
 def merge(path,donor):
     doc,data=read(path);src,buf=read(donor)
     extras=doc.setdefault('extras',{})
+    # Weapon clips are appended after traversal. Their accessors are truncated
+    # with the traversal tail, so rebuild them after this merge.
+    extras.pop('earthTwoWeaponBase', None)
     baseline=extras.get('earthTwoTraversalBase')
     if baseline is None:
         baseline={'accessors':len(doc['accessors']),'views':len(doc['bufferViews']),'bytes':len(data)}
@@ -58,7 +61,7 @@ def merge(path,donor):
             channel['target']['node']=mapping[channel['target']['node']]
         for sampler in animation['samplers']:
             sampler['input']=accessor(sampler['input']);sampler['output']=accessor(sampler['output'])
-    doc['animations']=[a for a in doc['animations'] if not authored(a.get('name',''))]+selected
+    doc['animations']=[a for a in doc['animations'] if not authored(a.get('name','')) and not a.get('name','').startswith('Weapon_')]+selected
     binary.extend(b'\0'*(-len(binary)%4));doc['buffers']=[{'byteLength':len(binary)}]
     js=json.dumps(doc,separators=(',',':')).encode();js+=b' '*(-len(js)%4)
     result=struct.pack('<III',0x46546c67,2,28+len(js)+len(binary))+struct.pack('<II',len(js),0x4e4f534a)+js+struct.pack('<II',len(binary),0x004e4942)+binary

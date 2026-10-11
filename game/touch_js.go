@@ -106,3 +106,9 @@ func syncTouchHUD(x, y, width, height, cardBottom float32) {
 		touch.Call("setHUD", x, y, width, height, cardBottom)
 	}
 }
+
+func syncTouchCombat(active, owned, equipped, pickup, down bool) {
+	if touch := js.Global().Get("earthTwoTouch"); !touch.IsUndefined() {
+		touch.Call("setCombat", active, owned, equipped, pickup, down)
+	}
+}

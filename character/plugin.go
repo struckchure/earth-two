@@ -84,6 +84,7 @@ func (pl Plugin) Build(app *illusion.App) {
 	app.AddSystems(illusion.Update, illusion.Fn1(stopDowned).After(Input).Before(Act))
 	app.AddSystems(illusion.Update,
 		illusion.Fn4(playerInput).InSet(Input),
+		illusion.Fn6(detectStairs).Before(Act),
 		illusion.Chain(
 			illusion.Fn8(sit),
 			illusion.Fn8(dress),

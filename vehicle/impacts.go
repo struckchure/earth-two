@@ -162,7 +162,12 @@ func applyVehicleImpact(cmd *illusion.Commands, people *impactPeople, rules *Imp
 	if h, ok := people.health.Get(e); ok && h.State >= status {
 		return
 	}
-	health := character.Health{State: status, ImpactSpeed: hit.speed, Vehicle: hit.vehicle}
+	health := character.Health{}
+	if old, ok := people.health.Get(e); ok {
+		health = *old
+	}
+	health.Strike(100, status == character.Dead, hit.vehicle, "")
+	health.ImpactSpeed, health.Vehicle = hit.speed, hit.vehicle
 	cmd.Queue(func(w *ecs.World) {
 		if driving := ecs.GetResource[Driving](w); driving != nil && driving.Vehicle == hit.vehicle {
 			text := "Character critically injured"

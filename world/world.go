@@ -201,21 +201,24 @@ func (k *Kit) Place(cmd *illusion.Commands, p Placement) error {
 		model = append(model, illusion.C(render.Passes{k.outline(nil)}))
 	}
 	cmd.Spawn(model...)
-	k.placeParts(cmd, piece, at, turn)
+	k.placeParts(cmd, p.Piece, piece, at, turn)
 	return nil
 }
 
 // placeParts spawns what a piece at at turned by turn has besides its
 // model: a static body for each of its colliders, its ladders and its
 // lights.
-func (k *Kit) placeParts(cmd *illusion.Commands, piece Piece, at rl.Vector3, turn rl.Quaternion) {
+func (k *Kit) placeParts(cmd *illusion.Commands, name string, piece Piece, at rl.Vector3, turn rl.Quaternion) {
 	for _, c := range piece.Colliders {
 		center, rot := c.In(at, turn)
-		cmd.Spawn(
+		body := cmd.Spawn(
 			illusion.C(transform.FromTranslation(center).WithRotation(rot)),
 			illusion.C(physics.Static),
 			illusion.C(physics.Cuboid(c.Size[0], c.Size[1], c.Size[2])),
 		)
+		if name == "stairs" || name == "stairwell" {
+			body.Insert(illusion.C(character.StairSurface{}))
+		}
 	}
 	for _, l := range piece.Ladders {
 		cmd.Spawn(illusion.C(l.In(at, turn)))

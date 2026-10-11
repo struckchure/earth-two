@@ -10,6 +10,7 @@ function setup(coarse = true, guided = true) {
       getBoundingClientRect: () => id === 'canvas' ? {left: 20, top: 10, width: 800, height: 400} : {left: 0, top: 0, width: 100, height: 100},
       contains(target) {return target === this || !!target.parent && this.contains(target.parent);},
       closest(selector) {return (selector === '[data-key]' && this.dataset.key || selector === '[data-wheel]' && this.dataset.wheel) ? this : this.parent?.closest(selector);},
+      querySelector: () => ({textContent:""}),
       querySelectorAll: () => Object.values(elements).filter(e => e.dataset.key)};
     elements[id] = e; return e;
   }
@@ -20,6 +21,7 @@ function setup(coarse = true, guided = true) {
   element('touch-crouch', controls, {key:'67'}); element('touch-roll', controls, {key:'82'});
   element('touch-pickup', controls, {key:'81'}); element('touch-lights', controls, {key:'72'});
   element('jump', controls, {key: '32'}); element('touch-interact', controls, {key: '69'}).hidden = true; element('touch-interact-label', controls);
+  for (const [name,key] of [['attack',70],['reload',88],['aim',86],['swap',258],['drop',90],['recover',82]]) element('touch-'+name, controls, {key:String(key)});
   const document = {getElementById: id => elements[id], pointerLockElement: null, addEventListener: (name, fn) => handlers[name] = fn};
   const context = {document, localStorage: {getItem: () => guided ? '1' : null, setItem: () => {}}, matchMedia: () => ({matches: coarse}), addEventListener: (name, fn) => windowHandlers[name] = fn};
   vm.runInNewContext(fs.readFileSync(__dirname + '/touch.js', 'utf8'), context);
@@ -143,4 +145,26 @@ test('minimap touch target follows canvas size and queues the map action', () =>
  p.elements['touch-map'].parent = p.controls;
  p.event('pointerdown', 'touch-map', 1);
  assert.deepEqual(p.sample().keys, [77]);
+});
+
+
+test('combat controls share simultaneous move/look/aim/fire and clear when disabled', () => {
+ const p=setup(); p.touch.ready(); p.touch.setPlaying(true);
+ p.touch.setCombat(true,true,true,true,false);
+ for (const id of ['reload','aim','swap','drop','pickup']) assert.equal(p.elements['touch-'+id].hidden,false);
+ p.event('pointerdown','touch-stick',1,50,10);
+ p.event('pointerdown','canvas',2,400,100);
+ p.event('pointerdown','touch-aim',3);
+ p.event('pointerdown','touch-attack',4);
+ assert.deepEqual(p.sample().keys.sort((a,b)=>a-b),[70,86,87,340]);
+ p.touch.setCombat(false,true,true,false,false);
+ assert.deepEqual(p.sample().keys.sort((a,b)=>a-b),[87,340]);
+ for (const id of ['attack','reload','aim','swap','drop','pickup']) assert.equal(p.elements['touch-'+id].hidden,true);
+ p.touch.setCombat(true,true,false,false,false);
+ assert.equal(p.elements['touch-attack'].hidden,false);
+ assert.equal(p.elements['touch-reload'].hidden,true);
+ p.touch.setCombat(false,true,true,false,true);
+ assert.equal(p.elements['touch-recover'].hidden,false);
+ p.event('pointerdown','touch-recover',5);
+ assert.ok(p.sample().keys.includes(82));
 });

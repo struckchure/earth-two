@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import zipfile
+import tarfile
+import shutil
 
 spec = importlib.util.spec_from_file_location("desktop_package", Path(__file__).with_name("package.py"))
 package = importlib.util.module_from_spec(spec)
@@ -98,6 +100,62 @@ class PackagingTests(unittest.TestCase):
         self.assertTrue((root / "opt/earth-two/assets/characters/CREDITS.txt").is_file())
         self.assertIn("Exec=/opt/earth-two/earth-two", (root / "usr/share/applications/earth-two.desktop").read_text())
         self.assertIn("Depends: libc6 (>= 2.39), libgl1", (root / "DEBIAN/control").read_text())
+
+    def restrictive_assets(self):
+        (self.assets / "world").mkdir(mode=0o700)
+        manifest = self.assets / "world/world.json"
+        manifest.write_text('{"pieces":{}}')
+        for path in [self.assets, *self.assets.rglob("*")]:
+            path.chmod(0o700 if path.is_dir() else 0o600)
+        return manifest
+
+    def assert_runtime_modes(self, root, executable):
+        for path in [root, *root.rglob("*")]:
+            if path.is_symlink():
+                continue
+            expected = 0o755 if path.is_dir() or path == executable else 0o644
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), expected, str(path))
+
+    @unittest.skipIf(os.name == "nt", "POSIX installation permissions")
+    def test_deb_assets_are_readable_after_root_install_with_restrictive_umask(self):
+        source = self.restrictive_assets()
+        old = os.umask(0o077)
+        try:
+            root = package.linux_payload(self.binary, self.assets, self.stage, "1.2.3", "amd64", "libc6")
+        finally:
+            os.umask(old)
+        self.assert_runtime_modes(root, root / "opt/earth-two/earth-two")
+        self.assertEqual(stat.S_IMODE(source.stat().st_mode), 0o600)
+        self.assertEqual((root / "usr/bin/earth-two").readlink(), Path("/opt/earth-two/earth-two"))
+        # On Linux CI, inspect the actual root-owned archive, not just staging.
+        if shutil.which("dpkg-deb"):
+            deb = self.root / "test.deb"
+            subprocess.run(["dpkg-deb", "--root-owner-group", "--build", str(root), str(deb)], check=True, capture_output=True)
+            data = subprocess.check_output(["dpkg-deb", "--fsys-tarfile", str(deb)])
+            import io
+            with tarfile.open(fileobj=io.BytesIO(data)) as archive:
+                for member in archive.getmembers():
+                    if member.issym():
+                        continue
+                    self.assertEqual(member.uid, 0)
+                    self.assertEqual(member.gid, 0)
+                    expected = 0o755 if member.isdir() or member.name == "./opt/earth-two/earth-two" else 0o644
+                    self.assertEqual(member.mode, expected, member.name)
+
+    @unittest.skipIf(os.name == "nt", "POSIX archive permissions")
+    def test_portable_and_mac_assets_do_not_keep_private_build_permissions(self):
+        self.restrictive_assets()
+        payload = self.stage / "portable"
+        package.copy_runtime(self.binary, self.assets, payload)
+        self.assert_runtime_modes(payload, payload / "earth-two")
+        archive = self.root / "game.tar.gz"
+        with tarfile.open(archive, "w:gz") as file:
+            file.add(payload, arcname="earth-two")
+        with tarfile.open(archive) as file:
+            self.assertEqual(file.getmember("earth-two/assets/world/world.json").mode, 0o644)
+            self.assertEqual(file.getmember("earth-two/assets/world").mode, 0o755)
+        app = package.mac_app(self.binary, self.assets, self.stage, "1.2.3")
+        self.assert_runtime_modes(app, app / "Contents/MacOS/earth-two")
 
 
 if __name__ == "__main__":

@@ -137,6 +137,7 @@ var places = []label{
 	{"Caravan stop", rl.Vector2{X: -6, Y: 54}, spot},
 	// At the Pads.
 	{"The drifter", rl.Vector2{X: 9807, Y: -1798}, spot},
+	{"Weapons depot", weaponsDepot, spot},
 	{"Drifter market", rl.Vector2{X: 9807, Y: -1768}, spot},
 	{"Container yard", rl.Vector2{X: 9784, Y: -1805}, spot},
 	{"Arrivals", rl.Vector2{X: 9770, Y: -1770}, spot},

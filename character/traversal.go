@@ -233,7 +233,7 @@ func traverse(
 			if !crouch && p.ResizeCharacter(e, cc, tr, capsuleHeight) {
 				standUp(s, cc)
 			} else {
-				cc.Walk = rl.Vector3Scale(direction(in.Move), .8)
+				cc.Walk = approach(cc.Walk, crouchVelocity(*in), 4*dt)
 				in.Jump = false
 				if !crouch {
 					s.Hint = "Move out to stand"
@@ -244,7 +244,7 @@ func traverse(
 		if !s.active() && cc.Height < capsuleHeight {
 			if !p.ResizeCharacter(e, cc, tr, capsuleHeight) {
 				s.Mode = Crouch
-				cc.Walk = rl.Vector3Scale(direction(in.Move), .8)
+				cc.Walk = approach(cc.Walk, crouchVelocity(*in), 4*dt)
 				in.Jump = false
 				return
 			}
@@ -253,7 +253,7 @@ func traverse(
 		// something.
 		if crouch && !s.active() && cc.Grounded && !acting && p.ResizeCharacter(e, cc, tr, cfg.LowHeight) {
 			s.Mode = Crouch
-			cc.Walk = rl.Vector3Scale(direction(in.Move), .8)
+			cc.Walk = approach(cc.Walk, crouchVelocity(*in), 4*dt)
 			in.Jump = false
 			return
 		}
@@ -269,7 +269,7 @@ func traverse(
 					return
 				}
 				// Recover while moving, without a stationary lock after every slide.
-				cc.Walk = rl.Vector3Scale(direction(in.Move), c.WalkSpeed*easeTraversal(s.Elapsed/s.Duration))
+				cc.Walk = rl.Vector3Scale(direction(in.Move), c.WalkSpeed*MovementSpeed(in.LoadKg, in.ADS)*easeTraversal(s.Elapsed/s.Duration))
 				if jump && cc.Grounded {
 					launch := cc.Walk
 					endTraversal(s, cc)
@@ -345,7 +345,7 @@ func traverse(
 					// a stop.
 					floor := float32(0)
 					if sprinting {
-						floor = min(c.RunSpeed, s.Speed)
+						floor = min(c.RunSpeed*MovementSpeed(in.LoadKg, in.ADS), s.Speed)
 					}
 					speed = floor + (s.Speed-floor)*max(0, 1-s.Elapsed/s.Duration)
 					s.Direction = steerSlide(s.Direction, s.heading, in.Move, dt)
@@ -684,4 +684,13 @@ func obstacleRoute(p *physics.Physics, e ecs.Entity, cc *physics.CharacterContro
 		return Traversal{}, false
 	}
 	return route, true
+}
+
+// Respect analog input, equipment and ADS while low; traversal owns this speed.
+func crouchVelocity(in Intent) rl.Vector3 {
+	move := horizontal(in.Move)
+	if length := rl.Vector3Length(move); length > 1 {
+		move = rl.Vector3Scale(move, 1/length)
+	}
+	return rl.Vector3Scale(move, .8*WeaponMovementSpeed(in.LoadKg, in.ADS, in.HipFire))
 }

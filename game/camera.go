@@ -58,6 +58,12 @@ var orbitLook = rl.Vector3{Y: .7}
 // and still how long since the mouse last turned it.
 type orbit struct {
 	yaw, pitch, still float32
+	aiming            bool
+	scoped            bool
+	scopeBlend        float32
+	aimSensitivity    float32
+	lookPending       rl.Vector2
+	armed             bool // over-the-shoulder framing while carrying a weapon
 	// distance is how far it follows, if not orbitDistance (driving), and
 	// exclude what its spring arm passes through, if not the player (the
 	// vehicle they're driving): see steerDriving.
@@ -79,7 +85,18 @@ func (o *orbit) shot() shot {
 	if o.distance > 0 {
 		d = o.distance
 	}
-	return shot{offset: rl.Vector3Add(orbitLook, rl.Vector3Scale(dir, d)), look: orbitLook}
+	look := orbitLook
+	if o.armed || o.aiming {
+		shoulder := float32(.7)
+		if o.aiming {
+			d, shoulder = 2.6, .5
+		}
+		right := rl.Vector3{X: float32(math.Cos(float64(o.yaw))), Z: -float32(math.Sin(float64(o.yaw)))}
+		// Translate both eye and target so the screen-centre firing ray
+		// clears the character's head, without changing the aim direction.
+		look = rl.Vector3Add(look, rl.Vector3Scale(right, shoulder))
+	}
+	return shot{offset: rl.Vector3Add(look, rl.Vector3Scale(dir, d)), look: look}
 }
 
 // forward is the way the camera faces on the XZ plane.
@@ -95,6 +112,26 @@ func (o *orbit) turn(delta rl.Vector2) {
 	o.yaw = wrapYaw(o.yaw - delta.X*mouseTurn)
 	o.pitch = min(orbitHigh, max(orbitLow, o.pitch+delta.Y*mouseTurn))
 	o.still = 0
+}
+
+// ADS input has a lower angular sensitivity and a short, frame-rate independent
+// response. Keep fractional motion in the accumulator: never round it or apply
+// a dead zone, so slow one-pixel mouse events do not become a visible grid.
+func (o *orbit) look(delta rl.Vector2, dt float32) {
+	if !o.aiming && !o.scoped {
+		o.lookPending = rl.Vector2{}
+		o.turn(delta)
+		return
+	}
+	scale := o.aimSensitivity
+	if scale <= 0 {
+		scale = 1
+	}
+	o.lookPending = rl.Vector2Add(o.lookPending, rl.Vector2Scale(delta, scale))
+	k := float32(1 - math.Exp(-float64(max(0, dt))/.018))
+	step := rl.Vector2Scale(o.lookPending, k)
+	o.lookPending = rl.Vector2Subtract(o.lookPending, step)
+	o.turn(step)
 }
 
 // recenter swings the orbit, over dt seconds, round behind a body facing
@@ -187,8 +224,14 @@ func steerCamera(
 	or := o.Get()
 	playing := m.Get().screen() == playing
 	locked := holdCursor(playing)
-	if playing && (locked || ptr.buttons.Get().AnyPressed(rl.MouseButtonLeft, rl.MouseButtonRight)) {
-		or.turn(cursorDelta(ptr.mouse.Get().Delta))
+	if playing {
+		delta := rl.Vector2{}
+		if locked || ptr.buttons.Get().AnyPressed(rl.MouseButtonLeft, rl.MouseButtonRight) {
+			delta = cursorDelta(ptr.mouse.Get().Delta)
+		}
+		or.look(delta, t.Get().DeltaSecs())
+	} else {
+		or.lookPending = rl.Vector2{}
 	}
 	moving, facing, found := false, float32(0), false
 	players.Each(func(root ecs.Entity, in *character.Intent) {
@@ -200,7 +243,7 @@ func steerCamera(
 			}
 		})
 	})
-	if playing && found {
+	if playing && found && !or.aiming && !or.scoped {
 		or.recenter(facing, moving, t.Get().DeltaSecs())
 	}
 	view.Get().Forward = or.forward()

@@ -38,7 +38,7 @@ func relative(dir, forward rl.Vector3) rl.Vector3 {
 
 // playerInput turns the keyboard into the player's Intent: WASD or the
 // arrows move (relative to the View), Shift runs, Space jumps, E interacts,
-// F punches and Q picks up; T talks and G dances until pressed again or
+// F punches; T talks and G dances until pressed again or
 // until the player does anything else. With Controls off, the player
 // stands still.
 func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *illusion.Res[input.Keys], controls *illusion.Res[Controls], view *illusion.Res[View]) {
@@ -69,8 +69,6 @@ func playerInput(q *illusion.Query1Where[Intent, illusion.With[Player]], keys *i
 		act = Interact
 	case k.JustPressed(rl.KeyF):
 		act = Punch
-	case k.JustPressed(rl.KeyQ):
-		act = PickUp
 	}
 	emote := Idle
 	switch {
@@ -171,7 +169,7 @@ func locomote(
 				st.launch, st.launchYaw = rl.Vector3{X: cc.Walk.X, Z: cc.Walk.Z}, yawOf(tr.Rotation)
 			}
 			st.aloft = !cc.Grounded
-			if l := rl.Vector3Length(move); l > 0 && !st.aloft {
+			if l := rl.Vector3Length(move); l > 0 && !st.aloft && !in.Strafe {
 				dir, share := stride(yawOf(tr.Rotation), move)
 				move = rl.Vector3Scale(dir, l*share)
 			}
@@ -183,7 +181,7 @@ func locomote(
 			}
 			speed = min(speed, top)
 		}
-		want := rl.Vector3Scale(move, speed)
+		want := rl.Vector3Scale(move, speed*WeaponMovementSpeed(in.LoadKg, in.ADS, in.HipFire))
 		if traversal.Land > 0 {
 			want = rl.Vector3{} // taking the landing from a wall kick
 		}
@@ -318,6 +316,10 @@ func face(
 			st.turn = 0
 			return
 		}
+		if in.Strafe {
+			st.turn = 0
+			return
+		}
 		yaw := yawOf(tr.Rotation)
 		if in.Move.X == 0 && in.Move.Z == 0 || st.Current.OneShot() {
 			if st.turn == 0 {
@@ -398,3 +400,24 @@ func wrapAngle(a float32) float32 {
 }
 
 func abs(v float32) float32 { return float32(math.Abs(float64(v))) }
+
+// A continuous load penalty with a playable lower bound. A light pistol has
+// little effect; two long guns and their ammo noticeably reduce travel speed.
+func LoadSpeed(kg float32) float32 { return max(.65, 1/(1+.025*max(0, kg))) }
+
+// ADS reduces the weighted walking speed, rather than merely disabling sprint.
+func MovementSpeed(kg float32, ads bool) float32 {
+	speed := LoadSpeed(kg)
+	if ads {
+		speed *= .55
+	}
+	return speed
+}
+
+func WeaponMovementSpeed(kg float32, ads, hipFire bool) float32 {
+	speed := MovementSpeed(kg, ads)
+	if hipFire && !ads {
+		speed *= .75
+	}
+	return speed
+}

@@ -45,8 +45,8 @@ assets:
 account-bridge:
 	sh tools/webaccount/build.sh
 
-web: assets account-bridge
-	go run ./tools/buildenv sh "$(ILLUSION)/web/build.sh" -m . -o build/web -a build/assets -t "$(TITLE)" ./cmd/web
+web: deps assets account-bridge
+	go run ./tools/buildenv sh "$$($(NATIVE_GO) list -m -f '{{.Dir}}' github.com/struckchure/illusion)/web/build.sh" -m . -o build/web -a build/assets -t "$(TITLE)" ./cmd/web
 	cp build/spacetime/account.js build/web/account.js
 	go run ./tools/webaccount build/web/index.html
 	go run ./tools/webcompress build/web

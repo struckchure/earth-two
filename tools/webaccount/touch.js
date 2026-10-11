@@ -18,6 +18,7 @@
   const pickup = document.getElementById('touch-pickup');
   const lights = document.getElementById('touch-lights');
   let driving = false;
+  let combatPickup = false;
   const interact = document.getElementById('touch-interact');
   const interactLabel = document.getElementById('touch-interact-label');
   let interaction = '';
@@ -79,7 +80,7 @@
     if (!started || !guided) return;
     let kind, key;
     const button = event.target.closest('[data-key]');
-    if (button && (button.hidden || driving && [32,67,341,82,81,70].includes(Number(button.dataset.key)))) return;
+    if (button && (button.hidden || driving && [32,67,341,82,81,70,88,86,258,90].includes(Number(button.dataset.key)))) return;
     if (button) { kind = 'key'; key = Number(button.dataset.key); pulses.add(key); button.classList.add('held'); }
     else if (event.target.closest('[data-wheel]')) {
       wheel += Number(event.target.closest('[data-wheel]').dataset.wheel); kind = 'extra';
@@ -141,7 +142,7 @@
       if (driving !== inVehicle) { reset(); driving = inVehicle; }
       controls.dataset.driving = String(driving);
       show(roll, !driving && running);
-      show(pickup, !driving && canPickup);
+      show(pickup, !driving && (canPickup || combatPickup));
       show(lights, driving);
       lights.setAttribute('aria-pressed', String(headlamps));
       const key = !driving && sliding ? '341' : '67';
@@ -151,6 +152,34 @@
         const label = key === '341' ? 'Slide' : 'Hold to crouch';
         crouch.setAttribute('aria-label', label);
         crouch.setAttribute('title', label);
+      }
+    },
+    setCombat(enabled, owned, equipped, nearby, down) {
+      combatPickup = nearby;
+      controls.dataset.equipped = String(equipped);
+      const show = (id, visible) => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        button.hidden = !visible;
+        if (!visible) {
+          pulses.delete(Number(button.dataset.key));
+          for (const [key, pointer] of pointers) if (pointer.button === button) pointers.delete(key);
+          button.classList.remove('held');
+        }
+      };
+      show('touch-pickup', enabled && nearby);
+      show('touch-reload', enabled && equipped);
+      show('touch-aim', enabled && equipped);
+      show('touch-swap', enabled && owned);
+      show('touch-drop', enabled && owned);
+      show('touch-recover', down);
+      show('touch-attack', enabled);
+      const attack = document.getElementById('touch-attack');
+      if (attack) {
+        const label = equipped ? 'Fire' : 'Punch';
+        attack.setAttribute('aria-label', label);
+        attack.setAttribute('title', label);
+        attack.querySelector('.attack-label').textContent = label;
       }
     },
     setInteract(available, label) {

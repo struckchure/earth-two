@@ -31,8 +31,8 @@ const (
 	// foot on each. The kit's stairs are twelve 0.3 m steps up a 3.6 m
 	// deck (tools/world/hull_kit.py), so a deck is six whole cycles.
 	stairCycle = 0.6
-	// A slope counts as stairs from stairsFrom to stairsTo off level (the
-	// stairs' ramp is 33°), and it stays stairs for stairsHold after.
+	// An authored staircase uses the stair gait within this slope range
+	// (its collision ramp is 33°), and briefly holds it at landings.
 	stairsFrom = 18 * math.Pi / 180
 	stairsTo   = 50 * math.Pi / 180
 	stairsHold = .15
@@ -107,7 +107,7 @@ func pickAnim(m motion, c Character, current Anim, acting bool) Anim {
 }
 
 // onStairs is which way a character standing on ground with normal n and
-// going at velocity v is going on stairs: 1 up, -1 down, 0 not on any (on
+// going at velocity v would travel on an authored staircase: 1 up, -1 down, 0 not on any (on
 // the level, too steep, or not going anywhere).
 func onStairs(n, v rl.Vector3) int8 {
 	slope := math.Acos(float64(clamp(n.Y, -1, 1)))
@@ -389,13 +389,6 @@ func animate(
 		m.Resuming = heading && st.resume > 0
 		m.Pivoting = heading && abs(st.turn) > pivot
 
-		// On stairs, its walk or run climbs (or comes down) them a foot on
-		// each step, if it has the clips.
-		if dir := onStairs(cc.GroundNormal, cc.Velocity); cc.Grounded && dir != 0 {
-			st.stairs, st.stairsLeft = dir, stairsHold
-		} else if st.stairsLeft = max(0, st.stairsLeft-dt); st.stairsLeft == 0 {
-			st.stairs = 0
-		}
 		next := pickAnim(m, *c, st.Current, acting)
 		if stairs := stairsAnim(st.stairs); stairs != Idle && skin.Has(stairs) && (next == Walk || next == Run) {
 			next = stairs

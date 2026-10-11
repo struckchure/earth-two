@@ -83,6 +83,15 @@
   @keyframes pulse { 50% { opacity: .35; } }
   @keyframes scan { to { background-position: -200% 0; } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  #touch-attack .fire-icon, #touch-controls[data-equipped="true"] #touch-attack svg { display: none; }
+  #touch-controls[data-equipped="true"] #touch-attack .fire-icon { display: block; }
+  #touch-controls .attack-label { font: 10px sans-serif; position: absolute; bottom: 5px; }
+  #touch-reload { right: calc(var(--action) * 2.65); bottom: calc(var(--action) * 1.7); }
+  #touch-aim { right: calc(var(--action) * 2.65); bottom: calc(var(--action) * 2.85); }
+  #touch-swap { right: calc(var(--action) * 3.8); bottom: calc(var(--action) * 1.7); }
+  #touch-drop { right: calc(var(--action) * 3.8); bottom: calc(var(--action) * 2.85); }
+  #touch-recover { position: fixed; left: 45%; top: 52%; width: 100px; height: 48px; }
 </style>
 </head>
 <body>
@@ -99,7 +108,12 @@
   </div>
   <div id="touch-stick" class="touch-play" role="group" aria-label="Movement joystick: drag to walk, push farther to run"><span id="touch-knob"></span></div>
   <div class="touch-play touch-actions">
-    <button class="touch-punch touch-foot" data-key="70" aria-label="Punch" title="Punch"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12V7a2 2 0 0 1 4 0V5a2 2 0 0 1 4 0v1a2 2 0 0 1 4 0v2a2 2 0 0 1 4 0v5l-3 4v4H8v-4l-5-4a2 2 0 0 1 2-3l5 3h4M9 7v3m4-4v4m4-2v3"/></svg></button>
+    <button id="touch-reload" class="touch-foot" hidden data-key="88" aria-label="Reload" title="Reload"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-2l2 3M4 16l2 3a7 7 0 0 0 12-2"/></svg></button>
+    <button id="touch-aim" class="touch-foot" hidden data-key="86" aria-label="Hold to aim" title="Hold to aim"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4m0 10v4M3 12h4m10 0h4M17 12a5 5 0 1 1-10 0 5 5 0 0 1 10 0"/></svg></button>
+    <button id="touch-swap" class="touch-foot" hidden data-key="258" aria-label="Switch weapon" title="Switch weapon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m16 3 4 4-4 4M4 7h16M8 13l-4 4 4 4M4 17h16"/></svg></button>
+    <button id="touch-drop" class="touch-foot" hidden data-key="90" aria-label="Drop weapon" title="Drop weapon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-4-4 4 4 4-4M4 15v6h16v-6"/></svg></button>
+    <button id="touch-recover" hidden data-key="82" aria-label="Recover">Recover</button>
+    <button id="touch-attack" class="touch-punch touch-foot" data-key="70" aria-label="Punch" title="Punch"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12V7a2 2 0 0 1 4 0V5a2 2 0 0 1 4 0v1a2 2 0 0 1 4 0v2a2 2 0 0 1 4 0v5l-3 4v4H8v-4l-5-4a2 2 0 0 1 2-3l5 3h4M9 7v3m4-4v4m4-2v3"/></svg><svg class="fire-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v5H11l-2 9H4l2-9H3zM13 10v4h-3M18 5v5"/></svg><span class="attack-label">Punch</span></button>
     <button class="touch-jump touch-foot" data-key="32" aria-label="Jump" title="Jump"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="13" cy="4" r="2"/><path d="m5 5 5 4 5-1 5-5m-9 6-1 6-5 4m6-5 5 2 2 5"/></svg></button>
     <button id="touch-crouch" class="touch-crouch touch-foot" data-key="67" aria-label="Hold to crouch" title="Hold to crouch"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="14" cy="5" r="2"/><path d="m12 9-4 4 6 2-2 5h6m-6-11 4 4h5M8 13l-4 5h5"/></svg><svg class="slide-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="16" cy="5" r="2"/><path d="m14 9-4 5 6 3 5-1M10 14l-6 5h7m2-8 5 1M2 9h5M1 13h4"/></svg></button>
     <button id="touch-roll" class="touch-roll touch-foot" hidden data-key="82" aria-label="Roll" title="Roll"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="2"/><path d="m9 11 5 2-3 4-4-3 2-3Zm8-8a9 9 0 1 1-12 1M3 3v5h5"/></svg></button>

@@ -48,11 +48,22 @@ def validate_binary(binary, target, arch):
         raise ValueError(f"{binary} is {actual}, expected {(target, arch)}; build for the target first")
 
 
+def runtime_permissions(root, executable):
+    """Installed content must be readable by users other than its build owner."""
+    root.chmod(0o755)
+    for path in root.rglob("*"):
+        # Keep launch symlinks intact without chmod following their targets.
+        if path.is_symlink():
+            continue
+        path.chmod(0o755 if path.is_dir() or path == executable else 0o644)
+
+
 def copy_runtime(binary, assets, destination, executable="earth-two"):
     destination.mkdir(parents=True)
     shutil.copy2(binary, destination / executable)
     (destination / executable).chmod(0o755)
     shutil.copytree(assets, destination / "assets")
+    runtime_permissions(destination, destination / executable)
 
 
 def mac_app(binary, assets, stage, version):
@@ -70,6 +81,7 @@ def mac_app(binary, assets, stage, version):
             "CFBundleShortVersionString": version, "CFBundleVersion": version,
             "NSHighResolutionCapable": True,
         }, file)
+    runtime_permissions(app, contents / "MacOS/earth-two")
     return app
 
 
@@ -148,6 +160,7 @@ def linux_payload(binary, assets, stage, version, arch, dependencies):
                        f"Installed-Size: {(size + 1023) // 1024}\nSection: games\nPriority: optional\n"
                        f"Depends: {dependencies}\nDescription: Earth Two science-fiction role game\n"
                        " Explore the world, take contracts, and rise through the ranks.\n")
+    runtime_permissions(root, root / "opt/earth-two/earth-two")
     return root
 
 

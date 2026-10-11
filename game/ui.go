@@ -246,3 +246,20 @@ func inset(r rl.Rectangle, dx, dy float32) rl.Rectangle {
 }
 
 func contains(r rl.Rectangle, p rl.Vector2) bool { return rl.CheckCollisionPointRec(p, r) }
+
+// drawInteractionHint only appears when an action is offered by gameplay.
+func drawInteractionHint(p painter, key, text string, at rl.Vector2) {
+	if text == "" {
+		return
+	}
+	keyWidth := float32(0)
+	if key != "" {
+		keyWidth = max(p.measure(key, 13, semibold).X+p.px(14), p.px(13*1.7)) + p.px(8)
+	}
+	r := rl.Rectangle{X: at.X - p.px(8), Y: at.Y - p.px(6), Width: keyWidth + p.measure(text, 14, semibold).X + p.px(16), Height: p.px(35)}
+	rl.DrawRectangleRec(r, rl.NewColor(16, 13, 11, 190))
+	if key != "" {
+		p.keycap(key, at, 13)
+	}
+	p.text(text, rl.Vector2{X: at.X + keyWidth, Y: at.Y + p.px(4)}, 14, semibold, colText)
+}

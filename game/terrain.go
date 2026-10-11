@@ -59,6 +59,7 @@ var level = []rl.Rectangle{
 	{X: -64, Y: -66, Width: 108, Height: 120},  // Landfall's dome, and a margin round it
 	{X: -7, Y: 44, Width: 14, Height: 52},      // the road south from its gate
 	{X: 9764, Y: -1850, Width: 60, Height: 90}, // the Pads
+	{X: 9822, Y: -1771, Width: 18, Height: 14}, // weapons depot and sparring apron
 	// The Fringers' hold: its farms, salvage fields, camp, wind farm and road.
 	{X: -1652, Y: 12004, Width: 54, Height: 40},
 	{X: -1402, Y: 11998, Width: 56, Height: 54},
