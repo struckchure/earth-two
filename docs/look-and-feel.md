@@ -90,3 +90,25 @@ The money summary uses a small numeric badge for available contract offers.
 It opens the account book when clicked; the book carries compact terminal
 notifications separately from ongoing contracts and completed receipts.
 Full offer details and acceptance are presented at the terminals.
+
+## Colony wardrobe finishes
+
+Clothing uses dark reinforcement panels, narrow reflective bands, woven
+technical fabric and small equipment-ID bars. Crew coveralls retain utility
+orange; Charter uniforms use navy with pale trim; Registrars use charcoal
+with brass-colored markings; Fringer layers use bleached earth tones. These
+are textile finishes, not luminous armor: ordinary clothing silhouettes remain
+part of the settlement's reused-ship aesthetic.
+
+New players start in the Crew's orange coveralls and boots. The wardrobe's
+Look row identifies this as Crew; the other faction looks and individual
+garments remain selectable.
+
+`tools/makehuman/scifi.py` applies the finish after each garment export in
+`wardrobe.py`. It projects the markings in garment space and rasterizes them
+into the existing UV textures, leaving geometry, skeletons, weights, mesh
+indices and skin patches intact. It can also update an existing wardrobe with
+Blender's Python: `scifi.py assets/characters`. Finished files are marked so
+rerunning it does not compound the effect; rebuild the source garment before
+changing the finish recipe. `scenes/wardrobe.py` previews both bodies in any
+of the five faction looks using the actual game assets.

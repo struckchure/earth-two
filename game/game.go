@@ -254,15 +254,15 @@ func setup(
 	roster.Get().Spawn(cmd, 0, arrival, illusion.C(character.Player{}), illusion.C(startingOutfit(wardrobe.Get())))
 }
 
-// startingOutfit is what the player first wears: whichever of these the
-// first body's wardrobe has.
+// startingOutfit puts the player in the colony's Crew coveralls and boots.
+// Items are resolved by name so catalogue order doesn't change the default.
 func startingOutfit(w *character.Wardrobe) character.Outfit {
 	var o character.Outfit
 	if len(w.Bodies) == 0 {
 		return o
 	}
 	for slot, name := range map[character.Slot]string{
-		character.Hair: "Short", character.Top: "T-shirt", character.Bottom: "Cargo pants", character.Shoes: "White trainers",
+		character.Hair: "Short", character.OnePiece: "Crew coveralls", character.Shoes: "Boots",
 	} {
 		if i, ok := w.Find(0, slot, name); ok {
 			o.Put(slot, i)

@@ -40,6 +40,7 @@ from mathutils.kdtree import KDTree
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import people  # noqa: E402  (after the path: people.py sits next to this file)
+from scifi import retrofit  # noqa: E402
 from cast import CATALOGUE, FACE, FACES, LOOKS, PEOPLE, SKINS  # noqa: E402
 
 from bl_ext.user_default.mpfb.services import HumanService  # noqa: E402
@@ -789,6 +790,7 @@ def main():
                 if joint_names(glb) != body_joints:
                     raise SystemExit("%s: %s's joints don't match the body's" % (name, item))
                 skin = [i for node, idx in mesh_indices(glb).items() if node.startswith(SKIN_PREFIX) for i in idx]
+                retrofit(path, slot, label, skin)
                 slots.setdefault(slot, []).append({
                     "name": label, "path": os.path.relpath(path, os.path.dirname(out)),
                     "hides": hides, "covers": covers, "skinMeshes": skin})
